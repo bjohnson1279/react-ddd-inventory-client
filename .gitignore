@@ -21,6 +21,7 @@ web_modules/
 # Output directories
 dist/
 build/
+test-results/
 
 # IDEs and editors
 .idea/
