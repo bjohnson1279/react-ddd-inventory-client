@@ -1,7 +1,13 @@
 version: 2
+registries:
+  npm-public:
+    type: npm-registry
+    url: https://registry.npmjs.org/
 updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+    registries:
+      - npm-public
     open-pull-requests-limit: 10
