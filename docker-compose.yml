@@ -6,6 +6,6 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "3005:80"
     container_name: react-ddd-inventory-client
     restart: always
