@@ -1,4 +1,4 @@
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem } from './client';
 
 const EXPRESS_BASE_URL = 'http://localhost:5000/api';
 const EXPRESS_WS_URL = 'ws://localhost:5000';
@@ -235,5 +235,124 @@ export class ExpressRESTAdapter implements InventoryClient {
     return () => {
       ws.close();
     };
+  }
+
+  // --- Advanced Admin Operations for Express ---
+
+  // Order Routing
+  async routeOrder(sku: string, quantity: number, destinationAddress: string, strategyName: string): Promise<FulfillmentPlan> {
+    return this.request('POST', '/shipping/route', { sku, quantity, destinationAddress, strategyName });
+  }
+
+  // Reorder Policies
+  async getReorderPolicies(tenantId: string): Promise<ReorderPolicy[]> {
+    try {
+      const data = await this.request('GET', `/reorder-policies?tenantId=${tenantId}`);
+      return data || [];
+    } catch {
+      return [];
+    }
+  }
+
+  async saveReorderPolicy(tenantId: string, policy: ReorderPolicy): Promise<void> {
+    await this.request('POST', '/reorder-policies', { tenantId, ...policy });
+  }
+
+  async evaluateReorderPolicies(tenantId: string): Promise<void> {
+    await this.request('POST', '/reorder-policies/evaluate', { tenantId });
+  }
+
+  // Webhooks
+  async getWebhooks(tenantId: string): Promise<WebhookSubscription[]> {
+    const data = await this.request('GET', `/webhooks?tenantId=${tenantId}`);
+    return data || [];
+  }
+
+  async createWebhook(tenantId: string, url: string, eventTypes: string[]): Promise<void> {
+    await this.request('POST', '/webhooks', { tenantId, url, eventTypes });
+  }
+
+  async deleteWebhook(tenantId: string, id: string): Promise<void> {
+    await this.request('DELETE', `/webhooks/${id}?tenantId=${tenantId}`);
+  }
+
+  async getWebhookDeliveries(tenantId: string): Promise<WebhookDeliveryLog[]> {
+    try {
+      const data = await this.request('GET', `/webhooks/deliveries?tenantId=${tenantId}`);
+      return data || [];
+    } catch {
+      return [];
+    }
+  }
+
+  // WMS Layout
+  async getWarehouseLocations(tenantId: string): Promise<WarehouseLocation[]> {
+    const data = await this.request('GET', `/warehouse-locations?tenantId=${tenantId}`);
+    return data || [];
+  }
+
+  async saveWarehouseLocation(tenantId: string, location: WarehouseLocation): Promise<void> {
+    await this.request('POST', '/warehouse-locations', { tenantId, ...location });
+  }
+
+  async deleteWarehouseLocation(tenantId: string, id: string): Promise<void> {
+    await this.request('DELETE', `/warehouse-locations/${id}?tenantId=${tenantId}`);
+  }
+
+  async getPutawaySuggestions(tenantId: string, sku: string, quantity: number): Promise<PutawaySuggestion[]> {
+    return this.request('POST', '/warehouse-locations/putaway-suggestions', { tenantId, sku, quantity });
+  }
+
+  async getOptimizedPickRoute(tenantId: string, skus: string[]): Promise<string[]> {
+    return this.request('POST', '/warehouse-locations/optimize-pick-route', { tenantId, skus });
+  }
+
+  // Procurement (PO)
+  async getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
+    const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
+    const ids: string[] = JSON.parse(idsStr);
+    const pos: PurchaseOrder[] = [];
+    for (const id of ids) {
+      try {
+        const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
+        if (po) pos.push(po);
+      } catch (e) {
+        console.error(`Failed to load PO ${id}:`, e);
+      }
+    }
+    return pos;
+  }
+
+  async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
+    const po = await this.request('POST', '/purchase-orders', { tenantId, supplier, items });
+    if (po && po.id) {
+      const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
+      const ids: string[] = JSON.parse(idsStr);
+      if (!ids.includes(po.id)) {
+        ids.push(po.id);
+        localStorage.setItem(`po_ids_${tenantId}`, JSON.stringify(ids));
+      }
+    }
+  }
+
+  async approvePurchaseOrder(tenantId: string, id: string): Promise<void> {
+    await this.request('POST', `/purchase-orders/${id}/approve`, { tenantId });
+  }
+
+  async sendPurchaseOrder(tenantId: string, id: string): Promise<void> {
+    await this.request('POST', `/purchase-orders/${id}/send`, { tenantId });
+  }
+
+  async receivePurchaseOrder(tenantId: string, id: string, items: { sku: string; quantity: number }[]): Promise<void> {
+    await this.request('POST', `/purchase-orders/${id}/receive`, { tenantId, items });
+  }
+
+  // FEFO & Recall
+  async getFefoPickSuggestions(tenantId: string, sku: string, quantity: number): Promise<any[]> {
+    return this.request('GET', `/inventory/fefo-pick?sku=${sku}&quantity=${quantity}&tenantId=${tenantId}`);
+  }
+
+  async traceRecall(tenantId: string, lotNumber: string): Promise<any> {
+    return this.request('GET', `/inventory/reports/recall/${lotNumber}?tenantId=${tenantId}`);
   }
 }

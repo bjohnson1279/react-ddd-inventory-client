@@ -74,6 +74,51 @@ function App() {
     { accountCode: '2000', amountCents: 0, type: 'credit', memo: '' }
   ]);
 
+  // --- Advanced Admin Features States ---
+  const [routingSku, setRoutingSku] = useState('ROUTE-SKU');
+  const [routingQuantity, setRoutingQuantity] = useState(12);
+  const [routingAddress, setRoutingAddress] = useState('New York, NY 10001');
+  const [routingStrategy, setRoutingStrategy] = useState('MINIMIZE_COST');
+  const [routingPlan, setRoutingPlan] = useState<any | null>(null);
+
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [newPoSupplier, setNewPoSupplier] = useState('');
+  const [newPoLines, setNewPoLines] = useState<{ sku: string; quantity: number; unitCostCents: number }[]>([
+    { sku: '', quantity: 1, unitCostCents: 1000 }
+  ]);
+  const [receivePoId, setReceivePoId] = useState('');
+  const [receivePoLines, setReceivePoLines] = useState<{ sku: string; quantity: number }[]>([]);
+
+  const [wmsLocations, setWmsLocations] = useState<any[]>([]);
+  const [wmsLocId, setWmsLocId] = useState('');
+  const [wmsWarehouseId, setWmsWarehouseId] = useState('WH-CENTRAL');
+  const [wmsZone, setWmsZone] = useState('A');
+  const [wmsMaxWeight, setWmsMaxWeight] = useState(50000);
+  const [wmsMaxVolume, setWmsMaxVolume] = useState(10.0);
+  const [putawaySku, setPutawaySku] = useState('');
+  const [putawayQty, setPutawayQty] = useState(10);
+  const [putawayResult, setPutawayResult] = useState<any[]>([]);
+  const [pickSkusInput, setPickSkusInput] = useState('');
+  const [pickRouteResult, setPickRouteResult] = useState<string[]>([]);
+
+  const [webhooks, setWebhooks] = useState<any[]>([]);
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookEvents, setWebhookEvents] = useState<string[]>(['StockReceived']);
+  const [webhookDeliveries, setWebhookDeliveries] = useState<any[]>([]);
+  
+  const [fefoSku, setFefoSku] = useState('');
+  const [fefoQty, setFefoQty] = useState(5);
+  const [fefoResult, setFefoResult] = useState<any[]>([]);
+  const [recallLotNum, setRecallLotNum] = useState('');
+  const [recallResult, setRecallResult] = useState<any | null>(null);
+  
+  const [reorderPolicies, setReorderPolicies] = useState<any[]>([]);
+  const [policySku, setPolicySku] = useState('');
+  const [policyLoc, setPolicyLoc] = useState('');
+  const [policyRop, setPolicyRop] = useState(10);
+  const [policySafety, setPolicySafety] = useState(5);
+  const [policyEoq, setPolicyEoq] = useState(25);
+
   // Decode JWT details to synchronize client parameters
   useEffect(() => {
     if (token) {
@@ -92,14 +137,15 @@ function App() {
   useEffect(() => {
     const allowedTabs = ['dashboard'];
     if (role === 'admin') {
-      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting');
+      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks');
     } else if (role === 'warehouse_operator') {
-      allowedTabs.push('products', 'scanning', 'serials', 'forecasting');
+      allowedTabs.push('products', 'scanning', 'serials', 'forecasting', 'warehouse', 'procurement');
     } else if (role === 'accountant') {
-      allowedTabs.push('onboarding', 'products', 'ledger', 'forecasting');
+      allowedTabs.push('onboarding', 'products', 'ledger', 'forecasting', 'procurement');
     } else if (role === 'viewer') {
       allowedTabs.push('products', 'serials', 'forecasting');
     }
+
     
     if (!allowedTabs.includes(activeTab)) {
       setActiveTab('dashboard');
@@ -174,6 +220,56 @@ function App() {
     }
   };
 
+  const loadPurchaseOrders = async () => {
+    setLoading(true);
+    try {
+      const data = await client.getPurchaseOrders(tenantId);
+      setPurchaseOrders(data || []);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load Purchase Orders.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadWmsLocations = async () => {
+    setLoading(true);
+    try {
+      const data = await client.getWarehouseLocations(tenantId);
+      setWmsLocations(data || []);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load WMS locations.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadWebhooks = async () => {
+    setLoading(true);
+    try {
+      const subs = await client.getWebhooks(tenantId);
+      setWebhooks(subs || []);
+      const logs = await client.getWebhookDeliveries(tenantId);
+      setWebhookDeliveries(logs || []);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load Webhook configurations.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadReorderPolicies = async () => {
+    setLoading(true);
+    try {
+      const data = await client.getReorderPolicies(tenantId);
+      setReorderPolicies(data || []);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load Reorder Policies.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!token) return;
     setMessage(null);
@@ -189,6 +285,17 @@ function App() {
       loadDashboardData();
     } else if (activeTab === 'forecasting') {
       loadForecastingReport();
+      loadReorderPolicies();
+    } else if (activeTab === 'routing') {
+      loadDashboardData();
+    } else if (activeTab === 'procurement') {
+      loadDashboardData();
+      loadPurchaseOrders();
+    } else if (activeTab === 'warehouse') {
+      loadDashboardData();
+      loadWmsLocations();
+    } else if (activeTab === 'webhooks') {
+      loadWebhooks();
     }
   }, [activeTab, tenantId, token]);
 
@@ -398,6 +505,238 @@ function App() {
     }
   };
 
+  // --- Advanced Operations Responders ---
+
+  const handleComputeRoute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setRoutingPlan(null);
+    try {
+      const plan = await client.routeOrder(routingSku, Number(routingQuantity), routingAddress, routingStrategy);
+      setRoutingPlan(plan);
+      setMessage({ type: 'success', text: 'Order routing optimization completed successfully!' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Routing failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreatePurchaseOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const activeItems = newPoLines.filter(item => item.sku !== '' && item.quantity > 0);
+      await client.createPurchaseOrder(tenantId, newPoSupplier, activeItems);
+      setMessage({ type: 'success', text: `Purchase Order draft created for ${newPoSupplier}.` });
+      setNewPoSupplier('');
+      setNewPoLines([{ sku: '', quantity: 1, unitCostCents: 1000 }]);
+      loadPurchaseOrders();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to create Purchase Order.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprovePO = async (id: string) => {
+    setLoading(true);
+    try {
+      await client.approvePurchaseOrder(tenantId, id);
+      setMessage({ type: 'success', text: `Purchase Order ${id} approved.` });
+      loadPurchaseOrders();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Approval failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendPO = async (id: string) => {
+    setLoading(true);
+    try {
+      await client.sendPurchaseOrder(tenantId, id);
+      setMessage({ type: 'success', text: `Purchase Order ${id} sent to supplier.` });
+      loadPurchaseOrders();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Sending PO failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReceivePO = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const activeItems = receivePoLines.filter(item => item.quantity > 0);
+      await client.receivePurchaseOrder(tenantId, receivePoId, activeItems);
+      setMessage({ type: 'success', text: `Successfully received items for PO ${receivePoId}.` });
+      setReceivePoId('');
+      setReceivePoLines([]);
+      loadPurchaseOrders();
+      loadDashboardData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Receiving PO items failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateWmsLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await client.saveWarehouseLocation(tenantId, {
+        id: wmsLocId,
+        warehouseId: wmsWarehouseId,
+        zone: wmsZone,
+        maxWeightGrams: Number(wmsMaxWeight),
+        maxVolumeCubicMeters: Number(wmsMaxVolume)
+      });
+      setMessage({ type: 'success', text: `Warehouse location ${wmsLocId} configured.` });
+      setWmsLocId('');
+      loadWmsLocations();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Saving WMS location failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteWmsLocation = async (id: string) => {
+    setLoading(true);
+    try {
+      await client.deleteWarehouseLocation(tenantId, id);
+      setMessage({ type: 'success', text: `Warehouse location ${id} deleted.` });
+      loadWmsLocations();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Deleting WMS location failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGetPutawaySuggestions = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const data = await client.getPutawaySuggestions(tenantId, putawaySku, Number(putawayQty));
+      setPutawayResult(data || []);
+      setMessage({ type: 'success', text: 'Putaway recommendation generated!' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to suggest putaway.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOptimizePickRoute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const skus = pickSkusInput.split(',').map(s => s.trim()).filter(s => s !== '');
+      const data = await client.getOptimizedPickRoute(tenantId, skus);
+      setPickRouteResult(data || []);
+      setMessage({ type: 'success', text: 'Pick path optimization completed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Pick path optimization failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateWebhook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await client.createWebhook(tenantId, webhookUrl, webhookEvents);
+      setMessage({ type: 'success', text: `Webhook subscription created for ${webhookUrl}` });
+      setWebhookUrl('');
+      loadWebhooks();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to subscribe webhook.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteWebhook = async (id: string) => {
+    setLoading(true);
+    try {
+      await client.deleteWebhook(tenantId, id);
+      setMessage({ type: 'success', text: `Webhook subscription ${id} deleted.` });
+      loadWebhooks();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to unsubscribe webhook.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveReorderPolicy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await client.saveReorderPolicy(tenantId, {
+        sku: policySku,
+        locationId: policyLoc,
+        reorderPoint: Number(policyRop),
+        safetyStock: Number(policySafety),
+        economicOrderQuantity: Number(policyEoq)
+      });
+      setMessage({ type: 'success', text: `ROP/EOQ policy for SKU ${policySku} saved.` });
+      setPolicySku('');
+      setPolicyLoc('');
+      loadReorderPolicies();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to save reorder policy.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEvaluateReorderPolicies = async () => {
+    setLoading(true);
+    try {
+      await client.evaluateReorderPolicies(tenantId);
+      setMessage({ type: 'success', text: 'Dynamic ROP recalculations and safety checks completed!' });
+      loadForecastingReport();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'ROP evaluation failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGetFefoSuggestions = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const data = await client.getFefoPickSuggestions(tenantId, fefoSku, Number(fefoQty));
+      setFefoResult(data || []);
+      setMessage({ type: 'success', text: 'FEFO pick recommendations loaded.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'FEFO calculation failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTraceRecall = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const data = await client.traceRecall(tenantId, recallLotNum);
+      setRecallResult(data);
+      setMessage({ type: 'success', text: 'Recall trace report compiled.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Recall tracing failed.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // --- Auth View ---
   if (!token) {
     return (
@@ -507,6 +846,26 @@ function App() {
             <div className={`nav-link ${activeTab === 'forecasting' ? 'active' : ''}`} onClick={() => setActiveTab('forecasting')}>
               📊 Demand Forecasting
             </div>
+            {role === 'admin' && (
+              <div className={`nav-link ${activeTab === 'routing' ? 'active' : ''}`} onClick={() => setActiveTab('routing')}>
+                🚚 Order Routing
+              </div>
+            )}
+            {(role === 'admin' || role === 'warehouse_operator' || role === 'accountant') && (
+              <div className={`nav-link ${activeTab === 'procurement' ? 'active' : ''}`} onClick={() => setActiveTab('procurement')}>
+                🛒 Purchase Orders
+              </div>
+            )}
+            {(role === 'admin' || role === 'warehouse_operator') && (
+              <div className={`nav-link ${activeTab === 'warehouse' ? 'active' : ''}`} onClick={() => setActiveTab('warehouse')}>
+                🏢 Warehouse Layout
+              </div>
+            )}
+            {role === 'admin' && (
+              <div className={`nav-link ${activeTab === 'webhooks' ? 'active' : ''}`} onClick={() => setActiveTab('webhooks')}>
+                🔗 Webhook Logs
+              </div>
+            )}
           </div>
         </div>
         <div>
@@ -1340,6 +1699,508 @@ function App() {
               </div>
             </div>
           </>
+        )}
+
+        {activeTab === 'routing' && (
+          <div className="grid-cols-2">
+            <div className="glass-panel">
+              <h3 className="form-section-title">Intelligent Order Routing Optimizer</h3>
+              <form onSubmit={handleComputeRoute}>
+                <div className="form-group">
+                  <label>Product SKU</label>
+                  <input type="text" value={routingSku} onChange={(e) => setRoutingSku(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label>Order Quantity</label>
+                  <input type="number" value={routingQuantity} onChange={(e) => setRoutingQuantity(Number(e.target.value))} required />
+                </div>
+                <div className="form-group">
+                  <label>Destination Address (Geocode Lookup)</label>
+                  <input type="text" value={routingAddress} onChange={(e) => setRoutingAddress(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label>Routing Strategy</label>
+                  <select value={routingStrategy} onChange={(e) => setRoutingStrategy(e.target.value)}>
+                    <option value="MINIMIZE_COST">Minimize Carrier Cost (Balanced splits)</option>
+                    <option value="MINIMIZE_SPLITS">Minimize Splits (Fulfill from single location)</option>
+                    <option value="MINIMIZE_DISTANCE">Minimize Distance (Nearest origin warehouse)</option>
+                  </select>
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? <Spinner /> : 'Compute Optimal Routing Plan'}
+                </button>
+              </form>
+            </div>
+
+            <div className="glass-panel">
+              <h3 className="form-section-title">Optimal Fulfillment Plan</h3>
+              {!routingPlan ? (
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem 0' }}>
+                  Submit parameters on the left to resolve origin allocations.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div className="stat-card accent">
+                    <span className="stat-title">Fulfillment Cost</span>
+                    <span className="stat-value">${(routingPlan.totalCost / 100).toFixed(2)}</span>
+                    <span className="stat-desc">Calculated shipping & split penalties</span>
+                  </div>
+                  
+                  <div className="grid-cols-2" style={{ gap: '1rem' }}>
+                    <div className="stat-card">
+                      <span className="stat-title">Total Distance</span>
+                      <span className="stat-value">{Number(routingPlan.totalDistance).toFixed(1)} km</span>
+                    </div>
+                    <div className="stat-card">
+                      <span className="stat-title">Split Shipments</span>
+                      <span className="stat-value">{routingPlan.splitCount} splits</span>
+                    </div>
+                  </div>
+
+                  <h4 style={{ margin: '1rem 0 0.5rem 0' }}>Warehouse Allocations</h4>
+                  <div className="table-wrapper">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Warehouse / Location ID</th>
+                          <th>Allocated Quantity</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {routingPlan.allocations.map((alloc: any, idx: number) => (
+                          <tr key={idx}>
+                            <td><code>{alloc.locationId}</code></td>
+                            <td><strong>{alloc.quantity} units</strong></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'procurement' && (
+          <div className="grid-cols-2">
+            <div className="glass-panel">
+              <h3 className="form-section-title">Create Purchase Order (PO) Draft</h3>
+              <form onSubmit={handleCreatePurchaseOrder}>
+                <div className="form-group">
+                  <label>Supplier Name</label>
+                  <input type="text" value={newPoSupplier} onChange={(e) => setNewPoSupplier(e.target.value)} required placeholder="e.g. Acme Supplies Ltd." />
+                </div>
+                
+                <div className="form-group">
+                  <label>Line Items</label>
+                  {newPoLines.map((line, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <input 
+                        type="text" 
+                        placeholder="SKU" 
+                        value={line.sku} 
+                        onChange={(e) => {
+                          const updated = [...newPoLines];
+                          updated[idx].sku = e.target.value;
+                          setNewPoLines(updated);
+                        }} 
+                        required 
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="Qty" 
+                        value={line.quantity || ''} 
+                        onChange={(e) => {
+                          const updated = [...newPoLines];
+                          updated[idx].quantity = Number(e.target.value);
+                          setNewPoLines(updated);
+                        }} 
+                        required 
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="Unit Cost (Cents)" 
+                        value={line.unitCostCents || ''} 
+                        onChange={(e) => {
+                          const updated = [...newPoLines];
+                          updated[idx].unitCostCents = Number(e.target.value);
+                          setNewPoLines(updated);
+                        }} 
+                        required 
+                      />
+                    </div>
+                  ))}
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    style={{ padding: '0.3rem 0.75rem', fontSize: '0.8rem' }}
+                    onClick={() => setNewPoLines([...newPoLines, { sku: '', quantity: 1, unitCostCents: 1000 }])}
+                  >
+                    + Add Item Row
+                  </button>
+                </div>
+                
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? <Spinner /> : 'Draft Purchase Order'}
+                </button>
+              </form>
+
+              {purchaseOrders.some(po => po.status === 'sent') && (
+                <div style={{ marginTop: '2.5rem' }}>
+                  <h3 className="form-section-title">Receive Purchase Order Inventory</h3>
+                  <form onSubmit={handleReceivePO}>
+                    <div className="form-group">
+                      <label>Purchase Order ID</label>
+                      <select 
+                        value={receivePoId} 
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setReceivePoId(id);
+                          const po = purchaseOrders.find(p => p.id === id);
+                          if (po) {
+                            setReceivePoLines(po.items.map((i: any) => ({ sku: i.sku, quantity: i.quantity })));
+                          }
+                        }}
+                        required
+                      >
+                        <option value="">-- Select Active PO --</option>
+                        {purchaseOrders.filter(po => po.status === 'sent').map(po => (
+                          <option key={po.id} value={po.id}>{po.id} ({po.supplier})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {receivePoId && (
+                      <div className="form-group">
+                        <label>Receipt Quantities</label>
+                        {receivePoLines.map((line, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                            <span><code>{line.sku}</code></span>
+                            <input 
+                              type="number" 
+                              value={line.quantity} 
+                              onChange={(e) => {
+                                const updated = [...receivePoLines];
+                                updated[idx].quantity = Number(e.target.value);
+                                setReceivePoLines(updated);
+                              }}
+                              required 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <button type="submit" className="btn btn-accent" disabled={loading}>
+                      Fulfill PO & Receive Stock
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
+
+            <div className="glass-panel">
+              <h3 className="form-section-title">Purchase Order Registry</h3>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>PO ID / Date</th>
+                      <th>Supplier</th>
+                      <th>Items</th>
+                      <th>Status & Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchaseOrders.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                          No Purchase Orders registered in local storage or backend.
+                        </td>
+                      </tr>
+                    ) : (
+                      purchaseOrders.map(po => (
+                        <tr key={po.id}>
+                          <td>
+                            <code>{po.id}</code>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted-dark)' }}>
+                              {new Date(po.createdAt || new Date()).toLocaleDateString()}
+                            </div>
+                          </td>
+                          <td><strong>{po.supplier}</strong></td>
+                          <td>
+                            {po.items.map((i: any, idx: number) => (
+                              <div key={idx} style={{ fontSize: '0.85rem' }}>
+                                <code>{i.sku}</code>: x{i.quantity} (${((i.unitCostCents || 0) / 100).toFixed(2)})
+                              </div>
+                            ))}
+                          </td>
+                          <td>
+                            <div style={{ marginBottom: '0.5rem' }}>
+                              <span className={`badge badge-${po.status === 'draft' ? 'warning' : po.status === 'approved' ? 'info' : po.status === 'sent' ? 'primary' : 'success'}`}>
+                                {po.status.toUpperCase()}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              {po.status === 'draft' && (
+                                <button className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleApprovePO(po.id)}>
+                                  Approve
+                                </button>
+                              )}
+                              {po.status === 'approved' && (
+                                <button className="btn btn-accent" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleSendPO(po.id)}>
+                                  Send PO
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'warehouse' && (
+          <div className="grid-cols-2">
+            <div className="glass-panel">
+              <h3 className="form-section-title">Configure Warehouse Location Layout</h3>
+              <form onSubmit={handleCreateWmsLocation}>
+                <div className="form-group">
+                  <label>Location / Bin ID</label>
+                  <input type="text" value={wmsLocId} onChange={(e) => setWmsLocId(e.target.value)} required placeholder="e.g. LOC-CENTRAL" />
+                </div>
+                <div className="form-group">
+                  <label>Warehouse ID</label>
+                  <input type="text" value={wmsWarehouseId} onChange={(e) => setWmsWarehouseId(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label>Warehouse Zone</label>
+                  <input type="text" value={wmsZone} onChange={(e) => setWmsZone(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label>Max Weight Capacity (Grams)</label>
+                  <input type="number" value={wmsMaxWeight} onChange={(e) => setWmsMaxWeight(Number(e.target.value))} required />
+                </div>
+                <div className="form-group">
+                  <label>Max Volume Capacity (Cubic Meters)</label>
+                  <input type="number" step="0.01" value={wmsMaxVolume} onChange={(e) => setWmsMaxVolume(Number(e.target.value))} required />
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  Configure Location
+                </button>
+              </form>
+
+              <div style={{ marginTop: '2.5rem' }}>
+                <h3 className="form-section-title">Get Putaway Recommendation</h3>
+                <form onSubmit={handleGetPutawaySuggestions}>
+                  <div className="form-group">
+                    <label>Product SKU</label>
+                    <input type="text" value={putawaySku} onChange={(e) => setPutawaySku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
+                  </div>
+                  <div className="form-group">
+                    <label>Incoming Quantity</label>
+                    <input type="number" value={putawayQty} onChange={(e) => setPutawayQty(Number(e.target.value))} required />
+                  </div>
+                  <button type="submit" className="btn btn-accent" disabled={loading}>
+                    Suggest Bin Location
+                  </button>
+                </form>
+
+                {putawayResult.length > 0 && (
+                  <div style={{ marginTop: '1rem' }} className="alert-box alert-success">
+                    <strong>Suggested Bin:</strong> <code>{putawayResult[0].locationId}</code> (Fulfill: {putawayResult[0].suggestedQuantity} units)
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="glass-panel">
+              <h3 className="form-section-title">Warehouse Location Registry</h3>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Location ID</th>
+                      <th>Zone</th>
+                      <th>Max Weight</th>
+                      <th>Max Volume</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {wmsLocations.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                          No warehouse locations configured.
+                        </td>
+                      </tr>
+                    ) : (
+                      wmsLocations.map(loc => (
+                        <tr key={loc.id}>
+                          <td><code>{loc.id}</code></td>
+                          <td><code>Zone {loc.zone}</code></td>
+                          <td>{loc.maxWeightGrams}g</td>
+                          <td>{loc.maxVolumeCubicMeters}m³</td>
+                          <td>
+                            <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)}>
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ marginTop: '2.5rem' }}>
+                <h3 className="form-section-title">WMS Picking Route Optimization</h3>
+                <form onSubmit={handleOptimizePickRoute}>
+                  <div className="form-group">
+                    <label>List of SKUs to Pick (Comma separated)</label>
+                    <input type="text" value={pickSkusInput} onChange={(e) => setPickSkusInput(e.target.value)} required placeholder="ROUTE-SKU, CHARGER-WRLS-BLK" />
+                  </div>
+                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                    Generate Optimal Pick Sequence
+                  </button>
+                </form>
+
+                {pickRouteResult.length > 0 && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <h4>Suggested Sequencing Path</h4>
+                    <ol style={{ paddingLeft: '1.25rem', marginTop: '0.5rem' }}>
+                      {pickRouteResult.map((sku, idx) => (
+                        <li key={idx} style={{ marginBottom: '0.25rem' }}>
+                          Collect SKU: <strong><code>{sku}</code></strong>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'webhooks' && (
+          <div className="grid-cols-2">
+            <div className="glass-panel">
+              <h3 className="form-section-title">Subscribe Outbound Webhook</h3>
+              <form onSubmit={handleCreateWebhook}>
+                <div className="form-group">
+                  <label>Target URL Endpoint</label>
+                  <input type="url" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} required placeholder="https://api.thirdparty.com/webhook" />
+                </div>
+                <div className="form-group">
+                  <label>Event Subscriptions</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {['StockReceived', 'StockDispatched', 'LowStockDetected', 'OnboardingSubmitted'].map(evt => (
+                      <label key={evt} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={webhookEvents.includes(evt)} 
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setWebhookEvents([...webhookEvents, evt]);
+                            } else {
+                              setWebhookEvents(webhookEvents.filter(x => x !== evt));
+                            }
+                          }} 
+                        />
+                        <code>{evt}</code>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  Create Webhook Subscription
+                </button>
+              </form>
+
+              <div style={{ marginTop: '2.5rem' }}>
+                <h3 className="form-section-title">Webhook Subscriptions</h3>
+                <div className="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Webhook Target URL</th>
+                        <th>Subscribed Events</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {webhooks.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No active webhook subscriptions configured.
+                          </td>
+                        </tr>
+                      ) : (
+                        webhooks.map(w => (
+                          <tr key={w.id}>
+                            <td style={{ maxWidth: '200px', wordBreak: 'break-all' }}>
+                              <code>{w.url}</code>
+                            </td>
+                            <td>
+                              {w.eventTypes.map((e: string) => (
+                                <div key={e} style={{ fontSize: '0.85rem' }}><code>{e}</code></div>
+                              ))}
+                            </td>
+                            <td>
+                              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)}>
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-panel">
+              <h3 className="form-section-title">Webhook Delivery Retry Logs</h3>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Event</th>
+                      <th>Status Code</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {webhookDeliveries.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                          No webhook deliveries recorded.
+                        </td>
+                      </tr>
+                    ) : (
+                      webhookDeliveries.map(log => (
+                        <tr key={log.id}>
+                          <td><code>{log.eventName}</code></td>
+                          <td>
+                            <span className={`badge badge-${log.statusCode && log.statusCode >= 200 && log.statusCode < 300 ? 'success' : 'error'}`}>
+                              {log.statusCode || log.status}
+                            </span>
+                          </td>
+                          <td>{new Date(log.occurredOn || new Date()).toLocaleTimeString()}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

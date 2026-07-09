@@ -108,8 +108,75 @@ export interface ForecastingReportItem {
   safetyStock: number;
 }
 
+// --- New Features Interfaces ---
+
+export interface FulfillmentAllocation {
+  locationId: string;
+  quantity: number;
+}
+
+export interface FulfillmentPlan {
+  allocations: FulfillmentAllocation[];
+  totalCost: number;
+  totalDistance: number;
+  splitCount: number;
+}
+
+export interface ReorderPolicy {
+  sku: string;
+  locationId: string;
+  reorderPoint: number;
+  safetyStock: number;
+  economicOrderQuantity: number;
+}
+
+export interface WebhookSubscription {
+  id: string;
+  tenantId: string;
+  url: string;
+  eventTypes: string[];
+}
+
+export interface WebhookDeliveryLog {
+  id: string;
+  subscriptionId: string;
+  eventName: string;
+  status: string;
+  statusCode?: number;
+  occurredOn: string;
+}
+
+export interface WarehouseLocation {
+  id: string;
+  warehouseId: string;
+  zone: string;
+  maxWeightGrams: number;
+  maxVolumeCubicMeters: number;
+}
+
+export interface PutawaySuggestion {
+  locationId: string;
+  sku: string;
+  suggestedQuantity: number;
+}
+
+export interface PurchaseOrderItem {
+  sku: string;
+  quantity: number;
+  unitCostCents: number;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  tenantId: string;
+  supplier: string;
+  status: 'draft' | 'approved' | 'sent' | 'received';
+  items: PurchaseOrderItem[];
+  createdAt: string;
+}
+
 export type BackendType = 'graphql' | 'express' | 'laravel';
-export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting';
+export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks';
 
 // --- Abstract Client Interface ---
 export interface InventoryClient {
@@ -135,6 +202,40 @@ export interface InventoryClient {
 
   // Real-time Barcode Scanning
   subscribeBarcodeScans(tenantId: string, onScan: (scan: any) => void): () => void;
+
+  // --- Advanced Admin Operations ---
+  
+  // Order Routing
+  routeOrder(sku: string, quantity: number, destinationAddress: string, strategyName: string): Promise<FulfillmentPlan>;
+
+  // Reorder Policies
+  getReorderPolicies(tenantId: string): Promise<ReorderPolicy[]>;
+  saveReorderPolicy(tenantId: string, policy: ReorderPolicy): Promise<void>;
+  evaluateReorderPolicies(tenantId: string): Promise<void>;
+
+  // Webhooks
+  getWebhooks(tenantId: string): Promise<WebhookSubscription[]>;
+  createWebhook(tenantId: string, url: string, eventTypes: string[]): Promise<void>;
+  deleteWebhook(tenantId: string, id: string): Promise<void>;
+  getWebhookDeliveries(tenantId: string): Promise<WebhookDeliveryLog[]>;
+
+  // WMS Layout
+  getWarehouseLocations(tenantId: string): Promise<WarehouseLocation[]>;
+  saveWarehouseLocation(tenantId: string, location: WarehouseLocation): Promise<void>;
+  deleteWarehouseLocation(tenantId: string, id: string): Promise<void>;
+  getPutawaySuggestions(tenantId: string, sku: string, quantity: number): Promise<PutawaySuggestion[]>;
+  getOptimizedPickRoute(tenantId: string, skus: string[]): Promise<string[]>;
+
+  // Procurement (PO)
+  getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]>;
+  createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void>;
+  approvePurchaseOrder(tenantId: string, id: string): Promise<void>;
+  sendPurchaseOrder(tenantId: string, id: string): Promise<void>;
+  receivePurchaseOrder(tenantId: string, id: string, items: { sku: string; quantity: number }[]): Promise<void>;
+
+  // FEFO & Recall
+  getFefoPickSuggestions(tenantId: string, sku: string, quantity: number): Promise<any[]>;
+  traceRecall(tenantId: string, lotNumber: string): Promise<any>;
 }
 
 // --- React Context Infrastructure ---
