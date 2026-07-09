@@ -234,8 +234,9 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async generateInternalBarcode(sku: string, tenantId: string): Promise<string> {
-    // Generate barcode directly client-side if Laravel doesn't have an explicit generate endpoint
-    const randomSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
+    const array = new Uint32Array(1);
+    window.crypto.getRandomValues(array);
+    const randomSuffix = (100000000 + (array[0] % 900000000)).toString();
     const barcodeValue = `INT-${sku}-${randomSuffix}`;
     await this.assignBarcode(sku, barcodeValue, 'code_128', 'internal', true);
     return barcodeValue;
@@ -518,7 +519,7 @@ export class LaravelRESTAdapter implements InventoryClient {
       supplier,
       items: formattedItems
     });
-    if (po && po.id) {
+    if (po?.id) {
       const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
       const ids: string[] = JSON.parse(idsStr);
       if (!ids.includes(po.id)) {

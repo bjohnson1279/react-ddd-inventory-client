@@ -363,7 +363,7 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async getOptimizedPickRoute(tenantId: string, skus: string[]): Promise<string[]> {
-    return [...skus].sort();
+    return [...skus].sort((a, b) => a.localeCompare(b));
   }
 
   // Procurement (PO)

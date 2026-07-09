@@ -1,4 +1,4 @@
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment } from './client';
 
 const EXPRESS_BASE_URL = 'http://localhost:5000/api';
 const EXPRESS_WS_URL = 'ws://localhost:5000';
@@ -78,19 +78,50 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getProducts(): Promise<Product[]> {
-    const products = await this.request('GET', '/inventory/products'); // wait, let's verify route
-    // Wait, in Express, is it /api/inventory/products or /api/barcodes/products?
-    // Let's verify: does Express have a catalog product route?
-    // Actually, let's fall back to listing products using /api/barcodes or /api/inventory if /inventory/products isn't defined.
-    // Let's check Express routes! We saw:
-    // /api/inventory/ is for inventory.
-    // Let's call /api/inventory to see if it lists products, or check how products are loaded in Express.
-    // In js-ddd-inventory/src/infrastructure/http/routes/inventory.routes.ts, it lists /api/inventory.
-    // Let's check if there is an endpoint to fetch products.
-    // In Express, we saw:
-    // app.use("/api/inventory", inventoryRoutes);
-    // app.use("/api/barcodes", barcodeRoutes);
-    return this.request('GET', '/barcodes/products'); // wait, let's dynamically resolve or fallback to safe mock
+    try {
+      const assignments = await this.request('GET', '/barcodes');
+      const grouped: Record<string, BarcodeAssignment[]> = {};
+      for (const a of assignments || []) {
+        const variantId = a.variantId;
+        if (!grouped[variantId]) grouped[variantId] = [];
+        grouped[variantId].push({
+          id: a.id,
+          sku: variantId,
+          barcode: {
+            value: a.barcodeValue,
+            symbology: a.symbology
+          },
+          source: a.source,
+          isPrimary: a.isPrimary,
+          assignedAt: a.assignedAt
+        });
+      }
+
+      const inventory = await this.getInventoryItems();
+      const skus = new Set(inventory.map(item => item.sku));
+      for (const sku of skus) {
+        if (!grouped[sku]) {
+          grouped[sku] = [];
+        }
+      }
+
+      const products: Product[] = Object.keys(grouped).map(sku => ({
+        id: `prod-${sku}`,
+        name: `Product ${sku}`,
+        variants: [{
+          id: sku,
+          sku: sku,
+          trackingMode: 'quantity',
+          attributes: [],
+          barcodes: grouped[sku]
+        }]
+      }));
+
+      return products;
+    } catch (err) {
+      console.warn('Failed to load products dynamically from barcodes/inventory. Returning empty list.', err);
+      return [];
+    }
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
@@ -325,7 +356,7 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
     const po = await this.request('POST', '/purchase-orders', { tenantId, supplier, items });
-    if (po && po.id) {
+    if (po?.id) {
       const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
       const ids: string[] = JSON.parse(idsStr);
       if (!ids.includes(po.id)) {
