@@ -1,5 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useInventory, BackendType, Item, JournalLine, Tab } from './api/client';
+import { useInventory, BackendType, Item, JournalLine, Tab, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, ForecastingReportItem } from './api/client';
+import {
+  DashboardPanel,
+  ShopifyPanel,
+  ProductsPanel,
+  ScanningPanel,
+  OnboardingPanel,
+  LedgerPanel,
+  SerialsPanel,
+  ForecastingPanel,
+  RoutingPanel,
+  ProcurementPanel,
+  WarehousePanel,
+  WebhooksPanel
+} from './components/Panels';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -28,17 +42,17 @@ function App() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // --- Loaded Data States ---
-  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [onboardings, setOnboardings] = useState<any[]>([]);
-  const [journals, setJournals] = useState<any[]>([]);
-  const [shopifyConns, setShopifyConns] = useState<any[]>([]);
-  const [forecastingReport, setForecastingReport] = useState<any[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [onboardings, setOnboardings] = useState<StockOnboarding[]>([]);
+  const [journals, setJournals] = useState<JournalEntry[]>([]);
+  const [shopifyConns, setShopifyConns] = useState<ShopifyConnection[]>([]);
+  const [forecastingReport, setForecastingReport] = useState<ForecastingReportItem[]>([]);
 
   // --- Selection / Draft States ---
-  const [selectedOnboarding, setSelectedOnboarding] = useState<any | null>(null);
+  const [selectedOnboarding, setSelectedOnboarding] = useState<StockOnboarding | null>(null);
   const [onboardingItems, setOnboardingItems] = useState<Item[]>([{ variantId: '', quantity: 0, unitCostCents: 0 }]);
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // --- Form Inputs ---
   const [newProdName, setNewProdName] = useState('');
@@ -61,7 +75,7 @@ function App() {
   const [scanHistory, setScanHistory] = useState<{ time: string; scan: string; context: string; status: string }[]>([]);
 
   const [traceSerialNum, setTraceSerialNum] = useState('');
-  const [tracedItem, setTracedItem] = useState<any | null>(null);
+  const [tracedItem, setTracedItem] = useState<SerializedItem | null>(null);
 
   const [newShopifyId, setNewShopifyId] = useState('');
   const [newShopifyDomain, setNewShopifyDomain] = useState('');
