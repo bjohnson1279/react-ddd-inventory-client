@@ -175,8 +175,71 @@ export interface PurchaseOrder {
   createdAt: string;
 }
 
+// --- Admin Portal Feature Interfaces ---
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  role: string;
+}
+
+export interface AuditDiscrepancy {
+  id: string;
+  sku: string;
+  locationId: string;
+  expectedQuantity: number;
+  actualQuantity: number;
+  discrepancyCount: number;
+  status: 'PENDING' | 'RESOLVED' | 'pending' | 'resolved';
+  detectedAt: string;
+  resolvedAt?: string;
+}
+
+export interface OutboxStats {
+  pendingCount: number;
+  publishedCount: number;
+  failedCount: number;
+}
+
+export interface OutboxEvent {
+  id: string;
+  eventType: string;
+  payload: string;
+  error?: string;
+  status: string;
+  occurredAt: string;
+}
+
+export interface TenantAccountingConfig {
+  tenantId: string;
+  accountingMethod: 'CASH' | 'ACCRUAL' | 'cash' | 'accrual';
+  costingMethod: 'FIFO' | 'LIFO' | 'WAC' | 'fifo' | 'lifo' | 'wac';
+  currencyCode: string;
+  fiscalYearStart: string;
+}
+
+export interface QuarantinedItem {
+  id: string;
+  sku: string;
+  locationId: string;
+  quantity: number;
+  reason: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface ValuationItem {
+  variantId: string;
+  sku: string;
+  name: string;
+  costingMethod: string;
+  totalQuantity: number;
+  totalValueCents: number;
+  unitCostCents: number;
+}
+
 export type BackendType = 'graphql' | 'express' | 'laravel';
-export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks';
+export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin';
 
 // --- Abstract Client Interface ---
 export interface InventoryClient {
@@ -236,6 +299,30 @@ export interface InventoryClient {
   // FEFO & Recall
   getFefoPickSuggestions(tenantId: string, sku: string, quantity: number): Promise<any[]>;
   traceRecall(tenantId: string, lotNumber: string): Promise<any>;
+
+  // --- Unified Admin Portal Operations ---
+  getUsers(tenantId: string): Promise<User[]>;
+  inviteUser(tenantId: string, email: string, role: string): Promise<{ userId: string; temporaryPassword?: string }>;
+  updateUserRole(tenantId: string, userId: string, role: string): Promise<void>;
+  
+  runAudit(tenantId: string): Promise<any>;
+  getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]>;
+  resolveDiscrepancy(tenantId: string, id: string, notes: string): Promise<void>;
+
+  getOutboxStats(): Promise<OutboxStats>;
+  getDeadLetterEvents(limit?: number): Promise<OutboxEvent[]>;
+  retryOutboxEvent(id: string): Promise<void>;
+
+  getTenantConfig(tenantId: string): Promise<TenantAccountingConfig>;
+  saveTenantConfig(tenantId: string, config: { accountingMethod: string; costingMethod: string }): Promise<void>;
+
+  assembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void>;
+  disassembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void>;
+
+  getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]>;
+  resolveQuarantine(tenantId: string, id: string, resolution: string): Promise<void>;
+
+  getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]>;
 }
 
 // --- React Context Infrastructure ---

@@ -1,4 +1,4 @@
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './client';
 
 const LARAVEL_BASE_URL = 'http://localhost:8000';
 
@@ -555,5 +555,164 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   async traceRecall(tenantId: string, lotNumber: string): Promise<any> {
     return this.request('GET', `/api/inventory/reports/recall/${lotNumber}?tenantId=${tenantId}`);
+  }
+
+  // --- Unified Admin Portal Operations for Laravel ---
+  async getUsers(tenantId: string): Promise<User[]> {
+    const res = await this.request('GET', `/api/users?tenantId=${tenantId}`);
+    return res?.users || [];
+  }
+
+  async inviteUser(tenantId: string, email: string, role: string): Promise<{ userId: string; temporaryPassword?: string }> {
+    const res = await this.request('POST', `/api/users`, { tenantId, email, role });
+    return {
+      userId: res?.user_id,
+      temporaryPassword: res?.temporary_password
+    };
+  }
+
+  async updateUserRole(tenantId: string, userId: string, role: string): Promise<void> {
+    await this.request('PATCH', `/api/users/${userId}/role`, { tenantId, role });
+  }
+
+  async runAudit(tenantId: string): Promise<any> {
+    return this.request('POST', `/api/audit/run`, { tenantId });
+  }
+
+  async getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]> {
+    const res = await this.request('GET', `/api/audit/discrepancies?tenantId=${tenantId}`);
+    return res || [];
+  }
+
+  async resolveDiscrepancy(tenantId: string, id: string, notes: string): Promise<void> {
+    await this.request('POST', `/api/audit/discrepancies/${id}/resolve`, { tenantId, notes });
+  }
+
+  async getOutboxStats(): Promise<OutboxStats> {
+    try {
+      const stats = await this.request('GET', `/api/outbox/stats`);
+      return {
+        pendingCount: stats?.pending || 0,
+        publishedCount: stats?.published || 0,
+        failedCount: stats?.failed || 0
+      };
+    } catch {
+      return { pendingCount: 0, publishedCount: 0, failedCount: 0 };
+    }
+  }
+
+  async getDeadLetterEvents(limit?: number): Promise<OutboxEvent[]> {
+    try {
+      const res = await this.request('GET', `/api/outbox/dead-letter${limit ? `?limit=${limit}` : ''}`);
+      return (res || []).map((e: any) => ({
+        id: e.id,
+        eventType: e.eventType || e.type || 'UnknownEvent',
+        payload: typeof e.payload === 'string' ? e.payload : JSON.stringify(e.payload),
+        error: e.error || e.errorMessage || '',
+        status: e.status || 'Failed',
+        occurredAt: e.occurredAt || e.createdAt || new Date().toISOString()
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async retryOutboxEvent(id: string): Promise<void> {
+    await this.request('POST', `/api/outbox/${id}/retry`);
+  }
+
+  async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
+    const local = localStorage.getItem(`tenant_config_${tenantId}`);
+    if (local) {
+      return JSON.parse(local);
+    }
+    return {
+      tenantId,
+      accountingMethod: 'ACCRUAL',
+      costingMethod: 'FIFO',
+      currencyCode: 'USD',
+      fiscalYearStart: '01-01'
+    };
+  }
+
+  async saveTenantConfig(tenantId: string, config: { accountingMethod: string; costingMethod: string }): Promise<void> {
+    const fullConfig = {
+      tenantId,
+      accountingMethod: config.accountingMethod as any,
+      costingMethod: config.costingMethod as any,
+      currencyCode: 'USD',
+      fiscalYearStart: '01-01'
+    };
+    localStorage.setItem(`tenant_config_${tenantId}`, JSON.stringify(fullConfig));
+  }
+
+  async assembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void> {
+    await this.request('POST', `/api/kits/assemble`, { tenantId, locationId, kitSku, quantity, actorId, referenceId });
+  }
+
+  async disassembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void> {
+    await this.request('POST', `/api/kits/disassemble`, { tenantId, locationId, kitSku, quantity, actorId, referenceId });
+  }
+
+  async getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]> {
+    try {
+      const res = await this.request('GET', `/api/returns/quarantine?tenantId=${tenantId}`);
+      return (res || []).map((q: any) => ({
+        id: q.id,
+        sku: q.sku || q.variantId || '',
+        locationId: q.locationId || '',
+        quantity: q.quantity || 0,
+        reason: q.reason || '',
+        status: q.status || 'Quarantined',
+        createdAt: q.createdAt || new Date().toISOString()
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async resolveQuarantine(tenantId: string, id: string, resolution: string): Promise<void> {
+    await this.request('POST', `/api/returns/quarantine/${id}/resolve`, { tenantId, resolution });
+  }
+
+  async getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]> {
+    try {
+      const valSummary = await this.request('GET', `/api/reports/valuation?tenantId=${tenantId}`);
+      const products = await this.getProducts();
+      const items: ValuationItem[] = [];
+      const chosenMethod = (method || 'FIFO').toUpperCase();
+      const invItems = await this.getInventoryItems();
+      for (const p of products) {
+        for (const v of p.variants) {
+          const variantInv = invItems.filter(i => i.sku === v.sku);
+          const qty = variantInv.reduce((sum, item) => sum + item.quantity, 0);
+          const unitCost = 1000;
+          if (qty > 0) {
+            items.push({
+              variantId: v.id,
+              sku: v.sku,
+              name: p.name + (v.attributes?.length ? ` (${v.attributes.map(a => a.value).join(', ')})` : ''),
+              costingMethod: chosenMethod,
+              totalQuantity: qty,
+              totalValueCents: qty * unitCost,
+              unitCostCents: unitCost
+            });
+          } else {
+            items.push({
+              variantId: v.id,
+              sku: v.sku,
+              name: p.name,
+              costingMethod: chosenMethod,
+              totalQuantity: 0,
+              totalValueCents: 0,
+              unitCostCents: 0
+            });
+          }
+        }
+      }
+      return items;
+    } catch {
+      return [];
+    }
   }
 }

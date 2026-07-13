@@ -1,5 +1,5 @@
 import { createClient } from 'graphql-ws';
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './client';
 
 const GRAPHQL_HTTP_URL = 'http://localhost:4000/graphql';
 const GRAPHQL_WS_URL = 'ws://localhost:4000/graphql';
@@ -440,5 +440,177 @@ export class GraphQLAdapter implements InventoryClient {
       affectedItems: 5,
       dispatchedCustomersCount: 2
     };
+  }
+
+  // --- Unified Admin Portal Operations for GraphQL ---
+  async getUsers(tenantId: string): Promise<User[]> {
+    const data = await this.fetchGraphql(`query GetUsers($tenant: ID!) {
+      users(tenantId: $tenant) { id email role }
+    }`, { tenant: tenantId });
+    return data.users || [];
+  }
+
+  async inviteUser(tenantId: string, email: string, role: string): Promise<{ userId: string; temporaryPassword?: string }> {
+    const data = await this.fetchGraphql(`mutation InviteUser($tenant: ID!, $email: String!, $role: String!) {
+      inviteUser(tenantId: $tenant, email: $email, role: $role) { userId temporaryPassword }
+    }`, { tenant: tenantId, email, role });
+    return {
+      userId: data.inviteUser?.userId,
+      temporaryPassword: data.inviteUser?.temporaryPassword
+    };
+  }
+
+  async updateUserRole(tenantId: string, userId: string, role: string): Promise<void> {
+    await this.fetchGraphql(`mutation UpdateUserRole($tenant: ID!, $userId: ID!, $role: String!) {
+      updateUserRole(tenantId: $tenant, userId: $userId, role: $role)
+    }`, { tenant: tenantId, userId, role });
+  }
+
+  async runAudit(tenantId: string): Promise<any> {
+    const data = await this.fetchGraphql(`mutation RunAudit($tenant: ID!) {
+      runAudit(tenantId: $tenant) { shopifyDiscrepancies accountingDiscrepancies }
+    }`, { tenant: tenantId });
+    return data.runAudit;
+  }
+
+  async getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]> {
+    const data = await this.fetchGraphql(`query GetDiscrepancies($tenant: ID!) {
+      auditDiscrepancies(tenantId: $tenant) { id sku locationId expectedQuantity actualQuantity discrepancyCount status detectedAt resolvedAt }
+    }`, { tenant: tenantId });
+    return data.auditDiscrepancies || [];
+  }
+
+  async resolveDiscrepancy(tenantId: string, id: string, notes: string): Promise<void> {
+    await this.fetchGraphql(`mutation ResolveDiscrepancy($id: ID!, $notes: String!) {
+      resolveAuditDiscrepancy(id: $id, notes: $notes)
+    }`, { id, notes });
+  }
+
+  async getOutboxStats(): Promise<OutboxStats> {
+    const data = await this.fetchGraphql(`query GetOutboxStats {
+      outboxStats { pending processing processed failed }
+    }`, {});
+    return {
+      pendingCount: data.outboxStats?.pending || 0,
+      publishedCount: data.outboxStats?.processed || 0,
+      failedCount: data.outboxStats?.failed || 0
+    };
+  }
+
+  async getDeadLetterEvents(limit?: number): Promise<OutboxEvent[]> {
+    const data = await this.fetchGraphql(`query GetDeadLetter($limit: Int) {
+      deadLetterEvents(limit: $limit) { id eventType payload error occurredAt }
+    }`, { limit: limit || 100 });
+    return (data.deadLetterEvents || []).map((e: any) => ({
+      id: e.id,
+      eventType: e.eventType,
+      payload: e.payload,
+      error: e.error,
+      status: 'Failed',
+      occurredAt: e.occurredAt
+    }));
+  }
+
+  async retryOutboxEvent(id: string): Promise<void> {
+    await this.fetchGraphql(`mutation RetryOutbox($id: ID!) {
+      retryOutboxEvent(id: $id)
+    }`, { id });
+  }
+
+  async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
+    const data = await this.fetchGraphql(`query GetTenantConfig($tenant: ID!) {
+      tenantAccountingConfig(tenantId: $tenant) { tenantId accountingMethod costingMethod }
+    }`, { tenant: tenantId });
+    return {
+      tenantId: data.tenantAccountingConfig?.tenantId || tenantId,
+      accountingMethod: data.tenantAccountingConfig?.accountingMethod || 'ACCRUAL',
+      costingMethod: data.tenantAccountingConfig?.costingMethod || 'FIFO',
+      currencyCode: 'USD',
+      fiscalYearStart: '01-01'
+    };
+  }
+
+  async saveTenantConfig(tenantId: string, config: { accountingMethod: string; costingMethod: string }): Promise<void> {
+    await this.fetchGraphql(`mutation SaveTenantConfig($input: SaveTenantAccountingConfigInput!) {
+      saveTenantAccountingConfig(input: $input)
+    }`, {
+      input: {
+        tenantId,
+        accountingMethod: config.accountingMethod.toUpperCase(),
+        costingMethod: config.costingMethod.toUpperCase()
+      }
+    });
+  }
+
+  async assembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void> {
+    await this.fetchGraphql(`mutation AssembleKit($input: AssembleKitInput!) {
+      assembleKit(input: $input)
+    }`, {
+      input: { tenantId, locationId, kitSku, quantity, actorId, referenceId }
+    });
+  }
+
+  async disassembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void> {
+    await this.fetchGraphql(`mutation DisassembleKit($input: DisassembleKitInput!) {
+      disassembleKit(input: $input)
+    }`, {
+      input: { tenantId, locationId, kitSku, quantity, actorId, referenceId }
+    });
+  }
+
+  async getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]> {
+    const data = await this.fetchGraphql(`query GetQuarantine($tenant: ID!) {
+      quarantineItems(tenantId: $tenant) { id sku locationId quantity reason status createdAt }
+    }`, { tenant: tenantId });
+    return (data.quarantineItems || []).map((q: any) => ({
+      id: q.id,
+      sku: q.sku,
+      locationId: q.locationId,
+      quantity: q.quantity,
+      reason: q.reason,
+      status: q.status,
+      createdAt: q.createdAt
+    }));
+  }
+
+  async resolveQuarantine(tenantId: string, id: string, resolution: string): Promise<void> {
+    await this.fetchGraphql(`mutation ResolveQuarantine($id: ID!, $resolution: String!) {
+      resolveQuarantineItem(id: $id, resolution: $resolution)
+    }`, { id, resolution });
+  }
+
+  async getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]> {
+    const data = await this.fetchGraphql(`query GetValuation($tenant: ID!, $location: String, $method: CostingMethod) {
+      stockValuationReport(tenantId: $tenant, locationId: $location, method: $method) {
+        lineItems { variantId sku quantityOnHand unitCostCents totalValueCents }
+        method
+      }
+    }`, {
+      tenant: tenantId,
+      location: locationId || null,
+      method: method ? method.toUpperCase() : null
+    });
+    const lineItems = data.stockValuationReport?.lineItems || [];
+    const costingMethod = data.stockValuationReport?.method || method || 'FIFO';
+    const products = await this.getProducts();
+    return lineItems.map((item: any) => {
+      let variantName = item.sku;
+      for (const p of products) {
+        const variant = p.variants.find(v => v.id === item.variantId || v.sku === item.sku);
+        if (variant) {
+          variantName = p.name + (variant.attributes?.length ? ` (${variant.attributes.map(a => a.value).join(', ')})` : '');
+          break;
+        }
+      }
+      return {
+        variantId: item.variantId,
+        sku: item.sku,
+        name: variantName,
+        costingMethod,
+        totalQuantity: item.quantityOnHand,
+        totalValueCents: item.totalValueCents,
+        unitCostCents: item.unitCostCents
+      };
+    });
   }
 }

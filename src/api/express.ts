@@ -1,4 +1,4 @@
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './client';
 
 const EXPRESS_BASE_URL = 'http://localhost:5000/api';
 const EXPRESS_WS_URL = 'ws://localhost:5000';
@@ -385,5 +385,153 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   async traceRecall(tenantId: string, lotNumber: string): Promise<any> {
     return this.request('GET', `/inventory/reports/recall/${lotNumber}?tenantId=${tenantId}`);
+  }
+
+  // --- Unified Admin Portal Operations for Express ---
+  async getUsers(tenantId: string): Promise<User[]> {
+    const res = await this.request('GET', `/users?tenantId=${tenantId}`);
+    return res?.users || [];
+  }
+
+  async inviteUser(tenantId: string, email: string, role: string): Promise<{ userId: string; temporaryPassword?: string }> {
+    return this.request('POST', `/users`, { tenantId, email, role });
+  }
+
+  async updateUserRole(tenantId: string, userId: string, role: string): Promise<void> {
+    await this.request('PATCH', `/users/${userId}/role`, { tenantId, role });
+  }
+
+  async runAudit(tenantId: string): Promise<any> {
+    return this.request('POST', `/audit/run`, { tenantId });
+  }
+
+  async getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]> {
+    const res = await this.request('GET', `/audit/discrepancies?tenantId=${tenantId}`);
+    return res || [];
+  }
+
+  async resolveDiscrepancy(tenantId: string, id: string, notes: string): Promise<void> {
+    await this.request('POST', `/audit/discrepancies/${id}/resolve`, { tenantId, notes });
+  }
+
+  async getOutboxStats(): Promise<OutboxStats> {
+    try {
+      const stats = await this.request('GET', `/outbox/stats`);
+      return {
+        pendingCount: stats?.pending || 0,
+        publishedCount: stats?.published || 0,
+        failedCount: stats?.failed || 0
+      };
+    } catch {
+      return { pendingCount: 0, publishedCount: 0, failedCount: 0 };
+    }
+  }
+
+  async getDeadLetterEvents(limit?: number): Promise<OutboxEvent[]> {
+    try {
+      const res = await this.request('GET', `/outbox/dead-letter${limit ? `?limit=${limit}` : ''}`);
+      return (res || []).map((e: any) => ({
+        id: e.id,
+        eventType: e.eventType || e.type || 'UnknownEvent',
+        payload: typeof e.payload === 'string' ? e.payload : JSON.stringify(e.payload),
+        error: e.error || e.errorMessage || '',
+        status: e.status || 'Failed',
+        occurredAt: e.occurredAt || e.createdAt || new Date().toISOString()
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async retryOutboxEvent(id: string): Promise<void> {
+    await this.request('POST', `/outbox/${id}/retry`);
+  }
+
+  async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
+    return this.request('GET', `/accounting/tenant-config/${tenantId}`);
+  }
+
+  async saveTenantConfig(tenantId: string, config: { accountingMethod: string; costingMethod: string }): Promise<void> {
+    await this.request('POST', `/accounting/tenant-config`, { tenantId, ...config });
+  }
+
+  async assembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void> {
+    await this.request('POST', `/kits/assemble`, { tenantId, locationId, kitSku, quantity, actorId, referenceId });
+  }
+
+  async disassembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void> {
+    await this.request('POST', `/kits/disassemble`, { tenantId, locationId, kitSku, quantity, actorId, referenceId });
+  }
+
+  async getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]> {
+    try {
+      const res = await this.request('GET', `/returns/quarantine?tenantId=${tenantId}`);
+      return (res || []).map((q: any) => ({
+        id: q.id,
+        sku: q.sku || q.variantId || '',
+        locationId: q.locationId || '',
+        quantity: q.quantity || 0,
+        reason: q.reason || '',
+        status: q.status || 'Quarantined',
+        createdAt: q.createdAt || new Date().toISOString()
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async resolveQuarantine(tenantId: string, id: string, resolution: string): Promise<void> {
+    await this.request('POST', `/returns/quarantine/${id}/resolve`, { tenantId, resolution });
+  }
+
+  async getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]> {
+    try {
+      const products = await this.getProducts();
+      const items: ValuationItem[] = [];
+      for (const p of products) {
+        for (const v of p.variants) {
+          try {
+            const invItems = await this.getInventoryItems();
+            const variantInv = invItems.filter(i => i.sku === v.sku);
+            const qty = variantInv.reduce((sum, item) => sum + item.quantity, 0);
+            if (qty > 0) {
+              const val = await this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`);
+              items.push({
+                variantId: v.id,
+                sku: v.sku,
+                name: p.name + (v.attributes?.length ? ` (${v.attributes.map(a => a.value).join(', ')})` : ''),
+                costingMethod: val.methodUsed || method || 'FIFO',
+                totalQuantity: qty,
+                totalValueCents: val.totalCostCents || 0,
+                unitCostCents: val.unitCostCents || 0
+              });
+            } else {
+              items.push({
+                variantId: v.id,
+                sku: v.sku,
+                name: p.name,
+                costingMethod: method || 'FIFO',
+                totalQuantity: 0,
+                totalValueCents: 0,
+                unitCostCents: 0
+              });
+            }
+          } catch {
+            items.push({
+              variantId: v.id,
+              sku: v.sku,
+              name: p.name,
+              costingMethod: method || 'FIFO',
+              totalQuantity: 0,
+              totalValueCents: 0,
+              unitCostCents: 0
+            });
+          }
+        }
+      }
+      return items;
+    } catch {
+      return [];
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useInventory, BackendType, Item, JournalLine, Tab, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, ForecastingReportItem } from './api/client';
+import { useInventory, BackendType, Item, JournalLine, Tab, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, ForecastingReportItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './api/client';
 import {
   DashboardPanel,
   ShopifyPanel,
@@ -132,6 +132,34 @@ function App() {
   const [policyRop, setPolicyRop] = useState(10);
   const [policySafety, setPolicySafety] = useState(5);
   const [policyEoq, setPolicyEoq] = useState(25);
+
+  // --- Admin Portal States ---
+  const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
+  const [adminUsers, setAdminUsers] = useState<User[]>([]);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserRole, setNewUserRole] = useState('warehouse_operator');
+  const [invitedUser, setInvitedUser] = useState<{ userId: string; temporaryPassword?: string } | null>(null);
+
+  const [discrepancies, setDiscrepancies] = useState<AuditDiscrepancy[]>([]);
+  const [discrepancyNotes, setDiscrepancyNotes] = useState<Record<string, string>>({});
+
+  const [outboxStats, setOutboxStats] = useState<OutboxStats>({ pendingCount: 0, publishedCount: 0, failedCount: 0 });
+  const [deadLetterEvents, setDeadLetterEvents] = useState<OutboxEvent[]>([]);
+
+  const [tenantConfig, setTenantConfig] = useState<TenantAccountingConfig | null>(null);
+  const [configAccountingMethod, setConfigAccountingMethod] = useState<'CASH' | 'ACCRUAL' | 'cash' | 'accrual'>('ACCRUAL');
+  const [configCostingMethod, setConfigCostingMethod] = useState<'FIFO' | 'LIFO' | 'WAC' | 'fifo' | 'lifo' | 'wac'>('FIFO');
+
+  const [kitSku, setKitSku] = useState('');
+  const [kitQty, setKitQty] = useState(1);
+  const [kitLocationId, setKitLocationId] = useState('LOC-A1');
+  const [kitRef, setKitRef] = useState('');
+
+  const [quarantinedItems, setQuarantinedItems] = useState<QuarantinedItem[]>([]);
+  const [quarantineResolutions, setQuarantineResolutions] = useState<Record<string, string>>({});
+
+  const [valuationItems, setValuationItems] = useState<ValuationItem[]>([]);
+  const [valuationCostingMethod, setValuationCostingMethod] = useState<string>('FIFO');
 
   // Decode JWT details to synchronize client parameters
   useEffect(() => {
@@ -284,6 +312,46 @@ function App() {
     }
   };
 
+  const loadAdminData = async (subTab?: string) => {
+    const tabToLoad = subTab || adminActiveSubTab;
+    if (!token) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      if (tabToLoad === 'users') {
+        const u = await client.getUsers(tenantId);
+        setAdminUsers(u);
+      } else if (tabToLoad === 'audits') {
+        const d = await client.getDiscrepancies(tenantId);
+        setDiscrepancies(d);
+      } else if (tabToLoad === 'outbox') {
+        const stats = await client.getOutboxStats();
+        setOutboxStats(stats);
+        const DL = await client.getDeadLetterEvents(100);
+        setDeadLetterEvents(DL);
+      } else if (tabToLoad === 'tenantConfig') {
+        const config = await client.getTenantConfig(tenantId);
+        setTenantConfig(config);
+        if (config) {
+          setConfigAccountingMethod(config.accountingMethod);
+          setConfigCostingMethod(config.costingMethod);
+        }
+      } else if (tabToLoad === 'quarantine') {
+        const q = await client.getQuarantinedItems(tenantId);
+        setQuarantinedItems(q);
+      } else if (tabToLoad === 'valuation') {
+        const method = valuationCostingMethod || 'FIFO';
+        const v = await client.getValuationReport(tenantId, undefined, method);
+        setValuationItems(v);
+      }
+    } catch (err: any) {
+      console.error('Failed to load admin data:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to load administrative data.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!token) return;
     setMessage(null);
@@ -310,8 +378,17 @@ function App() {
       loadWmsLocations();
     } else if (activeTab === 'webhooks') {
       loadWebhooks();
+    } else if (activeTab === 'admin') {
+      loadAdminData();
     }
   }, [activeTab, tenantId, token]);
+
+  // Keep admin subtab synced
+  useEffect(() => {
+    if (activeTab === 'admin') {
+      loadAdminData();
+    }
+  }, [adminActiveSubTab, valuationCostingMethod]);
 
   // Keep selected product synchronized with updated catalog data
   useEffect(() => {
@@ -751,6 +828,170 @@ function App() {
     }
   };
 
+  // --- Admin Portal Handlers ---
+  const handleInviteUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+    setInvitedUser(null);
+    try {
+      const res = await client.inviteUser(tenantId, newUserEmail, newUserRole);
+      setInvitedUser({ userId: res.userId, temporaryPassword: res.temporaryPassword });
+      setMessage({ type: 'success', text: `Successfully invited user ${newUserEmail}.` });
+      setNewUserEmail('');
+      loadAdminData('users');
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to invite user.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateUserRole = async (uId: string, uRole: string) => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      await client.updateUserRole(tenantId, uId, uRole);
+      setMessage({ type: 'success', text: `Successfully updated user role to ${uRole}.` });
+      loadAdminData('users');
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update user role.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRunAudit = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await client.runAudit(tenantId);
+      const text = res 
+        ? `Audit completed successfully. Shopify discrepancies: ${res.shopifyDiscrepancies || 0}, Accounting discrepancies: ${res.accountingDiscrepancies || 0}.`
+        : 'Audit triggered/completed successfully.';
+      setMessage({ type: 'success', text });
+      loadAdminData('audits');
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to trigger audit.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResolveDiscrepancy = async (id: string) => {
+    const notes = discrepancyNotes[id] || 'Resolved via Admin Console.';
+    setLoading(true);
+    setMessage(null);
+    try {
+      await client.resolveDiscrepancy(tenantId, id, notes);
+      setMessage({ type: 'success', text: 'Discrepancy resolved successfully.' });
+      setDiscrepancyNotes(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      loadAdminData('audits');
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to resolve discrepancy.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRetryOutboxEvent = async (id: string) => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      await client.retryOutboxEvent(id);
+      setMessage({ type: 'success', text: 'Outbox event retried successfully.' });
+      loadAdminData('outbox');
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to retry outbox event.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveTenantConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+    try {
+      await client.saveTenantConfig(tenantId, {
+        accountingMethod: configAccountingMethod,
+        costingMethod: configCostingMethod
+      });
+      setMessage({ type: 'success', text: 'Tenant accounting configuration updated.' });
+      loadAdminData('tenantConfig');
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to save tenant config.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAssembleKit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!kitSku) {
+      setMessage({ type: 'error', text: 'Please input a kit SKU.' });
+      return;
+    }
+    setLoading(true);
+    setMessage(null);
+    try {
+      const ref = kitRef || `KIT-ASM-${Date.now()}`;
+      await client.assembleKit(tenantId, kitLocationId, kitSku, Number(kitQty), actorId, ref);
+      setMessage({ type: 'success', text: `Successfully assembled ${kitQty} units of Kit ${kitSku}.` });
+      setKitSku('');
+      setKitRef('');
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to assemble kit.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDisassembleKit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!kitSku) {
+      setMessage({ type: 'error', text: 'Please input a kit SKU.' });
+      return;
+    }
+    setLoading(true);
+    setMessage(null);
+    try {
+      const ref = kitRef || `KIT-DIS-${Date.now()}`;
+      await client.disassembleKit(tenantId, kitLocationId, kitSku, Number(kitQty), actorId, ref);
+      setMessage({ type: 'success', text: `Successfully disassembled ${kitQty} units of Kit ${kitSku}.` });
+      setKitSku('');
+      setKitRef('');
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to disassemble kit.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResolveQuarantine = async (id: string) => {
+    const res = quarantineResolutions[id] || 'RELEASED';
+    setLoading(true);
+    setMessage(null);
+    try {
+      await client.resolveQuarantine(tenantId, id, res);
+      setMessage({ type: 'success', text: `Quarantine item ${id} resolved with status: ${res}.` });
+      setQuarantineResolutions(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      loadAdminData('quarantine');
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to resolve quarantine.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // --- Auth View ---
   if (!token) {
     return (
@@ -878,6 +1119,11 @@ function App() {
             {role === 'admin' && (
               <div className={`nav-link ${activeTab === 'webhooks' ? 'active' : ''}`} onClick={() => setActiveTab('webhooks')}>
                 🔗 Webhook Logs
+              </div>
+            )}
+            {role === 'admin' && (
+              <div className={`nav-link ${activeTab === 'admin' ? 'active' : ''}`} onClick={() => setActiveTab('admin')}>
+                🛠️ Admin Portal
               </div>
             )}
           </div>
@@ -2214,6 +2460,489 @@ function App() {
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'admin' && (
+          <div className="admin-portal-container">
+            {/* Horizontal Sub-tabs */}
+            <div className="glass-panel" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+              <div className="tabs-header" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+                <button className={`btn ${adminActiveSubTab === 'users' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('users')}>
+                  👥 Users & RBAC
+                </button>
+                <button className={`btn ${adminActiveSubTab === 'audits' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('audits')}>
+                  🔍 Audits & Discrepancies
+                </button>
+                <button className={`btn ${adminActiveSubTab === 'outbox' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('outbox')}>
+                  ⚡ Outbox Monitor
+                </button>
+                <button className={`btn ${adminActiveSubTab === 'tenantConfig' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('tenantConfig')}>
+                  ⚙️ Tenant Configuration
+                </button>
+                <button className={`btn ${adminActiveSubTab === 'kits' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('kits')}>
+                  📦 Kitting Desk
+                </button>
+                <button className={`btn ${adminActiveSubTab === 'quarantine' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('quarantine')}>
+                  ⚠️ Quarantine Locker
+                </button>
+                <button className={`btn ${adminActiveSubTab === 'valuation' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('valuation')}>
+                  📈 Financial Valuation
+                </button>
+              </div>
+            </div>
+
+            {/* Sub-tab Panels */}
+            {adminActiveSubTab === 'users' && (
+              <div className="grid-cols-2">
+                <div className="glass-panel">
+                  <h3 className="form-section-title">Invite New Team Member</h3>
+                  <form onSubmit={handleInviteUser}>
+                    <div className="form-group">
+                      <label>User Email Address</label>
+                      <input type="email" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} required placeholder="user@company.com" />
+                    </div>
+                    <div className="form-group">
+                      <label>Assign Security Role</label>
+                      <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)}>
+                        <option value="admin">Administrator (Full Access)</option>
+                        <option value="warehouse_operator">Warehouse Operator (Ops Only)</option>
+                        <option value="accountant">Accountant (Ledger & Valuation)</option>
+                        <option value="viewer">System Observer (Read Only)</option>
+                      </select>
+                    </div>
+                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                      Invite Member
+                    </button>
+                  </form>
+
+                  {invitedUser && (
+                    <div className="alert-box alert-success" style={{ marginTop: '1.5rem' }}>
+                      <strong>User Invitation Code Generated:</strong>
+                      <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.9rem' }}>
+                        ID: {invitedUser.userId}<br />
+                        Temporary Key: {invitedUser.temporaryPassword || 'Simulated successfully.'}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', opacity: 0.8 }}>
+                        Share this security key with the user for their initial authorization.
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="glass-panel">
+                  <h3 className="form-section-title">Active User Directory</h3>
+                  <div className="table-wrapper">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>User ID / Name</th>
+                          <th>Email</th>
+                          <th>Security Role</th>
+                          <th>Role Update</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminUsers.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                              No additional organization members registered.
+                            </td>
+                          </tr>
+                        ) : (
+                          adminUsers.map(u => (
+                            <tr key={u.id}>
+                              <td><code>{u.name || u.id.split('-')[0]}</code></td>
+                              <td>{u.email}</td>
+                              <td>
+                                <span className={`badge badge-${u.role === 'admin' ? 'success' : u.role === 'accountant' ? 'info' : 'warning'}`}>
+                                  {u.role.toUpperCase()}
+                                </span>
+                              </td>
+                              <td>
+                                <select 
+                                  value={u.role} 
+                                  onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
+                                  style={{ padding: '0.2rem', fontSize: '0.85rem' }}
+                                >
+                                  <option value="admin">Admin</option>
+                                  <option value="warehouse_operator">Warehouse Operator</option>
+                                  <option value="accountant">Accountant</option>
+                                  <option value="viewer">Observer</option>
+                                </select>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {adminActiveSubTab === 'audits' && (
+              <div className="glass-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h3 className="form-section-title" style={{ margin: 0 }}>Reconciliation & Inventory Auditing</h3>
+                  <button className="btn btn-primary" onClick={handleRunAudit} disabled={loading}>
+                    ⚡ Run Reconciliation Audit
+                  </button>
+                </div>
+                <p style={{ marginBottom: '1.5rem', opacity: 0.85, fontSize: '0.9rem' }}>
+                  Running the audit triggers event reconciliation, checks outbox health, and aligns Shopify records with internal database levels. Detected discrepancies will be listed below.
+                </p>
+
+                <h3 className="form-section-title">Detected Discrepancies Log</h3>
+                <div className="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>SKU</th>
+                        <th>Location</th>
+                        <th>Expected</th>
+                        <th>Actual Count</th>
+                        <th>Discrepancy</th>
+                        <th>Status</th>
+                        <th>Resolution Notes</th>
+                        <th>Reconcile</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {discrepancies.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No active discrepancies. Everything is in sync!
+                          </td>
+                        </tr>
+                      ) : (
+                        discrepancies.map(d => (
+                          <tr key={d.id}>
+                            <td><code>{d.id.split('-')[0]}</code></td>
+                            <td><code>{d.sku}</code></td>
+                            <td><code>{d.locationId}</code></td>
+                            <td>{d.expectedQuantity}</td>
+                            <td>{d.actualQuantity}</td>
+                            <td>
+                              <span style={{ color: 'var(--accent-red)', fontWeight: 'bold' }}>
+                                {d.discrepancyCount}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`badge badge-${d.status.toLowerCase() === 'resolved' || d.status === 'RESOLVED' ? 'success' : 'error'}`}>
+                                {d.status.toUpperCase()}
+                              </span>
+                            </td>
+                            <td>
+                              {d.status.toLowerCase() === 'resolved' || d.status === 'RESOLVED' ? (
+                                <em>Resolved</em>
+                              ) : (
+                                <input 
+                                  type="text" 
+                                  value={discrepancyNotes[d.id] || ''} 
+                                  onChange={(e) => setDiscrepancyNotes({ ...discrepancyNotes, [d.id]: e.target.value })} 
+                                  placeholder="Notes for resolution..." 
+                                  style={{ padding: '0.25rem', fontSize: '0.85rem', width: '100%', minWidth: '150px' }}
+                                />
+                              )}
+                            </td>
+                            <td>
+                              {d.status.toLowerCase() === 'resolved' || d.status === 'RESOLVED' ? (
+                                <span style={{ color: 'var(--text-muted)' }}>—</span>
+                              ) : (
+                                <button className="btn btn-primary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleResolveDiscrepancy(d.id)}>
+                                  Resolve
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {adminActiveSubTab === 'outbox' && (
+              <div className="grid-cols-3" style={{ gridTemplateColumns: '1fr 2fr', display: 'grid', gap: '1.5rem' }}>
+                <div className="glass-panel">
+                  <h3 className="form-section-title">Message Broker Outbox Stats</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                    <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>Pending Events</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-orange)' }}>{outboxStats.pendingCount}</div>
+                    </div>
+                    <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>Processed Events</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-green)' }}>{outboxStats.publishedCount}</div>
+                    </div>
+                    <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>Failed Dead-Letters</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-red)' }}>{outboxStats.failedCount}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="glass-panel">
+                  <h3 className="form-section-title">Dead Letter Queue & Event Retries</h3>
+                  <div className="table-wrapper">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Event ID</th>
+                          <th>Event Type</th>
+                          <th>Error Message</th>
+                          <th>Time</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deadLetterEvents.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                              No dead-lettered events recorded. Event stream is healthy!
+                            </td>
+                          </tr>
+                        ) : (
+                          deadLetterEvents.map(e => (
+                            <tr key={e.id}>
+                              <td><code>{e.id.split('-')[0]}</code></td>
+                              <td><code>{e.eventType}</code></td>
+                              <td style={{ maxWidth: '200px', wordBreak: 'break-all', fontSize: '0.8rem', color: 'var(--accent-red)' }}>
+                                {e.error || 'Message retry execution failure.'}
+                              </td>
+                              <td>{new Date(e.occurredAt).toLocaleTimeString()}</td>
+                              <td>
+                                <button className="btn btn-primary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleRetryOutboxEvent(e.id)}>
+                                  Retry Event
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {adminActiveSubTab === 'tenantConfig' && (
+              <div className="glass-panel" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                <h3 className="form-section-title">Global Organization Accounting Setup</h3>
+                <form onSubmit={handleSaveTenantConfig}>
+                  <div className="form-group">
+                    <label>Accounting Reporting Method</label>
+                    <select 
+                      value={configAccountingMethod} 
+                      onChange={(e) => setConfigAccountingMethod(e.target.value as any)}
+                    >
+                      <option value="ACCRUAL">Accrual Accounting (Match costs to matching revenues)</option>
+                      <option value="CASH">Cash Accounting (Record when payments complete)</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Inventory Costing Flow Assumption Strategy</label>
+                    <select 
+                      value={configCostingMethod} 
+                      onChange={(e) => setConfigCostingMethod(e.target.value as any)}
+                    >
+                      <option value="FIFO">FIFO (First-In, First-Out)</option>
+                      <option value="LIFO">LIFO (Last-In, First-Out)</option>
+                      <option value="WAC">Weighted Average Cost (WAC)</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Default Currency</label>
+                    <input type="text" value={tenantConfig?.currencyCode || 'USD'} disabled style={{ opacity: 0.6 }} />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Fiscal Year Start Date (MM-DD)</label>
+                    <input type="text" value={tenantConfig?.fiscalYearStart || '01-01'} disabled style={{ opacity: 0.6 }} />
+                  </div>
+
+                  <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
+                    Save Accounting Policy Configurations
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {adminActiveSubTab === 'kits' && (
+              <div className="glass-panel" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                <h3 className="form-section-title">Kit Assembly / Disassembly Desk</h3>
+                <p style={{ marginBottom: '1.5rem', opacity: 0.85, fontSize: '0.9rem' }}>
+                  Assemble bundled SKUs from component inventory layers or break a kit down back into individual parts.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label>Kit SKU Identifier</label>
+                    <input type="text" value={kitSku} onChange={(e) => setKitSku(e.target.value)} required placeholder="e.g. BUNDLE-IPHONE" />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Warehouse Location</label>
+                    <select value={kitLocationId} onChange={(e) => setKitLocationId(e.target.value)}>
+                      <option value="LOC-A1">LOC-A1 (Central Shelf)</option>
+                      <option value="LOC-EAST">LOC-EAST (East Rack)</option>
+                      <option value="LOC-WEST">LOC-WEST (West Aisle)</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Quantity of Kits to Process</label>
+                    <input type="number" value={kitQty} onChange={(e) => setKitQty(Math.max(1, Number(e.target.value)))} required min={1} />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Transaction Reference (Optional)</label>
+                    <input type="text" value={kitRef} onChange={(e) => setKitRef(e.target.value)} placeholder="Auto-generated if empty" />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                    <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={handleAssembleKit} disabled={loading}>
+                      🛠️ Assemble Kit
+                    </button>
+                    <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={handleDisassembleKit} disabled={loading}>
+                      💥 Disassemble Kit
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {adminActiveSubTab === 'quarantine' && (
+              <div className="glass-panel">
+                <h3 className="form-section-title">Quarantine Locker (Isolated Returns / Damage)</h3>
+                <p style={{ marginBottom: '1.5rem', opacity: 0.85, fontSize: '0.9rem' }}>
+                  Items failed during quality verification audits or damaged returns are isolated here. Admins can choose to release them back to inventory or reject/discard them permanently.
+                </p>
+                <div className="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Batch ID</th>
+                        <th>SKU</th>
+                        <th>Location</th>
+                        <th>Quarantined Qty</th>
+                        <th>Isolation Reason</th>
+                        <th>Status</th>
+                        <th>Resolution Path</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {quarantinedItems.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No quarantined items isolated. Excellent warehouse quality controls!
+                          </td>
+                        </tr>
+                      ) : (
+                        quarantinedItems.map(q => (
+                          <tr key={q.id}>
+                            <td><code>{q.id.split('-')[0]}</code></td>
+                            <td><code>{q.sku}</code></td>
+                            <td><code>{q.locationId}</code></td>
+                            <td>{q.quantity}</td>
+                            <td>{q.reason}</td>
+                            <td>
+                              <span className="badge badge-warning">
+                                {q.status.toUpperCase()}
+                              </span>
+                            </td>
+                            <td>
+                              <select 
+                                value={quarantineResolutions[q.id] || 'RELEASED'} 
+                                onChange={(e) => setQuarantineResolutions({ ...quarantineResolutions, [q.id]: e.target.value })}
+                                style={{ padding: '0.2rem', fontSize: '0.85rem' }}
+                              >
+                                <option value="RELEASED">Release to General Stock (Reconcile)</option>
+                                <option value="REJECTED">Reject / Discard Batch (Write-Off)</option>
+                              </select>
+                            </td>
+                            <td>
+                              <button className="btn btn-primary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleResolveQuarantine(q.id)}>
+                                Submit Resolve
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {adminActiveSubTab === 'valuation' && (
+              <div className="glass-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h3 className="form-section-title" style={{ margin: 0 }}>Asset Valuation Breakdown</h3>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Costing Method:</label>
+                    <select 
+                      value={valuationCostingMethod} 
+                      onChange={(e) => setValuationCostingMethod(e.target.value)}
+                      style={{ padding: '0.25rem', fontSize: '0.85rem' }}
+                    >
+                      <option value="FIFO">FIFO (First-In, First-Out)</option>
+                      <option value="LIFO">LIFO (Last-In, First-Out)</option>
+                      <option value="WAC">WAC (Weighted Average)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Variant ID</th>
+                        <th>SKU</th>
+                        <th>Name</th>
+                        <th>Costing Assumption</th>
+                        <th>Quantity on Hand</th>
+                        <th>Estimated Unit Cost</th>
+                        <th>Total Asset Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {valuationItems.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No active asset lines recorded.
+                          </td>
+                        </tr>
+                      ) : (
+                        valuationItems.map(v => (
+                          <tr key={v.variantId}>
+                            <td><code>{v.variantId.split('-')[0]}</code></td>
+                            <td><code>{v.sku}</code></td>
+                            <td>{v.name}</td>
+                            <td>
+                              <span className="badge badge-info">
+                                {v.costingMethod}
+                              </span>
+                            </td>
+                            <td>{v.totalQuantity}</td>
+                            <td>${(v.unitCostCents / 100).toFixed(2)}</td>
+                            <td>
+                              <strong>${(v.totalValueCents / 100).toFixed(2)}</strong>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
