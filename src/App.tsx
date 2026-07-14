@@ -179,7 +179,7 @@ function App() {
   useEffect(() => {
     const allowedTabs = ['dashboard'];
     if (role === 'admin') {
-      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks');
+      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin');
     } else if (role === 'warehouse_operator') {
       allowedTabs.push('products', 'scanning', 'serials', 'forecasting', 'warehouse', 'procurement');
     } else if (role === 'accountant') {
@@ -316,7 +316,6 @@ function App() {
     const tabToLoad = subTab || adminActiveSubTab;
     if (!token) return;
     setLoading(true);
-    setMessage(null);
     try {
       if (tabToLoad === 'users') {
         const u = await client.getUsers(tenantId);
