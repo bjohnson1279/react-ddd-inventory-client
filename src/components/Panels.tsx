@@ -576,8 +576,8 @@ export const OnboardingPanel: React.FC<OnboardingPanelProps> = ({
               <div><strong>Status:</strong> <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>{selectedOnboarding.status}</span></div>
             </div>
             {selectedOnboarding.status === 'draft' && (
-              <button className="btn btn-accent" onClick={() => handleSubmitOnboarding(selectedOnboarding.id)} disabled={loading}>
-                Lock & Post Sheet
+              <button className="btn btn-accent" onClick={() => handleSubmitOnboarding(selectedOnboarding.id)} disabled={loading} aria-busy={loading}>
+                {loading ? 'Initializing...' : 'Lock & Post Sheet'}
               </button>
             )}
           </div>

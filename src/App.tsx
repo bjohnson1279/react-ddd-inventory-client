@@ -506,6 +506,7 @@ function App() {
     if (!window.confirm('Are you sure you want to lock and post this onboarding sheet? This will permanently post to the General Ledger and cannot be reversed.')) {
       return;
     }
+    setLoading(true);
     try {
       await client.submitStockOnboarding(onbId);
       setMessage({ type: 'success', text: 'Onboarding items posted to General Ledger and lock completed.' });
@@ -1018,7 +1019,7 @@ function App() {
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <label>Tenant ID</label>
-              <input type="text" value={loginTenant} onChange={(e) => setLoginTenant(e.target.value)} required />
+              <input id="login-tenant-id" aria-label="Tenant ID" type="text" value={loginTenant} onChange={(e) => setLoginTenant(e.target.value)} required />
             </div>
             <div className="form-group">
               <label>Actor ID / Email</label>
@@ -1157,7 +1158,7 @@ function App() {
             </div>
             <div className="control-item">
               <label>Location:</label>
-              <input type="text" value={locationId} onChange={(e) => setLocationId(e.target.value)} style={{ width: '90px' }} />
+              <input id="header-location-id" aria-label="Active Location ID" type="text" value={locationId} onChange={(e) => setLocationId(e.target.value)} style={{ width: '90px' }} />
             </div>
           </div>
         </div>
