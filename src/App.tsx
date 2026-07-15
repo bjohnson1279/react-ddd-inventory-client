@@ -592,6 +592,62 @@ function App() {
     };
   }, [token, tenantId, backendType]);
 
+  // Laravel Collaborative Synchronization via Server-Sent Events (SSE)
+  useEffect(() => {
+    if (!token || backendType !== 'laravel') return;
+
+    const activeToken = localStorage.getItem('auth_token') || '';
+    const eventSource = new EventSource(`http://localhost:8000/api/notifications/subscribe?token=${activeToken}`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'stock_changed') {
+          const data = JSON.parse(payload.message);
+          setInventoryItems(prev => {
+            const idx = prev.findIndex(item => item.sku === data.sku && item.locationId === data.locationId);
+            if (idx !== -1) {
+              const updated = [...prev];
+              updated[idx] = {
+                ...updated[idx],
+                quantity: data.quantity
+              };
+              return updated;
+            } else {
+              return [
+                ...prev,
+                {
+                  id: Math.random().toString(36).substring(7),
+                  sku: data.sku,
+                  locationId: data.locationId,
+                  quantity: data.quantity,
+                  version: 1
+                }
+              ];
+            }
+          });
+          setMessage({ type: 'success', text: `Real-time Stock Update (Laravel): SKU ${data.sku} is now ${data.quantity} units.` });
+        } else if (payload.type === 'webhook_failed') {
+          const data = JSON.parse(payload.message);
+          setMessage({
+            type: 'error',
+            text: `Real-time Warning (Laravel): Webhook failed (Type: ${data.eventType}, Error: ${data.errorMessage}).`
+          });
+        }
+      } catch (err) {
+        console.error('[Laravel SSE] Collaborative message error:', err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('[Laravel SSE] Collaborative connection error:', err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [token, tenantId, backendType]);
+
   // --- Mutation Responders ---
 
   const handleCreateProduct = async (e: React.FormEvent) => {

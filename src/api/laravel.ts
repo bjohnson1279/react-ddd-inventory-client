@@ -717,10 +717,10 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async getComplianceLedger(tenantId: string): Promise<any[]> {
-    return [];
+    return await this.request('GET', `/api/compliance/ledger?tenantId=${tenantId}`);
   }
 
   async verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }> {
-    return { isValid: true };
+    return await this.request('POST', `/api/compliance/verify?tenantId=${tenantId}`);
   }
 }
