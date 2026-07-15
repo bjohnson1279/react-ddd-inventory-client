@@ -335,7 +335,13 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getOptimizedPickRoute(tenantId: string, skus: string[]): Promise<string[]> {
-    return this.request('POST', '/warehouse-locations/optimize-pick-route', { tenantId, skus });
+    const data = await this.request('POST', '/warehouse-locations/optimize-pick-route', { tenantId, skus });
+    if (!Array.isArray(data)) return [];
+    return data.flatMap((group: any) => 
+      (group.items || []).map((it: any) => 
+        `${it.sku} from bin ${it.locationId} (Aisle ${it.aisle || 'N/A'}, Rack ${it.rack || 'N/A'}, Shelf ${it.shelf || 'N/A'})`
+      )
+    );
   }
 
   // Procurement (PO)
@@ -533,5 +539,13 @@ export class ExpressRESTAdapter implements InventoryClient {
     } catch {
       return [];
     }
+  }
+
+  async getComplianceLedger(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/compliance/ledger?tenantId=${tenantId}`);
+  }
+
+  async verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }> {
+    return this.request('POST', `/compliance/verify?tenantId=${tenantId}`);
   }
 }

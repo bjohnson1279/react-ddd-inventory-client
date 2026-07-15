@@ -14,6 +14,7 @@ import {
   WarehousePanel,
   WebhooksPanel
 } from './components/Panels';
+import { addScanToQueue, getQueuedScans, syncOfflineQueue } from './api/offlineQueue';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -36,6 +37,10 @@ function App() {
   const [tenantId, setTenantId] = useState('tenant-1');
   const [locationId, setLocationId] = useState('loc-1');
   const [actorId, setActorId] = useState('admin-user');
+
+  // --- Offline PWA States ---
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineQueueCount, setOfflineQueueCount] = useState(0);
 
   // --- Shared Status States ---
   const [loading, setLoading] = useState(false);
@@ -109,6 +114,11 @@ function App() {
   const [wmsZone, setWmsZone] = useState('A');
   const [wmsMaxWeight, setWmsMaxWeight] = useState(50000);
   const [wmsMaxVolume, setWmsMaxVolume] = useState(10.0);
+  const [wmsGridX, setWmsGridX] = useState(0);
+  const [wmsGridY, setWmsGridY] = useState(0);
+  const [wmsWidth, setWmsWidth] = useState(1);
+  const [wmsHeight, setWmsHeight] = useState(1);
+  const [wmsSelectedZone, setWmsSelectedZone] = useState('');
   const [putawaySku, setPutawaySku] = useState('');
   const [putawayQty, setPutawayQty] = useState(10);
   const [putawayResult, setPutawayResult] = useState<any[]>([]);
@@ -119,6 +129,9 @@ function App() {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookEvents, setWebhookEvents] = useState<string[]>(['StockReceived']);
   const [webhookDeliveries, setWebhookDeliveries] = useState<any[]>([]);
+  const [complianceLedger, setComplianceLedger] = useState<any[]>([]);
+  const [verificationStatus, setVerificationStatus] = useState<any>(null);
+  const [verifyingLedger, setVerifyingLedger] = useState(false);
   
   const [fefoSku, setFefoSku] = useState('');
   const [fefoQty, setFefoQty] = useState(5);
@@ -179,7 +192,7 @@ function App() {
   useEffect(() => {
     const allowedTabs = ['dashboard'];
     if (role === 'admin') {
-      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin');
+      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance');
     } else if (role === 'warehouse_operator') {
       allowedTabs.push('products', 'scanning', 'serials', 'forecasting', 'warehouse', 'procurement');
     } else if (role === 'accountant') {
@@ -193,6 +206,51 @@ function App() {
       setActiveTab('dashboard');
     }
   }, [role, activeTab]);
+
+  // --- PWA Offline Scan Synchronization and Listeners ---
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      const queued = await getQueuedScans();
+      if (queued.length > 0) {
+        setMessage({ type: 'success', text: `Connection restored. Synchronizing ${queued.length} offline scans...` });
+        const res = await syncOfflineQueue(client);
+        const remaining = await getQueuedScans();
+        setOfflineQueueCount(remaining.length);
+        if (res.failedCount > 0) {
+          setMessage({ type: 'error', text: `Sync finished: ${res.successCount} synced, ${res.failedCount} failed.` });
+        } else {
+          setMessage({ type: 'success', text: `All ${res.successCount} offline scans synchronized successfully.` });
+        }
+      } else {
+        setMessage({ type: 'success', text: 'Network connection restored. Back online.' });
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setMessage({ type: 'error', text: 'Network connection lost. Running in Offline Mode.' });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial check of local IndexedDB queue
+    const checkQueue = async () => {
+      try {
+        const queued = await getQueuedScans();
+        setOfflineQueueCount(queued.length);
+      } catch (err) {
+        console.error('Failed to read IndexedDB offline queue:', err);
+      }
+    };
+    checkQueue();
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [client]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,6 +341,36 @@ function App() {
       setMessage({ type: 'error', text: err.message || 'Failed to load WMS locations.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadComplianceLedger = async () => {
+    setLoading(true);
+    try {
+      const data = await client.getComplianceLedger(tenantId);
+      setComplianceLedger(data || []);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load Compliance Ledger.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyComplianceLedger = async () => {
+    setVerifyingLedger(true);
+    setVerificationStatus(null);
+    try {
+      const result = await client.verifyComplianceLedger(tenantId);
+      setVerificationStatus(result);
+      if (result.isValid) {
+        setMessage({ type: 'success', text: 'Compliance Ledger validation successful! Integrity check passed.' });
+      } else {
+        setMessage({ type: 'error', text: `Compliance Ledger compromised! Failed at sequence #${result.failedSequenceNumber}.` });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Verification execution failed.' });
+    } finally {
+      setVerifyingLedger(false);
     }
   };
 
@@ -377,6 +465,8 @@ function App() {
       loadWmsLocations();
     } else if (activeTab === 'webhooks') {
       loadWebhooks();
+    } else if (activeTab === 'compliance') {
+      loadComplianceLedger();
     } else if (activeTab === 'admin') {
       loadAdminData();
     }
@@ -423,6 +513,84 @@ function App() {
       unsubscribe();
     };
   }, [token, tenantId, client]);
+
+  // Collaborative Synchronization: auto-update stock levels and alert webhook failures in real-time
+  useEffect(() => {
+    if (!token || backendType !== 'express') return;
+
+    const wsUrl = `ws://localhost:5000?tenantId=${tenantId}`;
+    let socket: WebSocket | null = null;
+    let reconnectTimeout: any = null;
+
+    const connect = () => {
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        console.log('[WebSocket] Collaborative sync connection opened.');
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'stock_changed') {
+            setInventoryItems(prev => {
+              const idx = prev.findIndex(item => item.sku === data.sku && item.locationId === data.locationId);
+              if (idx !== -1) {
+                const updated = [...prev];
+                updated[idx] = {
+                  ...updated[idx],
+                  quantity: data.quantity,
+                  version: data.version
+                };
+                return updated;
+              } else {
+                return [
+                  ...prev,
+                  {
+                    id: Math.random().toString(36).substring(7),
+                    sku: data.sku,
+                    locationId: data.locationId,
+                    quantity: data.quantity,
+                    version: data.version
+                  }
+                ];
+              }
+            });
+            setMessage({ type: 'success', text: `Real-time Stock Update: SKU ${data.sku} is now ${data.quantity} units.` });
+          } else if (data.type === 'webhook_failed') {
+            setMessage({
+              type: 'error',
+              text: `Real-time Warning: Webhook failed (Type: ${data.eventType}, Error: ${data.lastError}).`
+            });
+          }
+        } catch (err) {
+          console.error('[WebSocket] Sync message error:', err);
+        }
+      };
+
+      socket.onclose = () => {
+        console.log('[WebSocket] Collaborative sync disconnected. Retrying...');
+        reconnectTimeout = setTimeout(connect, 3000);
+      };
+
+      socket.onerror = (err) => {
+        console.error('[WebSocket] Sync error:', err);
+      };
+    };
+
+    connect();
+
+    return () => {
+      if (socket) {
+        socket.onclose = null;
+        socket.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+    };
+  }, [token, tenantId, backendType]);
 
   // --- Mutation Responders ---
 
@@ -519,17 +687,54 @@ function App() {
     }
   };
 
+  const handleSyncQueue = async () => {
+    setLoading(true);
+    try {
+      const res = await syncOfflineQueue(client);
+      const remaining = await getQueuedScans();
+      setOfflineQueueCount(remaining.length);
+      if (res.failedCount > 0) {
+        setMessage({ type: 'error', text: `Sync finished with some failures: ${res.successCount} succeeded, ${res.failedCount} failed.` });
+      } else {
+        setMessage({ type: 'success', text: `All ${res.successCount} buffered scans synced successfully.` });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: `Sync failed: ${err.message}` });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDispatchScan = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await client.scanBarcode(scanVal, scanContext, Number(scanAmount), Number(scanActualQty), tenantId, locationId, actorId);
-      setScanHistory(prev => [
-        { time: new Date().toLocaleTimeString(), scan: scanVal, context: scanContext, status: 'Success' },
-        ...prev
-      ]);
-      setScanVal('');
-      setMessage({ type: 'success', text: 'Scan successfully routed to workflow context.' });
+      if (!isOnline) {
+        await addScanToQueue({
+          value: scanVal,
+          context: scanContext,
+          amount: Number(scanAmount),
+          actualQuantity: Number(scanActualQty),
+          tenantId,
+          locationId,
+          actorId
+        });
+        setOfflineQueueCount(prev => prev + 1);
+        setScanHistory(prev => [
+          { time: new Date().toLocaleTimeString(), scan: scanVal, context: scanContext, status: 'Buffered Offline' },
+          ...prev
+        ]);
+        setScanVal('');
+        setMessage({ type: 'success', text: 'Connection offline. Scan buffered in local queue.' });
+      } else {
+        await client.scanBarcode(scanVal, scanContext, Number(scanAmount), Number(scanActualQty), tenantId, locationId, actorId);
+        setScanHistory(prev => [
+          { time: new Date().toLocaleTimeString(), scan: scanVal, context: scanContext, status: 'Success' },
+          ...prev
+        ]);
+        setScanVal('');
+        setMessage({ type: 'success', text: 'Scan successfully routed to workflow context.' });
+      }
     } catch (err: any) {
       setScanHistory(prev => [
         { time: new Date().toLocaleTimeString(), scan: scanVal, context: scanContext, status: `Error: ${err.message}` },
@@ -683,10 +888,18 @@ function App() {
         warehouseId: wmsWarehouseId,
         zone: wmsZone,
         maxWeightGrams: Number(wmsMaxWeight),
-        maxVolumeCubicMeters: Number(wmsMaxVolume)
-      });
+        maxVolumeCubicMeters: Number(wmsMaxVolume),
+        gridX: Number(wmsGridX),
+        gridY: Number(wmsGridY),
+        width: Number(wmsWidth),
+        height: Number(wmsHeight)
+      } as any);
       setMessage({ type: 'success', text: `Warehouse location ${wmsLocId} configured.` });
       setWmsLocId('');
+      setWmsGridX(0);
+      setWmsGridY(0);
+      setWmsWidth(1);
+      setWmsHeight(1);
       loadWmsLocations();
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Saving WMS location failed.' });
@@ -1093,6 +1306,11 @@ function App() {
                 🧾 General Ledger
               </div>
             )}
+            {role === 'admin' && (
+              <div className={`nav-link ${activeTab === 'compliance' ? 'active' : ''}`} onClick={() => setActiveTab('compliance')}>
+                🔒 Compliance Ledger
+              </div>
+            )}
             {(role === 'admin' || role === 'warehouse_operator' || role === 'viewer') && (
               <div className={`nav-link ${activeTab === 'serials' ? 'active' : ''}`} onClick={() => setActiveTab('serials')}>
                 🔍 Serial Number Trace
@@ -1468,7 +1686,36 @@ function App() {
         {activeTab === 'scanning' && (
           <div className="grid-cols-2">
             <div className="glass-panel">
-              <h3 className="form-section-title">Barcode Scanning Simulator</h3>
+              <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
+                <h3 className="form-section-title" style={{ margin: 0, border: 'none' }}>Barcode Scanning Simulator</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span className={`badge ${isOnline ? 'badge-success' : 'badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isOnline ? '#00e676' : '#ff9100' }}></span>
+                    {isOnline ? 'ONLINE' : 'OFFLINE'}
+                  </span>
+                  {offlineQueueCount > 0 && (
+                    <span className="badge badge-accent">
+                      {offlineQueueCount} buffered
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {!isOnline && (
+                <div className="alert-box alert-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                  <strong>Offline Mode:</strong> Connection lost. Scans will be buffered locally in IndexedDB and synchronized automatically when online.
+                </div>
+              )}
+
+              {offlineQueueCount > 0 && isOnline && (
+                <div className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span><strong>Buffered:</strong> {offlineQueueCount} scan(s) in IndexedDB.</span>
+                  <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleSyncQueue} disabled={loading}>
+                    Sync Now
+                  </button>
+                </div>
+              )}
+
               <form onSubmit={handleDispatchScan}>
                 <div className="form-group">
                   <label>Scanned Barcode / QR Value</label>
@@ -1498,7 +1745,7 @@ function App() {
                 )}
 
                 <button type="submit" className="btn btn-primary" disabled={loading}>
-                  Trigger Scanning Event
+                  {isOnline ? 'Trigger Scanning Event' : 'Buffer Scan Offline'}
                 </button>
               </form>
 
@@ -2226,7 +2473,8 @@ function App() {
         )}
 
         {activeTab === 'warehouse' && (
-          <div className="grid-cols-2">
+          <>
+            <div className="grid-cols-2">
             <div className="glass-panel">
               <h3 className="form-section-title">Configure Warehouse Location Layout</h3>
               <form onSubmit={handleCreateWmsLocation}>
@@ -2249,6 +2497,26 @@ function App() {
                 <div className="form-group">
                   <label>Max Volume Capacity (Cubic Meters)</label>
                   <input type="number" step="0.01" value={wmsMaxVolume} onChange={(e) => setWmsMaxVolume(Number(e.target.value))} required />
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Grid X Column Start</label>
+                    <input type="number" value={wmsGridX} onChange={(e) => setWmsGridX(Number(e.target.value))} required min={0} />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Grid Y Row Start</label>
+                    <input type="number" value={wmsGridY} onChange={(e) => setWmsGridY(Number(e.target.value))} required min={0} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Width Cells</label>
+                    <input type="number" value={wmsWidth} onChange={(e) => setWmsWidth(Number(e.target.value))} required min={1} />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Height Cells</label>
+                    <input type="number" value={wmsHeight} onChange={(e) => setWmsHeight(Number(e.target.value))} required min={1} />
+                  </div>
                 </div>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
                   Configure Location
@@ -2345,6 +2613,169 @@ function App() {
               </div>
             </div>
           </div>
+
+          <div className="glass-panel" style={{ marginTop: '2rem' }}>
+            <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
+              <h3 className="form-section-title" style={{ margin: 0, border: 'none' }}>
+                Interactive 2D Warehouse Bin Map & Heat Visualizer
+              </h3>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Filter Zone:</label>
+                <select 
+                  value={wmsSelectedZone} 
+                  onChange={(e) => setWmsSelectedZone(e.target.value)}
+                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}
+                >
+                  <option value="">All Zones</option>
+                  {Array.from(new Set(wmsLocations.map(l => l.zone))).map(zone => (
+                    <option key={zone} value={zone}>Zone {zone}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', fontSize: '0.8rem' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#1e293b', border: '1px solid var(--border-color)' }}></span>
+                Empty (&lt;10%)
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#2e7d32' }}></span>
+                Medium (10%-75%)
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#ff9800' }}></span>
+                High (75%-90%)
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#ef5350' }}></span>
+                Overloaded (&gt;90%)
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span style={{ width: '12px', height: '12px', borderRadius: '2px', border: '2.5px solid #ffd54f', backgroundColor: 'transparent' }}></span>
+                On Active Pick Path
+              </span>
+            </div>
+
+            {wmsLocations.length === 0 ? (
+              <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+                No warehouse layout bins registered yet. Create locations above to view map layout.
+              </div>
+            ) : (
+              <div 
+                style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
+                  gap: '12px',
+                  background: 'rgba(0,0,0,0.2)',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)'
+                }}
+              >
+                {wmsLocations
+                  .filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone)
+                  .map((loc, idx) => {
+                    const locInvItems = inventoryItems.filter(item => item.locationId === loc.id);
+                    let currentWeight = 0;
+                    let currentVolume = 0;
+                    
+                    locInvItems.forEach(item => {
+                      let itemWeight = 100;
+                      let itemVolume = 0.001;
+                      for (const p of products) {
+                        const variant = (p.variants || []).find((v: any) => v.sku === item.sku);
+                        if (variant) {
+                          if (variant.weightGrams) itemWeight = variant.weightGrams;
+                          if (variant.volumeCubicMeters) itemVolume = variant.volumeCubicMeters;
+                          break;
+                        }
+                      }
+                      currentWeight += item.quantity * itemWeight;
+                      currentVolume += item.quantity * itemVolume;
+                    });
+
+                    const weightLimit = loc.maxWeightGrams || 1000000;
+                    const volumeLimit = loc.maxVolumeCubicMeters || 10;
+                    const weightPct = (currentWeight / weightLimit) * 100;
+                    const volumePct = (currentVolume / volumeLimit) * 100;
+                    const occupancy = Math.min(100, Math.max(weightPct, volumePct));
+
+                    let bgColor = '#1e293b';
+                    if (occupancy >= 90) bgColor = '#ef5350';
+                    else if (occupancy >= 75) bgColor = '#ff9800';
+                    else if (occupancy >= 10) bgColor = '#2e7d32';
+
+                    const pickIdx = pickRouteResult.findIndex(path => typeof path === 'string' && path.includes(loc.id));
+                    const isOnPickPath = pickIdx !== -1;
+
+                    const useCoordinates = loc.gridX > 0 && loc.gridY > 0;
+                    const gridStyle: React.CSSProperties = useCoordinates ? {
+                      gridColumnStart: loc.gridX,
+                      gridRowStart: loc.gridY,
+                      gridColumnEnd: `span ${loc.width || 1}`,
+                      gridRowEnd: `span ${loc.height || 1}`
+                    } : {};
+
+                    return (
+                      <div
+                        key={loc.id}
+                        style={{
+                          ...gridStyle,
+                          backgroundColor: bgColor,
+                          borderRadius: '6px',
+                          padding: '12px',
+                          border: isOnPickPath ? '3px solid #ffd54f' : '1px solid rgba(255,255,255,0.08)',
+                          boxShadow: isOnPickPath ? '0 0 12px rgba(255,213,79,0.3)' : 'none',
+                          position: 'relative',
+                          transition: 'transform 0.2s',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          minHeight: '90px'
+                        }}
+                        title={`Bin Capacity Details:\nWeight: ${currentWeight}g / ${weightLimit}g\nVolume: ${currentVolume}m³ / ${volumeLimit}m³\nOccupancy: ${occupancy.toFixed(1)}%`}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1.0)'; }}
+                      >
+                        {isOnPickPath && (
+                          <span 
+                            style={{ 
+                              position: 'absolute', 
+                              top: '-8px', 
+                              right: '-8px', 
+                              backgroundColor: '#ffd54f', 
+                              color: '#000', 
+                              fontWeight: 'bold', 
+                              borderRadius: '50%', 
+                              width: '20px', 
+                              height: '20px', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              fontSize: '0.7rem',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                            }}
+                          >
+                            {pickIdx + 1}
+                          </span>
+                        )}
+                        <div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 'bold', wordBreak: 'break-all' }}>{loc.id}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>Zone {loc.zone}</div>
+                        </div>
+                        <div style={{ marginTop: '0.75rem', textAlign: 'right' }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{occupancy.toFixed(0)}%</span>
+                          <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', marginLeft: '2px' }}>cap</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+          </>
         )}
 
         {activeTab === 'webhooks' && (
@@ -2453,6 +2884,107 @@ function App() {
                             </span>
                           </td>
                           <td>{new Date(log.occurredOn || new Date()).toLocaleTimeString()}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'compliance' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div className="glass-panel">
+              <h3 className="form-section-title">Cryptographic Compliance Ledger Validator</h3>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                This ledger logs all critical inventory status shifts in a cryptographically chained sequence.
+                Each entry is hashed together with the previous block hash and signed using a secure tenant secret, preventing unauthorized database tampering.
+              </p>
+
+              <button 
+                onClick={handleVerifyComplianceLedger} 
+                className="btn btn-primary"
+                disabled={verifyingLedger}
+              >
+                {verifyingLedger ? 'Verifying Ledger Chains...' : 'Verify Compliance Ledger Integrity'}
+              </button>
+
+              {verificationStatus && (
+                <div style={{ marginTop: '1.5rem' }}>
+                  {verificationStatus.isValid ? (
+                    <div className="alert-box alert-success" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem' }}>
+                      <span style={{ fontSize: '1.75rem' }}>🛡️</span>
+                      <div>
+                        <h4 style={{ margin: '0 0 0.25rem 0', color: '#fff' }}>Verification Passed</h4>
+                        <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                          All ledger blocks are intact. Chained hashes and signatures are verified. No tampering detected.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="alert-box alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderLeft: '5px solid #ef5350', backgroundColor: 'rgba(239, 83, 80, 0.1)' }}>
+                      <span style={{ fontSize: '1.75rem' }}>🚨</span>
+                      <div>
+                        <h4 style={{ margin: '0 0 0.25rem 0', color: '#ef5350' }}>Verification Failed!</h4>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#ffcdd2' }}>
+                          Chain is compromised at <strong>Block #{verificationStatus.failedSequenceNumber}</strong>.<br />
+                          <strong>Reason:</strong> {verificationStatus.reason}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="glass-panel">
+              <h3 className="form-section-title">Compliance Ledger Entries ({complianceLedger.length})</h3>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Seq #</th>
+                      <th>Event Type</th>
+                      <th>Payload Details</th>
+                      <th>Block Hash</th>
+                      <th>Signature</th>
+                      <th>Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {complianceLedger.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                          No compliance records found. Perform inventory updates to generate entries.
+                        </td>
+                      </tr>
+                    ) : (
+                      complianceLedger.map(entry => (
+                        <tr key={entry.id}>
+                          <td><strong>#{entry.sequenceNumber}</strong></td>
+                          <td>
+                            <span className="badge" style={{ backgroundColor: 'var(--accent-dim)', color: 'var(--accent-color)' }}>
+                              {entry.eventType}
+                            </span>
+                          </td>
+                          <td>
+                            <pre style={{ margin: 0, padding: '0.25rem', fontSize: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', overflowX: 'auto', maxWidth: '300px' }}>
+                              {entry.payload}
+                            </pre>
+                          </td>
+                          <td>
+                            <code style={{ fontSize: '0.75rem' }} title={entry.hash}>
+                              {entry.hash.substring(0, 12)}...
+                            </code>
+                          </td>
+                          <td>
+                            <code style={{ fontSize: '0.75rem' }} title={entry.signature}>
+                              {entry.signature.substring(0, 12)}...
+                            </code>
+                          </td>
+                          <td>{new Date(entry.timestamp).toLocaleString()}</td>
                         </tr>
                       ))
                     )}

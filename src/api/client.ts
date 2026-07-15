@@ -36,6 +36,8 @@ export interface ProductVariant {
   trackingMode: 'quantity' | 'serial' | 'lot';
   attributes: { name: string; value: string }[];
   barcodes?: BarcodeAssignment[];
+  weightGrams?: number;
+  volumeCubicMeters?: number;
 }
 
 export interface Product {
@@ -239,7 +241,7 @@ export interface ValuationItem {
 }
 
 export type BackendType = 'graphql' | 'express' | 'laravel';
-export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin';
+export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance';
 
 // --- Abstract Client Interface ---
 export interface InventoryClient {
@@ -288,6 +290,8 @@ export interface InventoryClient {
   deleteWarehouseLocation(tenantId: string, id: string): Promise<void>;
   getPutawaySuggestions(tenantId: string, sku: string, quantity: number): Promise<PutawaySuggestion[]>;
   getOptimizedPickRoute(tenantId: string, skus: string[]): Promise<string[]>;
+  getComplianceLedger(tenantId: string): Promise<any[]>;
+  verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }>;
 
   // Procurement (PO)
   getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]>;

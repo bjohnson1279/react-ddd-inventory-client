@@ -411,6 +411,9 @@ interface ScanningPanelProps {
   handleDispatchScan: (e: React.FormEvent) => void;
   scanHistory: any[];
   loading: boolean;
+  isOnline: boolean;
+  offlineQueueCount: number;
+  handleSyncQueue: () => void;
 }
 export const ScanningPanel: React.FC<ScanningPanelProps> = ({
   scanVal,
@@ -423,11 +426,43 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
   setScanActualQty,
   handleDispatchScan,
   scanHistory,
-  loading
+  loading,
+  isOnline,
+  offlineQueueCount,
+  handleSyncQueue
 }) => (
   <div className="grid-cols-2">
     <div className="glass-panel">
-      <h3 className="form-section-title">Barcode Scanning Simulator</h3>
+      <div className="flex-between" style={{ marginBottom: '1rem' }}>
+        <h3 className="form-section-title" style={{ margin: 0, border: 'none' }}>Barcode Scanning Simulator</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className={`badge ${isOnline ? 'badge-success' : 'badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isOnline ? '#00e676' : '#ff9100' }}></span>
+            {isOnline ? 'ONLINE' : 'OFFLINE MODE'}
+          </span>
+          {offlineQueueCount > 0 && (
+            <span className="badge badge-accent">
+              {offlineQueueCount} queued
+            </span>
+          )}
+        </div>
+      </div>
+
+      {!isOnline && (
+        <div className="alert-box alert-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+          <strong>Industrial Dead Zone Alert:</strong> Connection lost. Scans will be buffered locally in IndexedDB and synchronized automatically once network is restored.
+        </div>
+      )}
+
+      {offlineQueueCount > 0 && isOnline && (
+        <div className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
+          <span><strong>Buffered Scans:</strong> You have {offlineQueueCount} scan(s) waiting in IndexedDB queue.</span>
+          <button className="btn btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', marginLeft: '1rem' }} onClick={handleSyncQueue} disabled={loading}>
+            Sync Queue Now
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleDispatchScan}>
         <div className="form-group">
           <label>Scanned Barcode Value</label>
@@ -450,7 +485,7 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
           <input type="number" value={scanActualQty || ''} onChange={(e) => setScanActualQty(Number(e.target.value))} />
         </div>
         <button type="submit" className="btn btn-primary" disabled={loading}>
-          Dispatch Barcode Scan
+          {isOnline ? 'Dispatch Barcode Scan' : 'Buffer Barcode Offline'}
         </button>
       </form>
     </div>
