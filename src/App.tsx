@@ -146,6 +146,11 @@ function App() {
   const [policySafety, setPolicySafety] = useState(5);
   const [policyEoq, setPolicyEoq] = useState(25);
 
+  // --- Slotting Optimizer States ---
+  const [slottingSuggestions, setSlottingSuggestions] = useState<any[]>([]);
+  const [loadingSlotting, setLoadingSlotting] = useState(false);
+  const [hoveredSuggestion, setHoveredSuggestion] = useState<any | null>(null);
+
   // --- Admin Portal States ---
   const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
   const [adminUsers, setAdminUsers] = useState<User[]>([]);
@@ -344,6 +349,18 @@ function App() {
     }
   };
 
+  const loadSlottingSuggestions = async () => {
+    setLoadingSlotting(true);
+    try {
+      const data = await client.getSlottingSuggestions(tenantId);
+      setSlottingSuggestions(data || []);
+    } catch (err: any) {
+      console.error('[SlottingSuggestions] Failed to load:', err);
+    } finally {
+      setLoadingSlotting(false);
+    }
+  };
+
   const loadComplianceLedger = async () => {
     setLoading(true);
     try {
@@ -463,6 +480,7 @@ function App() {
     } else if (activeTab === 'warehouse') {
       loadDashboardData();
       loadWmsLocations();
+      loadSlottingSuggestions();
     } else if (activeTab === 'webhooks') {
       loadWebhooks();
     } else if (activeTab === 'compliance') {
@@ -2773,29 +2791,56 @@ function App() {
                       gridRowEnd: `span ${loc.height || 1}`
                     } : {};
 
-                    return (
-                      <div
-                        key={loc.id}
-                        style={{
-                          ...gridStyle,
-                          backgroundColor: bgColor,
-                          borderRadius: '6px',
-                          padding: '12px',
-                          border: isOnPickPath ? '3px solid #ffd54f' : '1px solid rgba(255,255,255,0.08)',
-                          boxShadow: isOnPickPath ? '0 0 12px rgba(255,213,79,0.3)' : 'none',
-                          position: 'relative',
-                          transition: 'transform 0.2s',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between',
-                          minHeight: '90px'
-                        }}
-                        title={`Bin Capacity Details:\nWeight: ${currentWeight}g / ${weightLimit}g\nVolume: ${currentVolume}m³ / ${volumeLimit}m³\nOccupancy: ${occupancy.toFixed(1)}%`}
-                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1.0)'; }}
-                      >
-                        {isOnPickPath && (
+                      const isSource = hoveredSuggestion && hoveredSuggestion.currentLocationId === loc.id;
+                      const isTarget = hoveredSuggestion && hoveredSuggestion.recommendedLocationId === loc.id;
+                      const borderStyle = isSource 
+                        ? '3px dashed #ef5350' 
+                        : isTarget 
+                        ? '3px dashed #4caf50' 
+                        : isOnPickPath 
+                        ? '3px solid #ffd54f' 
+                        : '1px solid rgba(255,255,255,0.08)';
+                      const cardShadow = isSource
+                        ? '0 0 16px rgba(239,83,80,0.6)'
+                        : isTarget
+                        ? '0 0 16px rgba(76,175,80,0.6)'
+                        : isOnPickPath
+                        ? '0 0 12px rgba(255,213,79,0.3)'
+                        : 'none';
+
+                      return (
+                        <div
+                          key={loc.id}
+                          style={{
+                            ...gridStyle,
+                            backgroundColor: bgColor,
+                            borderRadius: '6px',
+                            padding: '12px',
+                            border: borderStyle,
+                            boxShadow: cardShadow,
+                            position: 'relative',
+                            transition: 'transform 0.2s',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            minHeight: '90px'
+                          }}
+                          title={`Bin Capacity Details:\nWeight: ${currentWeight}g / ${weightLimit}g\nVolume: ${currentVolume}m³ / ${volumeLimit}m³\nOccupancy: ${occupancy.toFixed(1)}%`}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1.0)'; }}
+                        >
+                          {isSource && (
+                            <span style={{ position: 'absolute', top: '-10px', right: '4px', background: '#ef5350', color: 'white', fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold', zIndex: 10 }}>
+                              SLOT SOURCE
+                            </span>
+                          )}
+                          {isTarget && (
+                            <span style={{ position: 'absolute', top: '-10px', right: '4px', background: '#4caf50', color: 'white', fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold', zIndex: 10 }}>
+                              SLOT TARGET
+                            </span>
+                          )}
+                          {isOnPickPath && (
                           <span 
                             style={{ 
                               position: 'absolute', 
@@ -2830,6 +2875,90 @@ function App() {
                   })}
               </div>
             )}
+
+            {/* AI-Driven Slotting Optimization Section */}
+            <div className="glass-panel" style={{ marginTop: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h3 className="form-section-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    🧠 AI-Driven Slotting Optimization Suggestions
+                  </h3>
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Analyzes coordinates, Manhattan distance, and sales velocities over the last 30 days to propose layout relocations.
+                  </p>
+                </div>
+                <button 
+                  onClick={loadSlottingSuggestions} 
+                  className="btn btn-secondary" 
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                  disabled={loadingSlotting}
+                >
+                  {loadingSlotting ? 'Analyzing...' : '↻ Recalculate Bins'}
+                </button>
+              </div>
+
+              {slottingSuggestions.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  No optimization suggestions found. Your current warehouse slotting is fully optimized for distance and sales velocity!
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {slottingSuggestions.map((sugg, idx) => (
+                    <div 
+                      key={idx}
+                      className="glass-panel"
+                      style={{ 
+                        padding: '12px 16px', 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        borderLeft: '4px solid var(--primary-color)',
+                        background: hoveredSuggestion === sugg ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                        transition: 'background 0.2s',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={() => setHoveredSuggestion(sugg)}
+                      onMouseLeave={() => setHoveredSuggestion(null)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                        <div style={{ background: 'var(--primary-color-dim)', padding: '6px 12px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>SKU TO RELOCATE</span>
+                          <strong style={{ fontSize: '0.95rem', color: 'var(--primary-color)' }}>{sugg.sku}</strong>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>CURRENT STATE</span>
+                          <span style={{ fontSize: '0.85rem' }}>
+                            Bin <strong>{sugg.currentLocationId}</strong> (Dist: <strong>{sugg.currentDistance}m</strong>, Velocity: <strong>{sugg.currentVelocity} sales</strong>)
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>➔</div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>RECOMMENDED STATE</span>
+                          <span style={{ fontSize: '0.85rem' }}>
+                            Bin <strong>{sugg.recommendedLocationId}</strong> (Dist: <strong>{sugg.recommendedDistance}m</strong>)
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        {sugg.potentialSwapSku && (
+                          <div style={{ marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '3px', marginRight: '6px' }}>
+                              SWAP SWEEP
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Swap with <strong>{sugg.potentialSwapSku}</strong>
+                            </span>
+                          </div>
+                        )}
+                        <div style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                          Save {sugg.estimatedSavings}m roundtrip/mo
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           </>
         )}

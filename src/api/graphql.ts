@@ -614,6 +614,25 @@ export class GraphQLAdapter implements InventoryClient {
     });
   }
 
+  async getSlottingSuggestions(tenantId: string): Promise<any[]> {
+    const query = `
+      query GetSlottingSuggestions {
+        slottingSuggestions {
+          sku
+          currentLocationId
+          currentDistance
+          currentVelocity
+          recommendedLocationId
+          recommendedDistance
+          potentialSwapSku
+          estimatedSavings
+        }
+      }
+    `;
+    const res = await this.fetchGraphql(query);
+    return res.slottingSuggestions || [];
+  }
+
   async getComplianceLedger(tenantId: string): Promise<any[]> {
     return [];
   }

@@ -541,6 +541,10 @@ export class ExpressRESTAdapter implements InventoryClient {
     }
   }
 
+  async getSlottingSuggestions(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/warehouse-locations/slotting-suggestions?tenantId=${tenantId}`);
+  }
+
   async getComplianceLedger(tenantId: string): Promise<any[]> {
     return this.request('GET', `/compliance/ledger?tenantId=${tenantId}`);
   }

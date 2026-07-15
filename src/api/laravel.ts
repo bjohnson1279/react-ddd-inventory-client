@@ -716,6 +716,10 @@ export class LaravelRESTAdapter implements InventoryClient {
     }
   }
 
+  async getSlottingSuggestions(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/api/warehouse-locations/slotting-suggestions?tenantId=${tenantId}`);
+  }
+
   async getComplianceLedger(tenantId: string): Promise<any[]> {
     return await this.request('GET', `/api/compliance/ledger?tenantId=${tenantId}`);
   }

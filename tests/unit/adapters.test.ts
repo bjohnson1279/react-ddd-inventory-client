@@ -71,6 +71,18 @@ describe('Inventory Backend API Adapters', () => {
       expect(token).toBe('mock-express-jwt-token');
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
+
+    it('should query slotting suggestions route successfully', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [{ sku: 'SKU-A', currentLocationId: 'loc-1', estimatedSavings: 100 }]
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+      const suggestions = await adapter.getSlottingSuggestions('tenant-test');
+      expect(suggestions).toHaveLength(1);
+      expect(suggestions[0].sku).toBe('SKU-A');
+    });
   });
 
   describe('LaravelRESTAdapter', () => {
@@ -110,6 +122,18 @@ describe('Inventory Backend API Adapters', () => {
         version: 1
       });
       expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should query slotting suggestions route successfully', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [{ sku: 'SKU-A', currentLocationId: 'loc-1', estimatedSavings: 100 }]
+      });
+      global.fetch = mockFetch;
+      const adapter = new LaravelRESTAdapter();
+      const suggestions = await adapter.getSlottingSuggestions('tenant-test');
+      expect(suggestions).toHaveLength(1);
+      expect(suggestions[0].sku).toBe('SKU-A');
     });
 
     it('should connect to Server-Sent Events and capture barcode scans', () => {

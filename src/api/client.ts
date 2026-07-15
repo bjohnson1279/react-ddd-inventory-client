@@ -290,6 +290,7 @@ export interface InventoryClient {
   deleteWarehouseLocation(tenantId: string, id: string): Promise<void>;
   getPutawaySuggestions(tenantId: string, sku: string, quantity: number): Promise<PutawaySuggestion[]>;
   getOptimizedPickRoute(tenantId: string, skus: string[]): Promise<string[]>;
+  getSlottingSuggestions(tenantId: string): Promise<any[]>;
   getComplianceLedger(tenantId: string): Promise<any[]>;
   verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }>;
 
