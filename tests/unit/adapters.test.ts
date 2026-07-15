@@ -111,5 +111,56 @@ describe('Inventory Backend API Adapters', () => {
       });
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
+
+    it('should connect to Server-Sent Events and capture barcode scans', () => {
+      const mockEventSourceInstance = {
+        url: '',
+        onmessage: null as any,
+        onerror: null as any,
+        close: vi.fn()
+      };
+      
+      const constructorSpy = vi.fn();
+      class EventSourceMock {
+        constructor(url: string) {
+          constructorSpy(url);
+          mockEventSourceInstance.url = url;
+          return mockEventSourceInstance as any;
+        }
+      }
+      global.EventSource = EventSourceMock as any;
+
+      localStorage.setItem('auth_token', 'test-auth-token-999');
+
+      const adapter = new LaravelRESTAdapter();
+      const onScan = vi.fn();
+      const unsubscribe = adapter.subscribeBarcodeScans('tenant-1', onScan);
+
+      expect(constructorSpy).toHaveBeenCalledWith(
+        'http://localhost:8000/api/notifications/subscribe?token=test-auth-token-999'
+      );
+
+      mockEventSourceInstance.onmessage({
+        data: JSON.stringify({
+          type: 'BarcodeScanned',
+          scanValue: '9988776655',
+          symbology: 'EAN-13',
+          context: 'receive',
+          status: 'success',
+          time: '2026-07-15T12:00:00Z'
+        })
+      });
+
+      expect(onScan).toHaveBeenCalledWith({
+        scanValue: '9988776655',
+        symbology: 'EAN-13',
+        context: 'receive',
+        status: 'success',
+        time: '2026-07-15T12:00:00Z'
+      });
+
+      unsubscribe();
+      expect(mockEventSourceInstance.close).toHaveBeenCalled();
+    });
   });
 });
