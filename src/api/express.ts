@@ -1,4 +1,4 @@
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
 
 const EXPRESS_BASE_URL = 'http://localhost:5000/api';
 const EXPRESS_WS_URL = 'ws://localhost:5000';
@@ -551,5 +551,49 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   async verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }> {
     return this.request('POST', `/compliance/verify?tenantId=${tenantId}`);
+  }
+
+  async getRfidTags(tenantId: string): Promise<any[]> {
+    const res = await this.request('GET', `/rfid/tags?tenantId=${tenantId}`);
+    return res.tags || [];
+  }
+
+  async assignRfidTag(tenantId: string, epc: string, sku: string, serialNumber: string): Promise<void> {
+    await this.request('POST', `/rfid/assign?tenantId=${tenantId}`, { epc, sku, serialNumber });
+  }
+
+  async simulateRfidScan(tenantId: string, locationId: string, tags: string[]): Promise<void> {
+    await this.request('POST', `/rfid/simulate-scan?tenantId=${tenantId}`, { locationId, tags });
+  }
+
+  subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
+    const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'rfid_scan_processed') {
+          onScanProcessed({
+            id: data.id,
+            tenantId: data.tenantId,
+            locationId: data.locationId,
+            totalCount: data.totalCount,
+            matchedCount: data.matchedCount,
+            unmatchedCount: data.unmatchedCount,
+            unmatchedEpcs: data.unmatchedEpcs
+          });
+        }
+      } catch (err) {
+        console.error('Express WS Rfid Parse Error:', err);
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error('Express WS Rfid Error:', err);
+    };
+
+    return () => {
+      ws.close();
+    };
   }
 }

@@ -1,5 +1,5 @@
 import { createClient } from 'graphql-ws';
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
 
 const GRAPHQL_HTTP_URL = 'http://localhost:4000/graphql';
 const GRAPHQL_WS_URL = 'ws://localhost:4000/graphql';
@@ -639,5 +639,72 @@ export class GraphQLAdapter implements InventoryClient {
 
   async verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }> {
     return { isValid: true };
+  }
+
+  async getRfidTags(tenantId: string): Promise<any[]> {
+    const data = await this.fetchGraphql(`query GetRfidTags($tenant: ID!) {
+      rfidTags(tenantId: $tenant) {
+        epc
+        sku
+        serialNumber
+        status
+        lastSeenAt
+        lastLocation
+      }
+    }`, { tenant: tenantId });
+    return data.rfidTags || [];
+  }
+
+  async assignRfidTag(tenantId: string, epc: string, sku: string, serialNumber: string): Promise<void> {
+    await this.fetchGraphql(`mutation AssignRfidTag($epc: String!, $sku: String!, $serialNumber: String!) {
+      assignRfidTag(epc: $epc, sku: $sku, serialNumber: $serialNumber)
+    }`, { epc, sku, serialNumber });
+  }
+
+  async simulateRfidScan(tenantId: string, locationId: string, tags: string[]): Promise<void> {
+    await this.fetchGraphql(`mutation SimulateRfidScan($locationId: String!, $tags: [String!]!) {
+      simulateRfidScan(locationId: $locationId, tags: $tags)
+    }`, { locationId, tags });
+  }
+
+  subscribeRfidScans(tenantId: string, onScan: (event: any) => void): () => void {
+    const wsClient = createClient({
+      url: GRAPHQL_WS_URL,
+      connectionParams: () => {
+        const activeToken = localStorage.getItem('auth_token');
+        return activeToken ? { Authorization: `Bearer ${activeToken}` } : {};
+      },
+    });
+
+    const unsubscribe = wsClient.subscribe(
+      {
+        query: `subscription OnRfidScanStream($tenant: ID!) {
+          rfidScanStream(tenantId: $tenant) {
+            id
+            tenantId
+            locationId
+            totalCount
+            matchedCount
+            unmatchedCount
+            unmatchedEpcs
+          }
+        }`,
+        variables: { tenant: tenantId },
+      },
+      {
+        next: (data: any) => {
+          const event = data?.data?.rfidScanStream;
+          if (event) {
+            onScan(event);
+          }
+        },
+        error: (err: any) => console.error('GQL WS RFID Subscription Error:', err),
+        complete: () => {}
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
   }
 }

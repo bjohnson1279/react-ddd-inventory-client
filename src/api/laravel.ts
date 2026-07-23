@@ -1,4 +1,4 @@
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
 
 const LARAVEL_BASE_URL = 'http://localhost:8000';
 
@@ -726,5 +726,52 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   async verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }> {
     return await this.request('POST', `/api/compliance/verify?tenantId=${tenantId}`);
+  }
+
+  async getRfidTags(tenantId: string): Promise<any[]> {
+    const res = await this.request('GET', `/api/rfid/tags?tenantId=${tenantId}`);
+    return res.tags || [];
+  }
+
+  async assignRfidTag(tenantId: string, epc: string, sku: string, serialNumber: string): Promise<void> {
+    await this.request('POST', `/api/rfid/assign?tenantId=${tenantId}`, { epc, sku, serialNumber });
+  }
+
+  async simulateRfidScan(tenantId: string, locationId: string, tags: string[]): Promise<void> {
+    await this.request('POST', `/api/rfid/simulate-scan?tenantId=${tenantId}`, { locationId, tags });
+  }
+
+  subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
+    const activeToken = localStorage.getItem('auth_token') || '';
+    const eventSource = new EventSource(`${LARAVEL_BASE_URL}/api/notifications/subscribe?token=${activeToken}`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'rfid_scan_processed') {
+          const payload = typeof data.message === 'string' ? JSON.parse(data.message) : data;
+          onScanProcessed({
+            id: payload.id,
+            tenantId: payload.tenantId,
+            locationId: payload.locationId,
+            totalCount: payload.totalCount,
+            matchedCount: payload.matchedCount,
+            unmatchedCount: payload.unmatchedCount,
+            unmatchedEpcs: payload.unmatchedEpcs
+          });
+        }
+      } catch (err) {
+        console.error('Laravel SSE Rfid Parse Error:', err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('Laravel SSE Rfid Error:', err);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }
 }

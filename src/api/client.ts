@@ -240,8 +240,27 @@ export interface ValuationItem {
   unitCostCents: number;
 }
 
+export interface RfidTag {
+  epc: string;
+  sku: string;
+  serialNumber: string;
+  status: string;
+  lastSeenAt?: string;
+  lastLocation?: string;
+}
+
+export interface RfidScanUpdate {
+  id: string;
+  tenantId: string;
+  locationId: string;
+  totalCount: number;
+  matchedCount: number;
+  unmatchedCount: number;
+  unmatchedEpcs: string[];
+}
+
 export type BackendType = 'graphql' | 'express' | 'laravel';
-export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance';
+export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid';
 
 // --- Abstract Client Interface ---
 export interface InventoryClient {
@@ -328,6 +347,12 @@ export interface InventoryClient {
   resolveQuarantine(tenantId: string, id: string, resolution: string): Promise<void>;
 
   getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]>;
+
+  // RFID Ingestion
+  getRfidTags(tenantId: string): Promise<RfidTag[]>;
+  assignRfidTag(tenantId: string, epc: string, sku: string, serialNumber: string): Promise<void>;
+  simulateRfidScan(tenantId: string, locationId: string, tags: string[]): Promise<void>;
+  subscribeRfidScans(tenantId: string, onScan: (event: RfidScanUpdate) => void): () => void;
 }
 
 // --- React Context Infrastructure ---
