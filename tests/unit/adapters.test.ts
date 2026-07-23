@@ -186,5 +186,144 @@ describe('Inventory Backend API Adapters', () => {
       unsubscribe();
       expect(mockEventSourceInstance.close).toHaveBeenCalled();
     });
+
+    it('should query rfid tags, assign, and subscribe', async () => {
+      const mockFetch = vi.fn()
+        // getRfidTags
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ tags: [{ epc: 'EPC-1', sku: 'SKU-A', serial_number: 'SN-1' }] })
+        })
+        // assignRfidTag
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ message: 'Tag assigned successfully' })
+        })
+        // simulateRfidScan
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ message: 'RFID scan simulation published.' })
+        });
+      global.fetch = mockFetch;
+
+      const adapter = new LaravelRESTAdapter();
+      const tags = await adapter.getRfidTags('tenant-1');
+      expect(tags).toHaveLength(1);
+      expect(tags[0].epc).toBe('EPC-1');
+
+      await adapter.assignRfidTag('tenant-1', 'EPC-1', 'SKU-A', 'SN-1');
+      await adapter.simulateRfidScan('tenant-1', 'LOC-A', ['EPC-1']);
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+
+      // subscribeRfidScans
+      const mockEventSourceInstance = {
+        url: '',
+        onmessage: null as any,
+        onerror: null as any,
+        close: vi.fn()
+      };
+      global.EventSource = class {
+        constructor(url: string) {
+          mockEventSourceInstance.url = url;
+          return mockEventSourceInstance as any;
+        }
+      } as any;
+
+      const onScanProcessed = vi.fn();
+      const unsubscribe = adapter.subscribeRfidScans('tenant-1', onScanProcessed);
+      mockEventSourceInstance.onmessage({
+        data: JSON.stringify({
+          type: 'rfid_scan_processed',
+          message: JSON.stringify({
+            id: 'batch-1',
+            tenantId: 'tenant-1',
+            locationId: 'LOC-A',
+            totalCount: 1,
+            matchedCount: 1,
+            unmatchedCount: 0,
+            unmatchedEpcs: []
+          })
+        })
+      });
+
+      expect(onScanProcessed).toHaveBeenCalledWith({
+        id: 'batch-1',
+        tenantId: 'tenant-1',
+        locationId: 'LOC-A',
+        totalCount: 1,
+        matchedCount: 1,
+        unmatchedCount: 0,
+        unmatchedEpcs: []
+      });
+      unsubscribe();
+    });
+  });
+
+  describe('GraphQLAdapter RFID methods', () => {
+    it('should query rfid tags, assign, and simulate scans', async () => {
+      const mockFetch = vi.fn()
+        // getRfidTags
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: { rfidTags: [{ epc: 'EPC-GQL-1', sku: 'SKU-GQL', serialNumber: 'SN-GQL', status: 'ACTIVE' }] }
+          })
+        })
+        // assignRfidTag
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: { assignRfidTag: true }
+          })
+        })
+        // simulateRfidScan
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: { simulateRfidScan: true }
+          })
+        });
+      global.fetch = mockFetch;
+
+      const adapter = new GraphQLAdapter();
+      const tags = await adapter.getRfidTags('tenant-1');
+      expect(tags).toHaveLength(1);
+      expect(tags[0].epc).toBe('EPC-GQL-1');
+
+      await adapter.assignRfidTag('tenant-1', 'EPC-GQL-1', 'SKU-GQL', 'SN-GQL');
+      await adapter.simulateRfidScan('tenant-1', 'LOC-A', ['EPC-GQL-1']);
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('ExpressRESTAdapter RFID methods', () => {
+    it('should query rfid tags, assign, and simulate scans', async () => {
+      const mockFetch = vi.fn()
+        // getRfidTags
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ tags: [{ epc: 'EPC-EXP-1', sku: 'SKU-EXP', serialNumber: 'SN-EXP', status: 'ACTIVE' }] })
+        })
+        // assignRfidTag
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ message: 'Tag assigned successfully' })
+        })
+        // simulateRfidScan
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ message: 'RFID scan simulation published.' })
+        });
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      const tags = await adapter.getRfidTags('tenant-1');
+      expect(tags).toHaveLength(1);
+      expect(tags[0].epc).toBe('EPC-EXP-1');
+
+      await adapter.assignRfidTag('tenant-1', 'EPC-EXP-1', 'SKU-EXP', 'SN-EXP');
+      await adapter.simulateRfidScan('tenant-1', 'LOC-A', ['EPC-EXP-1']);
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
   });
 });

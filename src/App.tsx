@@ -12,7 +12,8 @@ import {
   RoutingPanel,
   ProcurementPanel,
   WarehousePanel,
-  WebhooksPanel
+  WebhooksPanel,
+  RfidPanel
 } from './components/Panels';
 import { addScanToQueue, getQueuedScans, syncOfflineQueue } from './api/offlineQueue';
 
@@ -487,6 +488,8 @@ function App() {
       loadComplianceLedger();
     } else if (activeTab === 'admin') {
       loadAdminData();
+    } else if (activeTab === 'rfid') {
+      loadWmsLocations();
     }
   }, [activeTab, tenantId, token]);
 
@@ -1406,6 +1409,11 @@ function App() {
             {(role === 'admin' || role === 'warehouse_operator') && (
               <div className={`nav-link ${activeTab === 'warehouse' ? 'active' : ''}`} onClick={() => setActiveTab('warehouse')}>
                 🏢 Warehouse Layout
+              </div>
+            )}
+            {(role === 'admin' || role === 'warehouse_operator') && (
+              <div className={`nav-link ${activeTab === 'rfid' ? 'active' : ''}`} onClick={() => setActiveTab('rfid')}>
+                📡 RFID Ingestion
               </div>
             )}
             {role === 'admin' && (
@@ -3661,6 +3669,10 @@ function App() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'rfid' && (
+          <RfidPanel tenantId={tenantId} client={client} locations={wmsLocations} />
         )}
       </div>
     </div>

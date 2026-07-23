@@ -1799,3 +1799,291 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
     </div>
   </div>
 );
+
+export const RfidPanel: React.FC<{
+  tenantId: string;
+  client: any;
+  locations: any[];
+}> = ({ tenantId, client, locations }) => {
+  const [tags, setTags] = useState<RfidTag[]>([]);
+  const [epc, setEpc] = useState('');
+  const [sku, setSku] = useState('');
+  const [serialNumber, setSerialNumber] = useState('');
+  
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [unregisteredTagsText, setUnregisteredTagsText] = useState('');
+  
+  const [scanEvents, setScanEvents] = useState<RfidScanUpdate[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const fetchTags = async () => {
+    try {
+      const list = await client.getRfidTags(tenantId);
+      setTags(list);
+    } catch (err: any) {
+      console.error('Failed to load RFID tags:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTags();
+    
+    // Subscribe to live scan streams
+    const unsubscribe = client.subscribeRfidScans(tenantId, (event: RfidScanUpdate) => {
+      setScanEvents(prev => [event, ...prev]);
+      fetchTags(); // Refresh tags to update lastSeen/lastLocation status
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [tenantId, client]);
+
+  // Set default location
+  useEffect(() => {
+    if (locations.length > 0 && !selectedLocation) {
+      setSelectedLocation(locations[0].id);
+    }
+  }, [locations]);
+
+  const handleAssign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!epc || !sku || !serialNumber) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      await client.assignRfidTag(tenantId, epc.trim(), sku.trim(), serialNumber.trim());
+      setMessage({ text: 'RFID tag assigned successfully.', type: 'success' });
+      setEpc('');
+      setSku('');
+      setSerialNumber('');
+      fetchTags();
+    } catch (err: any) {
+      setMessage({ text: err.message || 'Failed to assign RFID tag.', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSimulate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLocation) return;
+    
+    // Combine checked registered tags with any arbitrary manual tags
+    let epcsToScan = [...selectedTags];
+    if (unregisteredTagsText.trim()) {
+      const manualEpcs = unregisteredTagsText.split('\n').map(x => x.trim()).filter(x => x.length > 0);
+      epcsToScan.push(...manualEpcs);
+    }
+
+    if (epcsToScan.length === 0) {
+      setMessage({ text: 'Please select or enter at least one EPC tag to scan.', type: 'error' });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+    try {
+      await client.simulateRfidScan(tenantId, selectedLocation, epcsToScan);
+      setMessage({ text: `Simulated scan of ${epcsToScan.length} tags at location ${selectedLocation}.`, type: 'success' });
+      setUnregisteredTagsText('');
+      setSelectedTags([]);
+    } catch (err: any) {
+      setMessage({ text: err.message || 'Simulation failed.', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTagCheck = (tagEpc: string, checked: boolean) => {
+    if (checked) {
+      setSelectedTags(prev => [...prev, tagEpc]);
+    } else {
+      setSelectedTags(prev => prev.filter(x => x !== tagEpc));
+    }
+  };
+
+  // Metrics
+  const totalProcessedBatches = scanEvents.length;
+  const totalMatched = scanEvents.reduce((acc, curr) => acc + curr.matchedCount, 0);
+  const totalScanned = scanEvents.reduce((acc, curr) => acc + curr.totalCount, 0);
+  const averageMatchRate = totalScanned > 0 ? ((totalMatched / totalScanned) * 100).toFixed(1) : '100.0';
+
+  return (
+    <div className="grid-cols-2">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Assignment Form */}
+        <div className="glass-panel">
+          <h3 className="form-section-title">Register RFID Tag Mappings</h3>
+          {message && (
+            <div className={`alert alert-${message.type}`} style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px', fontSize: '0.9rem' }}>
+              {message.text}
+            </div>
+          )}
+          <form onSubmit={handleAssign} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="form-group">
+              <label>EPC ID (24-char Hex)</label>
+              <input type="text" value={epc} onChange={e => setEpc(e.target.value)} required placeholder="E28011302000762A17849C10" />
+            </div>
+            <div className="form-group">
+              <label>Item SKU</label>
+              <input type="text" value={sku} onChange={e => setSku(e.target.value)} required placeholder="SKU-GEN-SHIRT" />
+            </div>
+            <div className="form-group">
+              <label>Serial Number</label>
+              <input type="text" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} required placeholder="SN-10002931" />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              Register Mapping
+            </button>
+          </form>
+        </div>
+
+        {/* Simulation Controls */}
+        <div className="glass-panel">
+          <h3 className="form-section-title">Simulate RFID Portal Scan</h3>
+          <form onSubmit={handleSimulate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="form-group">
+              <label>Select Scanning Location</label>
+              <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} required>
+                <option value="">-- Select Location --</option>
+                {locations.map(loc => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name || loc.id} ({loc.zone || 'Zone A'})
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label>Select Tags to Scan</label>
+              <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '4px', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', background: 'rgba(0,0,0,0.1)' }}>
+                {tags.length === 0 ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '1rem' }}>
+                    No registered RFID tags. Use the form above to add tags.
+                  </div>
+                ) : (
+                  tags.map(t => (
+                    <label key={t.epc} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal', fontSize: '0.85rem', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedTags.includes(t.epc)} 
+                        onChange={e => handleTagCheck(t.epc, e.target.checked)} 
+                      />
+                      <code>{t.epc}</code> - {t.sku} (S/N: {t.serialNumber})
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Unregistered/Arbitrary EPCs (one per line)</label>
+              <textarea 
+                rows={3} 
+                value={unregisteredTagsText} 
+                onChange={e => setUnregisteredTagsText(e.target.value)} 
+                placeholder="E28011302000000000000001&#10;E28011302000000000000002"
+                style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            <button type="submit" className="btn btn-secondary" disabled={loading || locations.length === 0}>
+              Simulate Scan Ingest
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Real-time Ingestion Stream */}
+        <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <h3 className="form-section-title">Live Ingestion Metrics</h3>
+          
+          <div className="grid-cols-3" style={{ marginBottom: '1.5rem', gap: '1rem' }}>
+            <div className="stat-card" style={{ padding: '0.75rem', textAlign: 'center' }}>
+              <div className="stat-label">Batches Processed</div>
+              <div className="stat-value" style={{ fontSize: '1.5rem' }}>{totalProcessedBatches}</div>
+            </div>
+            <div className="stat-card" style={{ padding: '0.75rem', textAlign: 'center' }}>
+              <div className="stat-label">Total Tags Scanned</div>
+              <div className="stat-value" style={{ fontSize: '1.5rem' }}>{totalScanned}</div>
+            </div>
+            <div className="stat-card" style={{ padding: '0.75rem', textAlign: 'center' }}>
+              <div className="stat-label">Avg Match Rate</div>
+              <div className={`stat-value ${parseFloat(averageMatchRate) < 90 ? 'text-error' : 'text-success'}`} style={{ fontSize: '1.5rem' }}>
+                {averageMatchRate}%
+              </div>
+            </div>
+          </div>
+
+          <h4 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: 'var(--text-bright)' }}>Real-time Event Stream</h4>
+          <div style={{ flex: 1, maxHeight: '350px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '4px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: '#090a0f', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+            {scanEvents.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+                Waiting for scan events... Simulate a scan to trigger.
+              </div>
+            ) : (
+              scanEvents.map(evt => (
+                <div key={evt.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#61afef', marginBottom: '0.2rem' }}>
+                    <span>[BATCH: {evt.id.substring(evt.id.length - 8)}]</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{new Date().toLocaleTimeString()}</span>
+                  </div>
+                  <div>Location: <span style={{ color: '#abb2bf' }}>{evt.locationId}</span></div>
+                  <div>Scanned: <span style={{ color: '#abb2bf' }}>{evt.totalCount} tags</span></div>
+                  <div>Matched: <span style={{ color: '#98c379' }}>{evt.matchedCount}</span> | Unmatched: <span style={{ color: evt.unmatchedCount > 0 ? '#e06c75' : '#5c6370' }}>{evt.unmatchedCount}</span></div>
+                  {evt.unmatchedEpcs.length > 0 && (
+                    <div style={{ color: '#e06c75', marginTop: '0.2rem', paddingLeft: '0.5rem', fontSize: '0.75rem' }}>
+                      Unregistered EPCs: {evt.unmatchedEpcs.join(', ')}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Registered Tag Catalog */}
+        <div className="glass-panel">
+          <h3 className="form-section-title">RFID Tag Inventory Catalog</h3>
+          <div className="table-wrapper" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>EPC</th>
+                  <th>SKU</th>
+                  <th>S/N</th>
+                  <th>Last Seen</th>
+                  <th>Last Location</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tags.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                      No tags registered yet.
+                    </td>
+                  </tr>
+                ) : (
+                  tags.map(t => (
+                    <tr key={t.epc}>
+                      <td><code>{t.epc}</code></td>
+                      <td>{t.sku}</td>
+                      <td><code>{t.serialNumber}</code></td>
+                      <td>{t.lastSeenAt ? new Date(t.lastSeenAt).toLocaleTimeString() : <span style={{ color: 'var(--text-muted)' }}>Never</span>}</td>
+                      <td>{t.lastLocation || <span style={{ color: 'var(--text-muted)' }}>N/A</span>}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
