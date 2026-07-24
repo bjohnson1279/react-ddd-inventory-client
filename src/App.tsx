@@ -16,6 +16,8 @@ import {
   RfidPanel
 } from './components/Panels';
 import { addScanToQueue, getQueuedScans, syncOfflineQueue } from './api/offlineQueue';
+import { AutonomousInventoryDashboard } from './components/AutonomousInventoryDashboard';
+import { RFIDBulkScannerView } from './components/RFIDBulkScannerView';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -198,9 +200,9 @@ function App() {
   useEffect(() => {
     const allowedTabs = ['dashboard'];
     if (role === 'admin') {
-      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance');
+      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid');
     } else if (role === 'warehouse_operator') {
-      allowedTabs.push('products', 'scanning', 'serials', 'forecasting', 'warehouse', 'procurement');
+      allowedTabs.push('products', 'scanning', 'serials', 'forecasting', 'warehouse', 'procurement', 'autonomous', 'rfid');
     } else if (role === 'accountant') {
       allowedTabs.push('onboarding', 'products', 'ledger', 'forecasting', 'procurement');
     } else if (role === 'viewer') {
@@ -1414,6 +1416,11 @@ function App() {
             {(role === 'admin' || role === 'warehouse_operator') && (
               <div className={`nav-link ${activeTab === 'rfid' ? 'active' : ''}`} onClick={() => setActiveTab('rfid')}>
                 📡 RFID Ingestion
+              </div>
+            )}
+            {(role === 'admin' || role === 'warehouse_operator') && (
+              <div className={`nav-link ${activeTab === 'autonomous' ? 'active' : ''}`} onClick={() => setActiveTab('autonomous')}>
+                ⚡ Autonomous Agent
               </div>
             )}
             {role === 'admin' && (
@@ -3672,7 +3679,11 @@ function App() {
         )}
 
         {activeTab === 'rfid' && (
-          <RfidPanel tenantId={tenantId} client={client} locations={wmsLocations} />
+          <RFIDBulkScannerView />
+        )}
+
+        {activeTab === 'autonomous' && (
+          <AutonomousInventoryDashboard />
         )}
       </div>
     </div>
