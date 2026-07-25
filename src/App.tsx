@@ -3679,7 +3679,7 @@ function App() {
         )}
 
         {activeTab === 'rfid' && (
-          <RFIDBulkScannerView />
+          <RfidPanel tenantId={tenantId} client={client} locations={wmsLocations} />
         )}
 
         {activeTab === 'autonomous' && (
