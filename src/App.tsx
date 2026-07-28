@@ -13,8 +13,10 @@ import {
   ProcurementPanel,
   WarehousePanel,
   WebhooksPanel,
-  RfidPanel
+  RfidPanel,
+  LotManagementPanel
 } from './components/Panels';
+
 import { addScanToQueue, getQueuedScans, syncOfflineQueue } from './api/offlineQueue';
 import { AutonomousInventoryDashboard } from './components/AutonomousInventoryDashboard';
 import { RFIDBulkScannerView } from './components/RFIDBulkScannerView';
@@ -1414,10 +1416,16 @@ function App() {
               </div>
             )}
             {(role === 'admin' || role === 'warehouse_operator') && (
+              <div className={`nav-link ${(activeTab as string) === 'lots' ? 'active' : ''}`} onClick={() => setActiveTab('lots' as any)}>
+                🛡️ Lot & Traceability
+              </div>
+            )}
+            {(role === 'admin' || role === 'warehouse_operator') && (
               <div className={`nav-link ${activeTab === 'rfid' ? 'active' : ''}`} onClick={() => setActiveTab('rfid')}>
                 📡 RFID Ingestion
               </div>
             )}
+
             {(role === 'admin' || role === 'warehouse_operator') && (
               <div className={`nav-link ${activeTab === 'autonomous' ? 'active' : ''}`} onClick={() => setActiveTab('autonomous')}>
                 ⚡ Autonomous Agent
@@ -2978,7 +2986,12 @@ function App() {
           </>
         )}
 
+        {(activeTab as string) === 'lots' && (
+          <LotManagementPanel />
+        )}
+
         {activeTab === 'webhooks' && (
+
           <div className="grid-cols-2">
             <div className="glass-panel">
               <h3 className="form-section-title">Subscribe Outbound Webhook</h3>

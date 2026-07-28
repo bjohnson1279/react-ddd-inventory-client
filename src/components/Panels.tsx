@@ -2087,3 +2087,142 @@ export const RfidPanel: React.FC<{
   );
 };
 
+export const LotManagementPanel = () => {
+  const [lotNumber, setLotNumber] = useState('LOT-2026-X');
+  const [variantId, setVariantId] = useState('VAR-MED-100');
+  const [reason, setReason] = useState('Quality defect inspection');
+  const [statusMsg, setStatusMsg] = useState('');
+  const [traceReport, setTraceReport] = useState<any>(null);
+
+  const [poId, setPoId] = useState('PO-9910');
+  const [inboundJson, setInboundJson] = useState('[{"variantId":"VAR-MED-100","quantity":50}]');
+  const [backordersJson, setBackordersJson] = useState('[{"orderId":"ORD-501","variantId":"VAR-MED-100","quantity":30,"priority":2}]');
+  const [crossDockResults, setCrossDockResults] = useState<any[]>([]);
+
+  const handleAction = async (action: 'quarantine' | 'recall' | 'release' | 'trace') => {
+    setStatusMsg(`Processing ${action}...`);
+    try {
+      if (action === 'trace') {
+        const res = await fetch(`/api/lots/${encodeURIComponent(lotNumber)}/traceability?variantId=${variantId}`);
+        const data = await res.json();
+        setTraceReport(data);
+        setStatusMsg('Traceability report generated.');
+      } else {
+        const res = await fetch(`/api/lots/${action}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lotNumber, variantId, reason })
+        });
+        const data = await res.json();
+        setStatusMsg(`Lot ${lotNumber} updated to ${data.status || action.toUpperCase()}`);
+      }
+    } catch (e: any) {
+      setStatusMsg(`Error: ${e.message}`);
+    }
+  };
+
+  const handleCrossDock = async () => {
+    try {
+      const res = await fetch('/api/cross-dock/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purchaseOrderId: poId,
+          inboundItems: JSON.parse(inboundJson || '[]'),
+          backorders: JSON.parse(backordersJson || '[]')
+        })
+      });
+      const data = await res.json();
+      setCrossDockResults(data);
+    } catch (e: any) {
+      setStatusMsg(`Cross-Docking error: ${e.message}`);
+    }
+  };
+
+  return (
+    <div className="grid-cols-2">
+      <div className="glass-panel">
+        <h3 className="form-section-title">🛡️ Lot Quarantine & Recall Traceability</h3>
+        {statusMsg && (
+          <div className="alert alert-info" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px' }}>
+            {statusMsg}
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="form-group">
+            <label>Lot Number</label>
+            <input type="text" value={lotNumber} onChange={e => setLotNumber(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>Variant ID / SKU</label>
+            <input type="text" value={variantId} onChange={e => setVariantId(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>Reason / Notes</label>
+            <input type="text" value={reason} onChange={e => setReason(e.target.value)} />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button className="btn btn-warning" onClick={() => handleAction('quarantine')}>
+              Quarantine Lot
+            </button>
+            <button className="btn btn-danger" onClick={() => handleAction('recall')}>
+              Trigger Lot Recall
+            </button>
+            <button className="btn btn-secondary" onClick={() => handleAction('release')}>
+              Release Lot
+            </button>
+            <button className="btn btn-primary" onClick={() => handleAction('trace')}>
+              Generate Trace Report
+            </button>
+          </div>
+
+          {traceReport && (
+            <div style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '6px' }}>
+              <h4>Lot Lineage Traceability Report</h4>
+              <p><strong>Lot Number:</strong> {traceReport.lotNumber}</p>
+              <p><strong>Status:</strong> <span className={`badge badge-${traceReport.status}`}>{traceReport.status}</span></p>
+              <p><strong>Affected Orders:</strong> {traceReport.affectedOrders?.length || 0}</p>
+              <p><strong>Impacted Customers:</strong> {traceReport.affectedCustomers?.join(', ') || 'None'}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="glass-panel">
+        <h3 className="form-section-title">⚡ Dynamic Cross-Docking Evaluator</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="form-group">
+            <label>Purchase Order ID</label>
+            <input type="text" value={poId} onChange={e => setPoId(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>Inbound Items (JSON)</label>
+            <textarea rows={2} value={inboundJson} onChange={e => setInboundJson(e.target.value)} style={{ fontFamily: 'monospace' }} />
+          </div>
+          <div className="form-group">
+            <label>Matching Backorders (JSON)</label>
+            <textarea rows={2} value={backordersJson} onChange={e => setBackordersJson(e.target.value)} style={{ fontFamily: 'monospace' }} />
+          </div>
+          <button className="btn btn-primary" onClick={handleCrossDock}>
+            Evaluate Dock-to-Dock Opportunities
+          </button>
+
+          {crossDockResults.length > 0 && (
+            <div style={{ marginTop: '1rem' }}>
+              <h4>Recommended Direct Transfers</h4>
+              {crossDockResults.map((opp, idx) => (
+                <div key={idx} style={{ background: 'rgba(0,255,150,0.1)', padding: '0.75rem', borderRadius: '6px', marginBottom: '0.5rem', border: '1px solid rgba(0,255,150,0.3)' }}>
+                  <p><strong>Target Bay:</strong> <code>{opp.destinationBay}</code></p>
+                  <p><strong>Direct Cross-Dock Quantity:</strong> {opp.recommendedCrossDockQuantity} units</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
