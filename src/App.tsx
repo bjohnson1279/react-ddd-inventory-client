@@ -641,7 +641,6 @@ function App() {
       };
 
       socket.onclose = () => {
-        console.log('[WebSocket] Collaborative sync disconnected. Retrying...');
         reconnectTimeout = setTimeout(connect, 3000);
       };
 
