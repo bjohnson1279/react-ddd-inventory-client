@@ -27,8 +27,8 @@ test.describe('Dashboard Shell & Authorization Flow', () => {
     await page.goto('/');
 
     // Swapping backends will trigger hard reload and purge the token
-    const selector = page.locator('select').first();
-    await selector.selectOption('express');
+    const expressOption = page.locator('.backend-option', { hasText: 'Express' });
+    await expressOption.click();
 
     // Wait for reload and assert the login panel is shown again due to cleared token context
     await expect(page.locator('h2')).toHaveText('System Authentication');
