@@ -83,6 +83,36 @@ describe('Inventory Backend API Adapters', () => {
       expect(suggestions).toHaveLength(1);
       expect(suggestions[0].sku).toBe('SKU-A');
     });
+
+    it('should verify compliance ledger successfully', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ isValid: true })
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+      const result = await adapter.verifyComplianceLedger('tenant-1');
+      expect(result).toEqual({ isValid: true });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:5000/api/compliance/verify?tenantId=tenant-1',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('should handle compliance ledger verification failure with reason', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ isValid: false, failedSequenceNumber: 5, reason: 'mismatch' })
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+      const result = await adapter.verifyComplianceLedger('tenant-1');
+      expect(result).toEqual({ isValid: false, failedSequenceNumber: 5, reason: 'mismatch' });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:5000/api/compliance/verify?tenantId=tenant-1',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
   });
 
   describe('LaravelRESTAdapter', () => {
