@@ -19,7 +19,6 @@ import {
 
 import { addScanToQueue, getQueuedScans, syncOfflineQueue } from './api/offlineQueue';
 import { AutonomousInventoryDashboard } from './components/AutonomousInventoryDashboard';
-import { RFIDBulkScannerView } from './components/RFIDBulkScannerView';
 import { ConformanceDashboardPanel } from './components/ConformanceDashboardPanel';
 import { ApiSpecViewerPanel } from './components/ApiSpecViewerPanel';
 import { AnomalyDetectionPanel } from './components/AnomalyDetectionPanel';
