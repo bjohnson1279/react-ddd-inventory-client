@@ -86,6 +86,18 @@ describe('Inventory Backend API Adapters', () => {
   });
 
   describe('LaravelRESTAdapter', () => {
+    it('should throw an error with raw text when response is not ok and not JSON', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => 'Internal Server Error String'
+      });
+      global.fetch = mockFetch;
+
+      const adapter = new LaravelRESTAdapter();
+      await expect(adapter.getSlottingSuggestions('t1')).rejects.toThrow('Internal Server Error String');
+    });
+
     it('should query catalog and gather stock for each SKU sequentially', async () => {
       const mockFetch = vi.fn()
         // Product list request
