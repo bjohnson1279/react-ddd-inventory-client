@@ -348,16 +348,19 @@ export class ExpressRESTAdapter implements InventoryClient {
   async getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
-    const pos: PurchaseOrder[] = [];
-    for (const id of ids) {
+
+    const promises = ids.map(async (id) => {
       try {
         const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
-        if (po) pos.push(po);
+        return po;
       } catch (e) {
         console.error(`Failed to load PO ${id}:`, e);
+        return null;
       }
-    }
-    return pos;
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter(Boolean);
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
@@ -493,11 +496,11 @@ export class ExpressRESTAdapter implements InventoryClient {
   async getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]> {
     try {
       const products = await this.getProducts();
+      const invItems = await this.getInventoryItems();
       const items: ValuationItem[] = [];
       for (const p of products) {
         for (const v of p.variants) {
           try {
-            const invItems = await this.getInventoryItems();
             const variantInv = invItems.filter(i => i.sku === v.sku);
             const qty = variantInv.reduce((sum, item) => sum + item.quantity, 0);
             if (qty > 0) {
