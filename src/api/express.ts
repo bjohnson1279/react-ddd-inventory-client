@@ -493,11 +493,11 @@ export class ExpressRESTAdapter implements InventoryClient {
   async getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]> {
     try {
       const products = await this.getProducts();
+      const invItems = await this.getInventoryItems();
       const items: ValuationItem[] = [];
       for (const p of products) {
         for (const v of p.variants) {
           try {
-            const invItems = await this.getInventoryItems();
             const variantInv = invItems.filter(i => i.sku === v.sku);
             const qty = variantInv.reduce((sum, item) => sum + item.quantity, 0);
             if (qty > 0) {
