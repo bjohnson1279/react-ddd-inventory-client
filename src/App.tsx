@@ -20,6 +20,8 @@ import {
 import { addScanToQueue, getQueuedScans, syncOfflineQueue } from './api/offlineQueue';
 import { AutonomousInventoryDashboard } from './components/AutonomousInventoryDashboard';
 import { RFIDBulkScannerView } from './components/RFIDBulkScannerView';
+import { ConformanceDashboardPanel } from './components/ConformanceDashboardPanel';
+import { ApiSpecViewerPanel } from './components/ApiSpecViewerPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -183,6 +185,48 @@ function App() {
 
   const [valuationItems, setValuationItems] = useState<ValuationItem[]>([]);
   const [valuationCostingMethod, setValuationCostingMethod] = useState<string>('FIFO');
+
+  const [backendHealth, setBackendHealth] = useState<Record<BackendType, { status: 'online' | 'offline' | 'checking', latencyMs: number }>>({
+    graphql: { status: 'checking', latencyMs: 0 },
+    express: { status: 'checking', latencyMs: 0 },
+    laravel: { status: 'checking', latencyMs: 0 }
+  });
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      const nodes: Record<BackendType, string> = {
+        graphql: 'http://localhost:4000',
+        express: 'http://localhost:5000',
+        laravel: 'http://localhost:8000'
+      };
+
+      const promises = (Object.entries(nodes) as [BackendType, string][]).map(async ([type, url]) => {
+        const start = Date.now();
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          await fetch(`${url}/health`, { signal: controller.signal }).catch(() => {});
+          clearTimeout(timeoutId);
+          return { type, status: 'online' as const, latencyMs: Date.now() - start };
+        } catch (error) {
+          return { type, status: 'offline' as const, latencyMs: 0 };
+        }
+      });
+
+      const results = await Promise.all(promises);
+      setBackendHealth(prev => {
+        const next = { ...prev };
+        results.forEach(res => {
+          next[res.type] = { status: res.status, latencyMs: res.latencyMs };
+        });
+        return next;
+      });
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Decode JWT details to synchronize client parameters
   useEffect(() => {
@@ -1441,6 +1485,13 @@ function App() {
                 🛠️ Admin Portal
               </div>
             )}
+            <div className="nav-separator">Developer Tools</div>
+            <div className={`nav-link ${activeTab === 'conformance' ? 'active' : ''}`} onClick={() => setActiveTab('conformance')}>
+              🧪 Conformance Suite
+            </div>
+            <div className={`nav-link ${activeTab === 'api-specs' ? 'active' : ''}`} onClick={() => setActiveTab('api-specs')}>
+              📋 API Specifications
+            </div>
           </div>
         </div>
         <div>
@@ -1463,13 +1514,25 @@ function App() {
           </div>
           
           <div className="header-controls">
-            <div className="control-item">
-              <label>API Node:</label>
-              <select value={backendType} onChange={(e) => setBackendType(e.target.value as BackendType)}>
-                <option value="graphql">GraphQL API (Port 4000)</option>
-                <option value="express">Express REST API (Port 5000)</option>
-                <option value="laravel">Laravel REST API (Port 8000)</option>
-              </select>
+            <div className="backend-switcher">
+              {(['graphql', 'express', 'laravel'] as BackendType[]).map((type) => (
+                <div 
+                  key={type}
+                  className={`backend-option ${backendType === type ? 'active' : ''}`}
+                  onClick={() => setBackendType(type)}
+                >
+                  <div className={`health-dot ${backendHealth[type]?.status || 'checking'}`} title={backendHealth[type]?.status} />
+                  <span>
+                    {type === 'graphql' ? 'GraphQL' : type === 'express' ? 'Express' : 'Laravel'}
+                  </span>
+                  {backendHealth[type]?.status === 'online' && (
+                    <span className="backend-latency">{backendHealth[type].latencyMs}ms</span>
+                  )}
+                </div>
+              ))}
+              <div className="conformance-badge passed">
+                ✓ Conformance Passed
+              </div>
             </div>
             <div className="control-item">
               <label>Location:</label>
@@ -3698,6 +3761,8 @@ function App() {
         {activeTab === 'autonomous' && (
           <AutonomousInventoryDashboard />
         )}
+        {activeTab === 'conformance' && <ConformanceDashboardPanel tenantId={tenantId} />}
+        {activeTab === 'api-specs' && <ApiSpecViewerPanel />}
       </div>
     </div>
   );

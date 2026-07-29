@@ -260,7 +260,7 @@ export interface RfidScanUpdate {
 }
 
 export type BackendType = 'graphql' | 'express' | 'laravel';
-export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous';
+export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous' | 'conformance' | 'api-specs';
 
 // --- Abstract Client Interface ---
 export interface InventoryClient {
