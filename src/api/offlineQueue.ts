@@ -78,8 +78,8 @@ export async function syncOfflineQueue(client: InventoryClient): Promise<{ succe
   let failedCount = 0;
   const errors: string[] = [];
 
-  for (const scan of scans) {
-    if (!scan.id) continue;
+  const promises = scans.map(async (scan) => {
+    if (!scan.id) return;
     try {
       await client.scanBarcode(
         scan.value,
@@ -91,10 +91,21 @@ export async function syncOfflineQueue(client: InventoryClient): Promise<{ succe
         scan.actorId
       );
       await deleteScan(scan.id);
-      successCount++;
+      return { success: true };
     } catch (err: any) {
+      return { success: false, value: scan.value, message: err.message };
+    }
+  });
+
+  const results = await Promise.all(promises);
+
+  for (const result of results) {
+    if (!result) continue;
+    if (result.success) {
+      successCount++;
+    } else {
       failedCount++;
-      errors.push(`Scan ${scan.value} failed: ${err.message}`);
+      errors.push(`Scan ${result.value} failed: ${result.message}`);
     }
   }
 
