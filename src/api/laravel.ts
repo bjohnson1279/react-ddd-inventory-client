@@ -682,10 +682,14 @@ export class LaravelRESTAdapter implements InventoryClient {
       const items: ValuationItem[] = [];
       const chosenMethod = (method || 'FIFO').toUpperCase();
       const invItems = await this.getInventoryItems();
+      const inventoryBySku = new Map<string, number>();
+      for (const item of invItems) {
+        inventoryBySku.set(item.sku, (inventoryBySku.get(item.sku) || 0) + item.quantity);
+      }
+
       for (const p of products) {
         for (const v of p.variants) {
-          const variantInv = invItems.filter(i => i.sku === v.sku);
-          const qty = variantInv.reduce((sum, item) => sum + item.quantity, 0);
+          const qty = inventoryBySku.get(v.sku) || 0;
           const unitCost = 1000;
           if (qty > 0) {
             items.push({
