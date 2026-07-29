@@ -22,6 +22,8 @@ import { AutonomousInventoryDashboard } from './components/AutonomousInventoryDa
 import { RFIDBulkScannerView } from './components/RFIDBulkScannerView';
 import { ConformanceDashboardPanel } from './components/ConformanceDashboardPanel';
 import { ApiSpecViewerPanel } from './components/ApiSpecViewerPanel';
+import { AnomalyDetectionPanel } from './components/AnomalyDetectionPanel';
+import { RebalancingMatrixPanel } from './components/RebalancingMatrixPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1485,6 +1487,13 @@ function App() {
                 🛠️ Admin Portal
               </div>
             )}
+            <div className="nav-separator">AI & Automation</div>
+            <div className={`nav-link ${activeTab === 'anomaly-detection' ? 'active' : ''}`} onClick={() => setActiveTab('anomaly-detection')}>
+              🔍 Anomaly Detection
+            </div>
+            <div className={`nav-link ${activeTab === 'rebalancing' ? 'active' : ''}`} onClick={() => setActiveTab('rebalancing')}>
+              ⚖️ Rebalancing Matrix
+            </div>
             <div className="nav-separator">Developer Tools</div>
             <div className={`nav-link ${activeTab === 'conformance' ? 'active' : ''}`} onClick={() => setActiveTab('conformance')}>
               🧪 Conformance Suite
@@ -3761,6 +3770,8 @@ function App() {
         {activeTab === 'autonomous' && (
           <AutonomousInventoryDashboard />
         )}
+        {activeTab === 'anomaly-detection' && <AnomalyDetectionPanel api={client} />}
+        {activeTab === 'rebalancing' && <RebalancingMatrixPanel api={client} />}
         {activeTab === 'conformance' && <ConformanceDashboardPanel tenantId={tenantId} />}
         {activeTab === 'api-specs' && <ApiSpecViewerPanel />}
       </div>

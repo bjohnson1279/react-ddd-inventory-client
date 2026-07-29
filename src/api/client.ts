@@ -260,7 +260,7 @@ export interface RfidScanUpdate {
 }
 
 export type BackendType = 'graphql' | 'express' | 'laravel';
-export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous' | 'conformance' | 'api-specs';
+export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous' | 'conformance' | 'api-specs' | 'anomaly-detection' | 'rebalancing';
 
 // --- Abstract Client Interface ---
 export interface InventoryClient {
@@ -353,6 +353,9 @@ export interface InventoryClient {
   assignRfidTag(tenantId: string, epc: string, sku: string, serialNumber: string): Promise<void>;
   simulateRfidScan(tenantId: string, locationId: string, tags: string[]): Promise<void>;
   subscribeRfidScans(tenantId: string, onScan: (event: RfidScanUpdate) => void): () => void;
+
+  analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any>;
+  getRebalanceMatrix(tenantId: string): Promise<any>;
 }
 
 // --- React Context Infrastructure ---

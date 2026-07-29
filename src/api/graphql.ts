@@ -707,4 +707,26 @@ export class GraphQLAdapter implements InventoryClient {
       unsubscribe();
     };
   }
+
+  async analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any> {
+    const query = `query AnalyzeAnomalies($tenantId: String!, $startDate: String, $endDate: String) {
+      analyzeInventoryAnomalies(tenantId: $tenantId, startDate: $startDate, endDate: $endDate) {
+        alerts { alertType severity confidence sku locationId actorId title description evidence detectedAt }
+        totalCritical totalHigh totalMedium totalLow overallRiskScore
+      }
+    }`;
+    const data = await this.fetchGraphql(query, { tenantId, startDate, endDate });
+    return data.analyzeInventoryAnomalies;
+  }
+
+  async getRebalanceMatrix(tenantId: string): Promise<any> {
+    const query = `query RebalanceMatrix($tenantId: String!) {
+      rebalanceMatrix(tenantId: $tenantId) {
+        recommendations { sku sourceWarehouseId destWarehouseId quantity priority estimatedShippingCost sourceCurrentDoc destCurrentDoc sourceProjectedDoc destProjectedDoc urgencyReason }
+        matrix summary
+      }
+    }`;
+    const data = await this.fetchGraphql(query, { tenantId });
+    return data.rebalanceMatrix;
+  }
 }

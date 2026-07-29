@@ -774,4 +774,15 @@ export class LaravelRESTAdapter implements InventoryClient {
       eventSource.close();
     };
   }
+
+  async analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any> {
+    const params = new URLSearchParams({ tenantId });
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    return await this.request('GET', `/api/anomaly-detection/analyze?${params.toString()}`);
+  }
+
+  async getRebalanceMatrix(tenantId: string): Promise<any> {
+    return await this.request('GET', `/api/rebalance/matrix?tenantId=${tenantId}`);
+  }
 }
