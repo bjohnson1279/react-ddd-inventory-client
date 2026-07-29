@@ -1,18 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useInventory, BackendType, Item, JournalLine, Tab, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, ForecastingReportItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './api/client';
 import {
-  DashboardPanel,
-  ShopifyPanel,
-  ProductsPanel,
-  ScanningPanel,
-  OnboardingPanel,
-  LedgerPanel,
-  SerialsPanel,
-  ForecastingPanel,
-  RoutingPanel,
-  ProcurementPanel,
-  WarehousePanel,
-  WebhooksPanel,
   RfidPanel,
   LotManagementPanel
 } from './components/Panels';
