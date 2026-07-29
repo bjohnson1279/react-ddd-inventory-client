@@ -2842,27 +2842,34 @@ function App() {
                   border: '1px solid var(--border-color)'
                 }}
               >
-                {wmsLocations
-                  .filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone)
-                  .map((loc, idx) => {
-                    const locInvItems = inventoryItems.filter(item => item.locationId === loc.id);
-                    let currentWeight = 0;
-                    let currentVolume = 0;
-                    
-                    locInvItems.forEach(item => {
-                      let itemWeight = 100;
-                      let itemVolume = 0.001;
-                      for (const p of products) {
-                        const variant = (p.variants || []).find((v: any) => v.sku === item.sku);
+                {(() => {
+                  const variantMap = new Map();
+                  for (const p of products) {
+                    for (const v of (p.variants || [])) {
+                      if (v.sku) variantMap.set(v.sku, v);
+                    }
+                  }
+
+                  return wmsLocations
+                    .filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone)
+                    .map((loc, idx) => {
+                      const locInvItems = inventoryItems.filter(item => item.locationId === loc.id);
+                      let currentWeight = 0;
+                      let currentVolume = 0;
+
+                      locInvItems.forEach(item => {
+                        let itemWeight = 100;
+                        let itemVolume = 0.001;
+
+                        const variant = variantMap.get(item.sku);
                         if (variant) {
                           if (variant.weightGrams) itemWeight = variant.weightGrams;
                           if (variant.volumeCubicMeters) itemVolume = variant.volumeCubicMeters;
-                          break;
                         }
-                      }
-                      currentWeight += item.quantity * itemWeight;
-                      currentVolume += item.quantity * itemVolume;
-                    });
+
+                        currentWeight += item.quantity * itemWeight;
+                        currentVolume += item.quantity * itemVolume;
+                      });
 
                     const weightLimit = loc.maxWeightGrams || 1000000;
                     const volumeLimit = loc.maxVolumeCubicMeters || 10;
@@ -2967,7 +2974,8 @@ function App() {
                         </div>
                       </div>
                     );
-                  })}
+                  });
+                })()}
               </div>
             )}
 
