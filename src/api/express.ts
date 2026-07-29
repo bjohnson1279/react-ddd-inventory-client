@@ -352,9 +352,6 @@ export class ExpressRESTAdapter implements InventoryClient {
     const posPromises = ids.map(async (id) => {
       try {
         return await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
-    const promises = ids.map(async (id) => {
-        const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
-        return po;
       } catch (e) {
         console.error(`Failed to load PO ${id}:`, e);
         return null;
@@ -363,8 +360,6 @@ export class ExpressRESTAdapter implements InventoryClient {
 
     const pos = await Promise.all(posPromises);
     return pos.filter((po) => po !== null) as PurchaseOrder[];
-    const results = await Promise.all(promises);
-    return results.filter(Boolean);
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
