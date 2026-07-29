@@ -596,10 +596,6 @@ function App() {
     const connect = () => {
       socket = new WebSocket(wsUrl);
 
-      socket.onopen = () => {
-        console.log('[WebSocket] Collaborative sync connection opened.');
-      };
-
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
