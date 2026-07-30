@@ -2896,6 +2896,8 @@ function App() {
                 }}
               >
                 {(() => {
+                  // ⚡ Bolt: Replace O(N*M) location lookup with O(N+M) hash map
+                  // Groups inventory items by location once, rather than iterating all items for each location
                   const variantMap = new Map();
                   for (const p of products) {
                     for (const v of (p.variants || [])) {
@@ -2903,10 +2905,20 @@ function App() {
                     }
                   }
 
+                  const itemsByLocation = new Map<string, InventoryItem[]>();
+                  for (const item of inventoryItems) {
+                    const list = itemsByLocation.get(item.locationId);
+                    if (list) {
+                      list.push(item);
+                    } else {
+                      itemsByLocation.set(item.locationId, [item]);
+                    }
+                  }
+
                   return wmsLocations
                     .filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone)
                     .map((loc, idx) => {
-                      const locInvItems = inventoryItems.filter(item => item.locationId === loc.id);
+                      const locInvItems = itemsByLocation.get(loc.id) || [];
                       let currentWeight = 0;
                       let currentVolume = 0;
 
