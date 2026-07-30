@@ -593,15 +593,20 @@ export class GraphQLAdapter implements InventoryClient {
     const lineItems = data.stockValuationReport?.lineItems || [];
     const costingMethod = data.stockValuationReport?.method || method || 'FIFO';
     const products = await this.getProducts();
-    return lineItems.map((item: any) => {
-      let variantName = item.sku;
-      for (const p of products) {
-        const variant = p.variants.find(v => v.id === item.variantId || v.sku === item.sku);
-        if (variant) {
-          variantName = p.name + (variant.attributes?.length ? ` (${variant.attributes.map(a => a.value).join(', ')})` : '');
-          break;
-        }
+
+    const variantNameMap = new Map<string, string>();
+    for (const p of products) {
+      if (!p.variants) continue;
+      for (const variant of p.variants) {
+        const name = p.name + (variant.attributes?.length ? ` (${variant.attributes.map(a => a.value).join(', ')})` : '');
+        if (variant.id) variantNameMap.set(variant.id, name);
+        if (variant.sku) variantNameMap.set(variant.sku, name);
       }
+    }
+
+    return lineItems.map((item: any) => {
+      let variantName = variantNameMap.get(item.variantId) || variantNameMap.get(item.sku) || item.sku;
+
       return {
         variantId: item.variantId,
         sku: item.sku,
