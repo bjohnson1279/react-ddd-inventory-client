@@ -83,6 +83,30 @@ describe('Inventory Backend API Adapters', () => {
       expect(suggestions).toHaveLength(1);
       expect(suggestions[0].sku).toBe('SKU-A');
     });
+
+    it('should parse non-JSON error response correctly and throw', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        text: async () => 'Bad Gateway'
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+
+      await expect(adapter.getInventoryItems()).rejects.toThrow('Bad Gateway');
+    });
+
+    it('should fallback to HTTP status error if error text is empty', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => ''
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+
+      await expect(adapter.getInventoryItems()).rejects.toThrow('HTTP 500 Error');
+    });
   });
 
   describe('LaravelRESTAdapter', () => {
