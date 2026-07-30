@@ -556,6 +556,26 @@ export class ExpressRESTAdapter implements InventoryClient {
     return this.request('POST', `/compliance/verify?tenantId=${tenantId}`);
   }
 
+  async reconstructState(tenantId: string, timestamp?: string): Promise<any> {
+    const url = timestamp ? `/compliance/reconstruct?tenantId=${tenantId}&timestamp=${encodeURIComponent(timestamp)}` : `/compliance/reconstruct?tenantId=${tenantId}`;
+    return this.request('GET', url);
+  }
+
+  async replayAudit(tenantId: string, upToTimestamp?: string): Promise<any[]> {
+    const url = upToTimestamp ? `/compliance/replay?tenantId=${tenantId}&timestamp=${encodeURIComponent(upToTimestamp)}` : `/compliance/replay?tenantId=${tenantId}`;
+    return this.request('GET', url);
+  }
+
+  async getCacheStats(): Promise<{ hits: number; misses: number; hitRatio: number; invalidations: number; activeKeysCount: number }> {
+    return this.request('GET', `/admin/cache/stats`);
+  }
+
+  async clearCache(tenantId?: string): Promise<{ success: boolean; clearedKeysCount: number }> {
+    const url = tenantId ? `/admin/cache/clear?tenantId=${tenantId}` : `/admin/cache/clear`;
+    return this.request('POST', url);
+  }
+
+
   async getRfidTags(tenantId: string): Promise<any[]> {
     const res = await this.request('GET', `/rfid/tags?tenantId=${tenantId}`);
     return res.tags || [];

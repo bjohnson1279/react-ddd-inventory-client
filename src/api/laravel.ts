@@ -732,6 +732,26 @@ export class LaravelRESTAdapter implements InventoryClient {
     return await this.request('POST', `/api/compliance/verify?tenantId=${tenantId}`);
   }
 
+  async reconstructState(tenantId: string, timestamp?: string): Promise<any> {
+    const url = timestamp ? `/api/compliance/reconstruct?tenantId=${tenantId}&timestamp=${encodeURIComponent(timestamp)}` : `/api/compliance/reconstruct?tenantId=${tenantId}`;
+    return await this.request('GET', url);
+  }
+
+  async replayAudit(tenantId: string, upToTimestamp?: string): Promise<any[]> {
+    const url = upToTimestamp ? `/api/compliance/replay?tenantId=${tenantId}&timestamp=${encodeURIComponent(upToTimestamp)}` : `/api/compliance/replay?tenantId=${tenantId}`;
+    return await this.request('GET', url);
+  }
+
+  async getCacheStats(): Promise<{ hits: number; misses: number; hitRatio: number; invalidations: number; activeKeysCount: number }> {
+    return await this.request('GET', `/api/admin/cache/stats`);
+  }
+
+  async clearCache(tenantId?: string): Promise<{ success: boolean; clearedKeysCount: number }> {
+    const url = tenantId ? `/api/admin/cache/clear?tenantId=${tenantId}` : `/api/admin/cache/clear`;
+    return await this.request('POST', url);
+  }
+
+
   async getRfidTags(tenantId: string): Promise<any[]> {
     const res = await this.request('GET', `/api/rfid/tags?tenantId=${tenantId}`);
     return res.tags || [];
