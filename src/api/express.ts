@@ -349,18 +349,17 @@ export class ExpressRESTAdapter implements InventoryClient {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
 
-    const promises = ids.map(async (id) => {
+    const posPromises = ids.map(async (id) => {
       try {
-        const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
-        return po;
+        return await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
       } catch (e) {
         console.error(`Failed to load PO ${id}:`, e);
         return null;
       }
     });
 
-    const results = await Promise.all(promises);
-    return results.filter(Boolean);
+    const pos = await Promise.all(posPromises);
+    return pos.filter((po) => po !== null) as PurchaseOrder[];
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
