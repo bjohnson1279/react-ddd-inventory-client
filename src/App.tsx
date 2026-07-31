@@ -1385,7 +1385,7 @@ function App() {
           </form>
 
           {message && (
-            <div className={`alert-box alert-${message.type}`} style={{ textAlign: 'center' }}>
+            <div role="alert" className={`alert-box alert-${message.type}`} style={{ textAlign: 'center' }}>
               {message.text}
             </div>
           )}
@@ -1551,9 +1551,9 @@ function App() {
         </div>
 
         {message && (
-          <div className={`alert-box alert-${message.type} flex-between`}>
+          <div role="alert" className={`alert-box alert-${message.type} flex-between`}>
             <span>{message.text}</span>
-            <button className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setMessage(null)}>
+            <button aria-label="Dismiss alert" className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setMessage(null)}>
               Dismiss
             </button>
           </div>
