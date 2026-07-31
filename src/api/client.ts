@@ -312,6 +312,11 @@ export interface InventoryClient {
   getSlottingSuggestions(tenantId: string): Promise<any[]>;
   getComplianceLedger(tenantId: string): Promise<any[]>;
   verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }>;
+  reconstructState(tenantId: string, timestamp?: string): Promise<any>;
+  replayAudit(tenantId: string, upToTimestamp?: string): Promise<any[]>;
+  getCacheStats(): Promise<{ hits: number; misses: number; hitRatio: number; invalidations: number; activeKeysCount: number }>;
+  clearCache(tenantId?: string): Promise<{ success: boolean; clearedKeysCount: number }>;
+
 
   // Procurement (PO)
   getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]>;

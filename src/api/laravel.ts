@@ -682,10 +682,14 @@ export class LaravelRESTAdapter implements InventoryClient {
       const items: ValuationItem[] = [];
       const chosenMethod = (method || 'FIFO').toUpperCase();
       const invItems = await this.getInventoryItems();
+      const inventoryBySku = new Map<string, number>();
+      for (const item of invItems) {
+        inventoryBySku.set(item.sku, (inventoryBySku.get(item.sku) || 0) + item.quantity);
+      }
+
       for (const p of products) {
         for (const v of p.variants) {
-          const variantInv = invItems.filter(i => i.sku === v.sku);
-          const qty = variantInv.reduce((sum, item) => sum + item.quantity, 0);
+          const qty = inventoryBySku.get(v.sku) || 0;
           const unitCost = 1000;
           if (qty > 0) {
             items.push({
@@ -727,6 +731,26 @@ export class LaravelRESTAdapter implements InventoryClient {
   async verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }> {
     return await this.request('POST', `/api/compliance/verify?tenantId=${tenantId}`);
   }
+
+  async reconstructState(tenantId: string, timestamp?: string): Promise<any> {
+    const url = timestamp ? `/api/compliance/reconstruct?tenantId=${tenantId}&timestamp=${encodeURIComponent(timestamp)}` : `/api/compliance/reconstruct?tenantId=${tenantId}`;
+    return await this.request('GET', url);
+  }
+
+  async replayAudit(tenantId: string, upToTimestamp?: string): Promise<any[]> {
+    const url = upToTimestamp ? `/api/compliance/replay?tenantId=${tenantId}&timestamp=${encodeURIComponent(upToTimestamp)}` : `/api/compliance/replay?tenantId=${tenantId}`;
+    return await this.request('GET', url);
+  }
+
+  async getCacheStats(): Promise<{ hits: number; misses: number; hitRatio: number; invalidations: number; activeKeysCount: number }> {
+    return await this.request('GET', `/api/admin/cache/stats`);
+  }
+
+  async clearCache(tenantId?: string): Promise<{ success: boolean; clearedKeysCount: number }> {
+    const url = tenantId ? `/api/admin/cache/clear?tenantId=${tenantId}` : `/api/admin/cache/clear`;
+    return await this.request('POST', url);
+  }
+
 
   async getRfidTags(tenantId: string): Promise<any[]> {
     const res = await this.request('GET', `/api/rfid/tags?tenantId=${tenantId}`);

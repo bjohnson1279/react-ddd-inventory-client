@@ -102,6 +102,7 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({ ap
                     key={f}
                     className={`alert-filter-btn ${filter === f ? 'active' : ''}`}
                     onClick={() => setFilter(f)}
+                    aria-pressed={filter === f}
                   >
                     {f}
                   </button>
@@ -190,8 +191,22 @@ const AlertCard: React.FC<{ alert: any }> = ({ alert }) => {
   const [expanded, setExpanded] = useState(false);
   const severityClass = alert.severity.toLowerCase();
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setExpanded(!expanded);
+    }
+  };
+
   return (
-    <div className={`alert-card ${severityClass}`} onClick={() => setExpanded(!expanded)}>
+    <div
+      className={`alert-card ${severityClass}`}
+      onClick={() => setExpanded(!expanded)}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-expanded={expanded}
+    >
       <div className="alert-header">
         <span className={`severity-badge ${severityClass}`}>{alert.severity}</span>
         <span className="alert-title">{alert.title}</span>
