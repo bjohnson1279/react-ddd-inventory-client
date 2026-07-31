@@ -496,12 +496,19 @@ export class ExpressRESTAdapter implements InventoryClient {
     try {
       const products = await this.getProducts();
       const invItems = await this.getInventoryItems();
+
+      // ⚡ Bolt: Use O(M) pre-calculated Map for inventory quantities
+      // Replaces O(N*M) filter/reduce inside nested loops with O(N+M) lookup
+      const skuQtyMap = new Map<string, number>();
+      for (const item of invItems) {
+        skuQtyMap.set(item.sku, (skuQtyMap.get(item.sku) || 0) + item.quantity);
+      }
+
       const items: ValuationItem[] = [];
       for (const p of products) {
         for (const v of p.variants) {
           try {
-            const variantInv = invItems.filter(i => i.sku === v.sku);
-            const qty = variantInv.reduce((sum, item) => sum + item.quantity, 0);
+            const qty = skuQtyMap.get(v.sku) || 0;
             if (qty > 0) {
               const val = await this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`);
               items.push({
