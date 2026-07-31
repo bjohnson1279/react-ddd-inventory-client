@@ -314,9 +314,10 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async createWebhook(tenantId: string, url: string, eventTypes: string[]): Promise<void> {
-    await this.fetchGraphql(`mutation CreateSub($url: String!, $events: [String!]!) {
-      createWebhookSubscription(targetUrl: $url, secret: "secret-key", eventTypes: $events) { id }
-    }`, { url, events: eventTypes });
+    const secret = crypto.randomUUID();
+    await this.fetchGraphql(`mutation CreateSub($url: String!, $secret: String!, $events: [String!]!) {
+      createWebhookSubscription(targetUrl: $url, secret: $secret, eventTypes: $events) { id }
+    }`, { url, secret, events: eventTypes });
   }
 
   async deleteWebhook(tenantId: string, id: string): Promise<void> {
