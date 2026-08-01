@@ -38,12 +38,16 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async login(tenantId: string, actorId: string, role?: string, password?: string): Promise<string> {
+    if (!password) {
+      throw new Error('Authentication failed: Missing required password parameter.');
+    }
+
     try {
       // Try logging in directly
       const data = await this.request('POST', '/auth/login', {
         tenantId,
         email: actorId.includes('@') ? actorId : `${actorId}@example.com`,
-        password: password || 'Password123!'
+        password
       }, 'NONE');
       return data.token;
     } catch (err: any) {
@@ -55,14 +59,14 @@ export class ExpressRESTAdapter implements InventoryClient {
             tenantId,
             adminName: actorId,
             adminEmail: actorId.includes('@') ? actorId : `${actorId}@example.com`,
-            adminPassword: password || 'Password123!'
+            adminPassword: password
           }, 'NONE');
 
           // Login again after successful setup
           const data = await this.request('POST', '/auth/login', {
             tenantId,
             email: actorId.includes('@') ? actorId : `${actorId}@example.com`,
-            password: password || 'Password123!'
+            password
           }, 'NONE');
           return data.token;
         } catch (setupErr: any) {
