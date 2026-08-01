@@ -1420,7 +1420,7 @@ function App() {
           </form>
 
           {message && (
-            <div className={`alert-box alert-${message.type}`} style={{ textAlign: 'center' }}>
+            <div role="alert" aria-live="assertive" className={`alert-box alert-${message.type}`} style={{ textAlign: 'center' }}>
               {message.text}
             </div>
           )}
@@ -1586,9 +1586,9 @@ function App() {
         </div>
 
         {message && (
-          <div className={`alert-box alert-${message.type} flex-between`}>
+          <div role="alert" aria-live="assertive" className={`alert-box alert-${message.type} flex-between`}>
             <span>{message.text}</span>
-            <button className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setMessage(null)}>
+            <button aria-label="Dismiss alert" className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setMessage(null)}>
               Dismiss
             </button>
           </div>
@@ -1906,13 +1906,13 @@ function App() {
               </div>
 
               {!isOnline && (
-                <div className="alert-box alert-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                <div role="alert" aria-live="assertive" className="alert-box alert-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
                   <strong>Offline Mode:</strong> Connection lost. Scans will be buffered locally in IndexedDB and synchronized automatically when online.
                 </div>
               )}
 
               {offlineQueueCount > 0 && isOnline && (
-                <div className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span><strong>Buffered:</strong> {offlineQueueCount} scan(s) in IndexedDB.</span>
                   <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleSyncQueue} disabled={loading}>
                     Sync Now
@@ -2744,7 +2744,7 @@ function App() {
                 </form>
 
                 {putawayResult.length > 0 && (
-                  <div style={{ marginTop: '1rem' }} className="alert-box alert-success">
+                  <div role="alert" aria-live="assertive" style={{ marginTop: '1rem' }} className="alert-box alert-success">
                     <strong>Suggested Bin:</strong> <code>{putawayResult[0].locationId}</code> (Fulfill: {putawayResult[0].suggestedQuantity} units)
                   </div>
                 )}
@@ -3254,7 +3254,7 @@ function App() {
               {verificationStatus && (
                 <div style={{ marginTop: '1.5rem' }}>
                   {verificationStatus.isValid ? (
-                    <div className="alert-box alert-success" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem' }}>
+                    <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem' }}>
                       <span style={{ fontSize: '1.75rem' }}>🛡️</span>
                       <div>
                         <h4 style={{ margin: '0 0 0.25rem 0', color: '#fff' }}>Verification Passed</h4>
@@ -3264,7 +3264,7 @@ function App() {
                       </div>
                     </div>
                   ) : (
-                    <div className="alert-box alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderLeft: '5px solid #ef5350', backgroundColor: 'rgba(239, 83, 80, 0.1)' }}>
+                    <div role="alert" aria-live="assertive" className="alert-box alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderLeft: '5px solid #ef5350', backgroundColor: 'rgba(239, 83, 80, 0.1)' }}>
                       <span style={{ fontSize: '1.75rem' }}>🚨</span>
                       <div>
                         <h4 style={{ margin: '0 0 0.25rem 0', color: '#ef5350' }}>Verification Failed!</h4>
@@ -3501,7 +3501,7 @@ function App() {
                   </form>
 
                   {invitedUser && (
-                    <div className="alert-box alert-success" style={{ marginTop: '1.5rem' }}>
+                    <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ marginTop: '1.5rem' }}>
                       <strong>User Invitation Code Generated:</strong>
                       <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.9rem' }}>
                         ID: {invitedUser.userId}<br />
