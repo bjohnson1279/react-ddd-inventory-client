@@ -37,13 +37,17 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async login(tenantId: string, actorId: string, role?: string, password?: string): Promise<string> {
+    if (!password) {
+      throw new Error('Authentication failed: Missing required password parameter.');
+    }
+
     try {
       // Try logging in directly (accepts email or custom username)
       const email = actorId.includes('@') ? actorId : `${actorId}@example.com`;
       const data = await this.request('POST', '/api/auth/login', {
         tenantId,
         email,
-        password: password || 'SecurePassword123'
+        password
       }, 'NONE');
       return data.token;
     } catch (err: any) {
@@ -56,14 +60,14 @@ export class LaravelRESTAdapter implements InventoryClient {
             tenantId,
             adminName: actorId,
             adminEmail: email,
-            adminPassword: password || 'SecurePassword123'
+            adminPassword: password
           }, 'NONE');
 
           // Login again after successful setup
           const data = await this.request('POST', '/api/auth/login', {
             tenantId,
             email,
-            password: password || 'SecurePassword123'
+            password
           }, 'NONE');
           return data.token;
         } catch (setupErr: any) {
