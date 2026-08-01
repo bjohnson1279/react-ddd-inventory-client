@@ -83,9 +83,75 @@ describe('Inventory Backend API Adapters', () => {
       expect(suggestions).toHaveLength(1);
       expect(suggestions[0].sku).toBe('SKU-A');
     });
+
+    it('should verify compliance ledger successfully', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ isValid: true })
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+      const result = await adapter.verifyComplianceLedger('tenant-1');
+      expect(result).toEqual({ isValid: true });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:5000/api/compliance/verify?tenantId=tenant-1',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('should handle compliance ledger verification failure with reason', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ isValid: false, failedSequenceNumber: 5, reason: 'mismatch' })
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+      const result = await adapter.verifyComplianceLedger('tenant-1');
+      expect(result).toEqual({ isValid: false, failedSequenceNumber: 5, reason: 'mismatch' });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:5000/api/compliance/verify?tenantId=tenant-1',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('should parse non-JSON error response correctly and throw', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        text: async () => 'Bad Gateway'
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+
+      await expect(adapter.getInventoryItems()).rejects.toThrow('Bad Gateway');
+    });
+
+    it('should fallback to HTTP status error if error text is empty', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => ''
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+
+      await expect(adapter.getInventoryItems()).rejects.toThrow('HTTP 500 Error');
+    });
   });
 
   describe('LaravelRESTAdapter', () => {
+    it('should throw an error with raw text when response is not ok and not JSON', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => 'Internal Server Error String'
+      });
+      global.fetch = mockFetch;
+
+      const adapter = new LaravelRESTAdapter();
+      await expect(adapter.getSlottingSuggestions('t1')).rejects.toThrow('Internal Server Error String');
+    });
+
     it('should query catalog and gather stock for each SKU sequentially', async () => {
       const mockFetch = vi.fn()
         // Product list request

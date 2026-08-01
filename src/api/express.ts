@@ -349,18 +349,17 @@ export class ExpressRESTAdapter implements InventoryClient {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
 
-    const promises = ids.map(async (id) => {
+    const posPromises = ids.map(async (id) => {
       try {
-        const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
-        return po;
+        return await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
       } catch (e) {
         console.error(`Failed to load PO ${id}:`, e);
         return null;
       }
     });
 
-    const results = await Promise.all(promises);
-    return results.filter(Boolean);
+    const pos = await Promise.all(posPromises);
+    return pos.filter((po) => po !== null) as PurchaseOrder[];
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
@@ -497,12 +496,19 @@ export class ExpressRESTAdapter implements InventoryClient {
     try {
       const products = await this.getProducts();
       const invItems = await this.getInventoryItems();
+
+      // ⚡ Bolt: Use O(M) pre-calculated Map for inventory quantities
+      // Replaces O(N*M) filter/reduce inside nested loops with O(N+M) lookup
+      const skuQtyMap = new Map<string, number>();
+      for (const item of invItems) {
+        skuQtyMap.set(item.sku, (skuQtyMap.get(item.sku) || 0) + item.quantity);
+      }
+
       const items: ValuationItem[] = [];
       for (const p of products) {
         for (const v of p.variants) {
           try {
-            const variantInv = invItems.filter(i => i.sku === v.sku);
-            const qty = variantInv.reduce((sum, item) => sum + item.quantity, 0);
+            const qty = skuQtyMap.get(v.sku) || 0;
             if (qty > 0) {
               const val = await this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`);
               items.push({
@@ -555,6 +561,26 @@ export class ExpressRESTAdapter implements InventoryClient {
   async verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }> {
     return this.request('POST', `/compliance/verify?tenantId=${tenantId}`);
   }
+
+  async reconstructState(tenantId: string, timestamp?: string): Promise<any> {
+    const url = timestamp ? `/compliance/reconstruct?tenantId=${tenantId}&timestamp=${encodeURIComponent(timestamp)}` : `/compliance/reconstruct?tenantId=${tenantId}`;
+    return this.request('GET', url);
+  }
+
+  async replayAudit(tenantId: string, upToTimestamp?: string): Promise<any[]> {
+    const url = upToTimestamp ? `/compliance/replay?tenantId=${tenantId}&timestamp=${encodeURIComponent(upToTimestamp)}` : `/compliance/replay?tenantId=${tenantId}`;
+    return this.request('GET', url);
+  }
+
+  async getCacheStats(): Promise<{ hits: number; misses: number; hitRatio: number; invalidations: number; activeKeysCount: number }> {
+    return this.request('GET', `/admin/cache/stats`);
+  }
+
+  async clearCache(tenantId?: string): Promise<{ success: boolean; clearedKeysCount: number }> {
+    const url = tenantId ? `/admin/cache/clear?tenantId=${tenantId}` : `/admin/cache/clear`;
+    return this.request('POST', url);
+  }
+
 
   async getRfidTags(tenantId: string): Promise<any[]> {
     const res = await this.request('GET', `/rfid/tags?tenantId=${tenantId}`);
