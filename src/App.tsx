@@ -12,6 +12,10 @@ import { ApiSpecViewerPanel } from './components/ApiSpecViewerPanel';
 import { AnomalyDetectionPanel } from './components/AnomalyDetectionPanel';
 import { RebalancingMatrixPanel } from './components/RebalancingMatrixPanel';
 import { LogisticsErpPanel } from './components/LogisticsErpPanel';
+import { ReverseLogisticsSupplierPanel } from './components/ReverseLogisticsSupplierPanel';
+import { ThermalPrintingArPanel } from './components/ThermalPrintingArPanel';
+import { DigitalTwinCopilotPanel } from './components/DigitalTwinCopilotPanel';
+import { EsgEmissionsPanel } from './components/EsgEmissionsPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1567,8 +1571,20 @@ function App() {
             <div className={`nav-link ${activeTab === 'api-specs' ? 'active' : ''}`} onClick={() => setActiveTab('api-specs')}>
               📋 API Specifications
             </div>
-            <div className={`nav-link ${activeTab === 'logistics-erp' ? 'active' : ''}`} onClick={() => setActiveTab('logistics-erp')}>
+            <div className={`nav-link ${(activeTab as string) === 'logistics-erp' ? 'active' : ''}`} onClick={() => setActiveTab('logistics-erp' as any)}>
               🚚 Logistics & ERP
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'reverse-logistics' ? 'active' : ''}`} onClick={() => setActiveTab('reverse-logistics' as any)}>
+              🔄 Reverse Logistics & Supplier
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'thermal-ar' ? 'active' : ''}`} onClick={() => setActiveTab('thermal-ar' as any)}>
+              🏷️ Thermal Print & AR
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'digital-twin' ? 'active' : ''}`} onClick={() => setActiveTab('digital-twin' as any)}>
+              🤖 Digital Twin & Copilot
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'esg' ? 'active' : ''}`} onClick={() => setActiveTab('esg' as any)}>
+              🌱 ESG Emissions Tracking
             </div>
           </div>
         </div>
@@ -4002,6 +4018,10 @@ function App() {
         {activeTab === 'conformance' && <ConformanceDashboardPanel tenantId={tenantId} />}
         {activeTab === 'api-specs' && <ApiSpecViewerPanel />}
         {activeTab === 'logistics-erp' && <LogisticsErpPanel api={client} />}
+        {(activeTab as string) === 'reverse-logistics' && <ReverseLogisticsSupplierPanel api={client} />}
+        {(activeTab as string) === 'thermal-ar' && <ThermalPrintingArPanel api={client} />}
+        {(activeTab as string) === 'digital-twin' && <DigitalTwinCopilotPanel api={client} />}
+        {(activeTab as string) === 'esg' && <EsgEmissionsPanel api={client} />}
       </div>
     </div>
   );
