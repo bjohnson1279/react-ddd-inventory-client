@@ -11,6 +11,7 @@ import { ConformanceDashboardPanel } from './components/ConformanceDashboardPane
 import { ApiSpecViewerPanel } from './components/ApiSpecViewerPanel';
 import { AnomalyDetectionPanel } from './components/AnomalyDetectionPanel';
 import { RebalancingMatrixPanel } from './components/RebalancingMatrixPanel';
+import { LogisticsErpPanel } from './components/LogisticsErpPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1535,6 +1536,9 @@ function App() {
             </div>
             <div className={`nav-link ${activeTab === 'api-specs' ? 'active' : ''}`} onClick={() => setActiveTab('api-specs')}>
               📋 API Specifications
+            </div>
+            <div className={`nav-link ${activeTab === 'logistics-erp' ? 'active' : ''}`} onClick={() => setActiveTab('logistics-erp')}>
+              🚚 Logistics & ERP
             </div>
           </div>
         </div>
@@ -3986,6 +3990,7 @@ function App() {
         {activeTab === 'rebalancing' && <RebalancingMatrixPanel api={client} />}
         {activeTab === 'conformance' && <ConformanceDashboardPanel tenantId={tenantId} />}
         {activeTab === 'api-specs' && <ApiSpecViewerPanel />}
+        {activeTab === 'logistics-erp' && <LogisticsErpPanel api={client} />}
       </div>
     </div>
   );
