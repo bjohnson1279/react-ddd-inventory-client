@@ -179,6 +179,12 @@ function App() {
     return map;
   }, [inventoryItems]);
 
+  // ⚡ Bolt: Memoize derived statistics to prevent expensive array filtering on every render pass
+  const lowStockCount = useMemo(() => inventoryItems.filter(item => item.quantity < 10).length, [inventoryItems]);
+  const activeShopifyConnsCount = useMemo(() => shopifyConns.filter(c => c.isActive).length, [shopifyConns]);
+  const urgentActionsCount = useMemo(() => forecastingReport.filter(item => item.currentStock <= item.suggestedROP).length, [forecastingReport]);
+
+
   // --- Admin Portal States ---
   const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
   const [adminUsers, setAdminUsers] = useState<User[]>([]);
@@ -1635,13 +1641,13 @@ function App() {
               <div className="stat-card accent">
                 <span className="stat-title">Low Stock SKUs</span>
                 <span className="stat-value">
-                  {inventoryItems.filter(item => item.quantity < 10).length}
+                  {lowStockCount}
                 </span>
                 <span className="stat-desc">SKUs below safety threshold (10)</span>
               </div>
               <div className="stat-card">
                 <span className="stat-title">Platform Integrations</span>
-                <span className="stat-value">{shopifyConns.filter(c => c.isActive).length}</span>
+                <span className="stat-value">{activeShopifyConnsCount}</span>
                 <span className="stat-desc">Active Shopify Connections</span>
               </div>
               <div className="stat-card accent">
@@ -2362,7 +2368,7 @@ function App() {
               <div className="stat-card accent">
                 <span className="stat-title">Urgent Actions</span>
                 <span className="stat-value">
-                  {forecastingReport.filter(item => item.currentStock <= item.suggestedROP).length}
+                  {urgentActionsCount}
                 </span>
                 <span className="stat-desc">SKUs below recommended Reorder Point</span>
               </div>
