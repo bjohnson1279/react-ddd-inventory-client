@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useInventory, BackendType, Item, JournalLine, Tab, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, ForecastingReportItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './api/client';
 import {
   RfidPanel,
@@ -11,6 +11,11 @@ import { ConformanceDashboardPanel } from './components/ConformanceDashboardPane
 import { ApiSpecViewerPanel } from './components/ApiSpecViewerPanel';
 import { AnomalyDetectionPanel } from './components/AnomalyDetectionPanel';
 import { RebalancingMatrixPanel } from './components/RebalancingMatrixPanel';
+import { LogisticsErpPanel } from './components/LogisticsErpPanel';
+import { ReverseLogisticsSupplierPanel } from './components/ReverseLogisticsSupplierPanel';
+import { ThermalPrintingArPanel } from './components/ThermalPrintingArPanel';
+import { DigitalTwinCopilotPanel } from './components/DigitalTwinCopilotPanel';
+import { EsgEmissionsPanel } from './components/EsgEmissionsPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -153,6 +158,36 @@ function App() {
   const [slottingSuggestions, setSlottingSuggestions] = useState<any[]>([]);
   const [loadingSlotting, setLoadingSlotting] = useState(false);
   const [hoveredSuggestion, setHoveredSuggestion] = useState<any | null>(null);
+
+  // ⚡ Bolt: Memoize variantMap and itemsByLocation to prevent expensive re-creations on every render (e.g. during hover interactions)
+  const variantMap = useMemo(() => {
+    const map = new Map();
+    for (const p of products) {
+      for (const v of (p.variants || [])) {
+        if (v.sku) map.set(v.sku, v);
+      }
+    }
+    return map;
+  }, [products]);
+
+  const itemsByLocation = useMemo(() => {
+    const map = new Map<string, InventoryItem[]>();
+    for (const item of inventoryItems) {
+      const list = map.get(item.locationId);
+      if (list) {
+        list.push(item);
+      } else {
+        map.set(item.locationId, [item]);
+      }
+    }
+    return map;
+  }, [inventoryItems]);
+
+  // ⚡ Bolt: Memoize derived statistics to prevent expensive array filtering on every render pass
+  const lowStockCount = useMemo(() => inventoryItems.filter(item => item.quantity < 10).length, [inventoryItems]);
+  const activeShopifyConnsCount = useMemo(() => shopifyConns.filter(c => c.isActive).length, [shopifyConns]);
+  const urgentActionsCount = useMemo(() => forecastingReport.filter(item => item.currentStock <= item.suggestedROP).length, [forecastingReport]);
+
 
   // --- Admin Portal States ---
   const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
@@ -1536,6 +1571,21 @@ function App() {
             <div className={`nav-link ${activeTab === 'api-specs' ? 'active' : ''}`} onClick={() => setActiveTab('api-specs')}>
               📋 API Specifications
             </div>
+            <div className={`nav-link ${(activeTab as string) === 'logistics-erp' ? 'active' : ''}`} onClick={() => setActiveTab('logistics-erp' as any)}>
+              🚚 Logistics & ERP
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'reverse-logistics' ? 'active' : ''}`} onClick={() => setActiveTab('reverse-logistics' as any)}>
+              🔄 Reverse Logistics & Supplier
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'thermal-ar' ? 'active' : ''}`} onClick={() => setActiveTab('thermal-ar' as any)}>
+              🏷️ Thermal Print & AR
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'digital-twin' ? 'active' : ''}`} onClick={() => setActiveTab('digital-twin' as any)}>
+              🤖 Digital Twin & Copilot
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'esg' ? 'active' : ''}`} onClick={() => setActiveTab('esg' as any)}>
+              🌱 ESG Emissions Tracking
+            </div>
           </div>
         </div>
         <div>
@@ -1607,13 +1657,13 @@ function App() {
               <div className="stat-card accent">
                 <span className="stat-title">Low Stock SKUs</span>
                 <span className="stat-value">
-                  {inventoryItems.filter(item => item.quantity < 10).length}
+                  {lowStockCount}
                 </span>
                 <span className="stat-desc">SKUs below safety threshold (10)</span>
               </div>
               <div className="stat-card">
                 <span className="stat-title">Platform Integrations</span>
-                <span className="stat-value">{shopifyConns.filter(c => c.isActive).length}</span>
+                <span className="stat-value">{activeShopifyConnsCount}</span>
                 <span className="stat-desc">Active Shopify Connections</span>
               </div>
               <div className="stat-card accent">
@@ -2334,7 +2384,7 @@ function App() {
               <div className="stat-card accent">
                 <span className="stat-title">Urgent Actions</span>
                 <span className="stat-value">
-                  {forecastingReport.filter(item => item.currentStock <= item.suggestedROP).length}
+                  {urgentActionsCount}
                 </span>
                 <span className="stat-desc">SKUs below recommended Reorder Point</span>
               </div>
@@ -2878,25 +2928,6 @@ function App() {
                 }}
               >
                 {(() => {
-                  // ⚡ Bolt: Replace O(N*M) location lookup with O(N+M) hash map
-                  // Groups inventory items by location once, rather than iterating all items for each location
-                  const variantMap = new Map();
-                  for (const p of products) {
-                    for (const v of (p.variants || [])) {
-                      if (v.sku) variantMap.set(v.sku, v);
-                    }
-                  }
-
-                  const itemsByLocation = new Map<string, InventoryItem[]>();
-                  for (const item of inventoryItems) {
-                    const list = itemsByLocation.get(item.locationId);
-                    if (list) {
-                      list.push(item);
-                    } else {
-                      itemsByLocation.set(item.locationId, [item]);
-                    }
-                  }
-
                   return wmsLocations
                     .filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone)
                     .map((loc, idx) => {
@@ -3986,6 +4017,11 @@ function App() {
         {activeTab === 'rebalancing' && <RebalancingMatrixPanel api={client} />}
         {activeTab === 'conformance' && <ConformanceDashboardPanel tenantId={tenantId} />}
         {activeTab === 'api-specs' && <ApiSpecViewerPanel />}
+        {activeTab === 'logistics-erp' && <LogisticsErpPanel api={client} />}
+        {(activeTab as string) === 'reverse-logistics' && <ReverseLogisticsSupplierPanel api={client} />}
+        {(activeTab as string) === 'thermal-ar' && <ThermalPrintingArPanel api={client} />}
+        {(activeTab as string) === 'digital-twin' && <DigitalTwinCopilotPanel api={client} />}
+        {(activeTab as string) === 'esg' && <EsgEmissionsPanel api={client} />}
       </div>
     </div>
   );
