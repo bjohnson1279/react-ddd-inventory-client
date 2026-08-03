@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useInventory, BackendType, Item, JournalLine, Tab, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, ForecastingReportItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './api/client';
 import {
   RfidPanel,
@@ -154,6 +154,30 @@ function App() {
   const [slottingSuggestions, setSlottingSuggestions] = useState<any[]>([]);
   const [loadingSlotting, setLoadingSlotting] = useState(false);
   const [hoveredSuggestion, setHoveredSuggestion] = useState<any | null>(null);
+
+  // ⚡ Bolt: Memoize variantMap and itemsByLocation to prevent expensive re-creations on every render (e.g. during hover interactions)
+  const variantMap = useMemo(() => {
+    const map = new Map();
+    for (const p of products) {
+      for (const v of (p.variants || [])) {
+        if (v.sku) map.set(v.sku, v);
+      }
+    }
+    return map;
+  }, [products]);
+
+  const itemsByLocation = useMemo(() => {
+    const map = new Map<string, InventoryItem[]>();
+    for (const item of inventoryItems) {
+      const list = map.get(item.locationId);
+      if (list) {
+        list.push(item);
+      } else {
+        map.set(item.locationId, [item]);
+      }
+    }
+    return map;
+  }, [inventoryItems]);
 
   // --- Admin Portal States ---
   const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
@@ -2882,25 +2906,6 @@ function App() {
                 }}
               >
                 {(() => {
-                  // ⚡ Bolt: Replace O(N*M) location lookup with O(N+M) hash map
-                  // Groups inventory items by location once, rather than iterating all items for each location
-                  const variantMap = new Map();
-                  for (const p of products) {
-                    for (const v of (p.variants || [])) {
-                      if (v.sku) variantMap.set(v.sku, v);
-                    }
-                  }
-
-                  const itemsByLocation = new Map<string, InventoryItem[]>();
-                  for (const item of inventoryItems) {
-                    const list = itemsByLocation.get(item.locationId);
-                    if (list) {
-                      list.push(item);
-                    } else {
-                      itemsByLocation.set(item.locationId, [item]);
-                    }
-                  }
-
                   return wmsLocations
                     .filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone)
                     .map((loc, idx) => {
