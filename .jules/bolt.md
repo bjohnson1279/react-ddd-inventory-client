@@ -8,3 +8,6 @@
 ## 2024-05-17 - [Memoize inline filter lengths in massive dashboard]
 **Learning:** Found an anti-pattern in the large React component `App.tsx` where `.filter().length` was used directly inside JSX render loops for critical inventory and dashboard stats (e.g. `inventoryItems.filter(...)`). In a large dashboard component (4000+ lines) where state updates frequently, recalculating derived state synchronously inside render can cause notable main thread blocking, even if the array isn't massive, due to cumulative re-renders.
 **Action:** Always memoize derived state (like counts resulting from filtering arrays) at the top of the component using `useMemo` so it's only recalculated when its dependency array changes, rather than on every single render pass of the large component.
+## 2026-08-04 - Optimize Offline Queue Sync
+ **Learning:** Processing a large array of async tasks (like queue syncs) directly with `Promise.all` creates unbounded concurrency that could crash the browser or the target server.
+ **Action:** Instead of unbounded parallelism, slice arrays into smaller chunks and `await Promise.all()` on each batch (e.g. batch size of 10) to maintain high performance with predictable load.
