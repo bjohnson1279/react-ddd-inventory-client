@@ -77,35 +77,39 @@ export async function syncOfflineQueue(client: InventoryClient): Promise<{ succe
   let successCount = 0;
   let failedCount = 0;
   const errors: string[] = [];
+  const BATCH_SIZE = 10;
 
-  const promises = scans.map(async (scan) => {
-    if (!scan.id) return;
-    try {
-      await client.scanBarcode(
-        scan.value,
-        scan.context,
-        scan.amount,
-        scan.actualQuantity,
-        scan.tenantId,
-        scan.locationId,
-        scan.actorId
-      );
-      await deleteScan(scan.id);
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, value: scan.value, message: err.message };
-    }
-  });
+  for (let i = 0; i < scans.length; i += BATCH_SIZE) {
+    const batch = scans.slice(i, i + BATCH_SIZE);
+    const promises = batch.map(async (scan) => {
+      if (!scan.id) return null;
+      try {
+        await client.scanBarcode(
+          scan.value,
+          scan.context,
+          scan.amount,
+          scan.actualQuantity,
+          scan.tenantId,
+          scan.locationId,
+          scan.actorId
+        );
+        await deleteScan(scan.id);
+        return { success: true, value: scan.value };
+      } catch (err: any) {
+        return { success: false, value: scan.value, message: err.message };
+      }
+    });
 
-  const results = await Promise.all(promises);
+    const results = await Promise.all(promises);
 
-  for (const result of results) {
-    if (!result) continue;
-    if (result.success) {
-      successCount++;
-    } else {
-      failedCount++;
-      errors.push(`Scan ${result.value} failed: ${result.message}`);
+    for (const result of results) {
+      if (!result) continue;
+      if (result.success) {
+        successCount++;
+      } else {
+        failedCount++;
+        errors.push(`Scan ${result.value} failed: ${result.message}`);
+      }
     }
   }
 
