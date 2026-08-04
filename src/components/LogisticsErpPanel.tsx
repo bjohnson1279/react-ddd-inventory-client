@@ -30,7 +30,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
   const [accountCode, setAccountCode] = useState('1200');
   const [amountCents, setAmountCents] = useState('45000');
   const [postingType, setPostingType] = useState('DEBIT');
-  const [apiKey, setApiKey] = useState('mock-credential-secret');
+  const [apiKey, setApiKey] = useState('');
   const [erpResult, setErpResult] = useState<any>(null);
 
   const [loading, setLoading] = useState(false);
@@ -495,7 +495,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">API Key / Auth Token (Set to "mock" for fallback mode)</label>
               <input
-                type="text"
+                type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
