@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useInventory, BackendType, Item, JournalLine, Tab, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, ForecastingReportItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './api/client';
 import {
   RfidPanel,
@@ -154,7 +154,23 @@ function App() {
   const [policySafety, setPolicySafety] = useState(5);
   const [policyEoq, setPolicyEoq] = useState(25);
 
+  // ⚡ Bolt: Memoize zones to prevent creating a Set and mapping over an array on every render
+  const wmsUniqueZones = useMemo(() => Array.from(new Set(wmsLocations.map(l => l.zone))), [wmsLocations]);
+
+  // ⚡ Bolt: Pre-calculate pick path indices to avoid O(N*M) string matching inside the render loop (especially during hover interactions)
+  const pickRouteIndicesMap = useMemo(() => {
+    const map = new Map<string, number>();
+    wmsLocations.forEach((loc) => {
+      const pickIdx = pickRouteResult.findIndex(path => typeof path === 'string' && path.includes(loc.id));
+      if (pickIdx !== -1) {
+        map.set(loc.id, pickIdx);
+      }
+    });
+    return map;
+  }, [pickRouteResult, wmsLocations]);
+
   // --- Slotting Optimizer States ---
+
   const [slottingSuggestions, setSlottingSuggestions] = useState<any[]>([]);
   const [loadingSlotting, setLoadingSlotting] = useState(false);
   const [hoveredSuggestion, setHoveredSuggestion] = useState<any | null>(null);
@@ -2881,7 +2897,7 @@ function App() {
                   style={{ padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}
                 >
                   <option value="">All Zones</option>
-                  {Array.from(new Set(wmsLocations.map(l => l.zone))).map(zone => (
+                  {wmsUniqueZones.map(zone => (
                     <option key={zone} value={zone}>Zone {zone}</option>
                   ))}
                 </select>
@@ -2960,7 +2976,7 @@ function App() {
                     else if (occupancy >= 75) bgColor = '#ff9800';
                     else if (occupancy >= 10) bgColor = '#2e7d32';
 
-                    const pickIdx = pickRouteResult.findIndex(path => typeof path === 'string' && path.includes(loc.id));
+                    const pickIdx = pickRouteIndicesMap.has(loc.id) ? pickRouteIndicesMap.get(loc.id) as number : -1;
                     const isOnPickPath = pickIdx !== -1;
 
                     const useCoordinates = loc.gridX > 0 && loc.gridY > 0;
