@@ -11,3 +11,6 @@
 ## 2026-08-04 - Optimize Offline Queue Sync
  **Learning:** Processing a large array of async tasks (like queue syncs) directly with `Promise.all` creates unbounded concurrency that could crash the browser or the target server.
  **Action:** Instead of unbounded parallelism, slice arrays into smaller chunks and `await Promise.all()` on each batch (e.g. batch size of 10) to maintain high performance with predictable load.
+## 2024-08-04 - Pre-calculate mapping data outside render loop instead of O(N*M) lookups
+**Learning:** Found a major performance bottleneck where `pickRouteResult.findIndex(path => path.includes(loc.id))` was called inside `wmsLocations.map` during the warehouse layout render. In a large dashboard where states like `hoveredSuggestion` trigger frequent re-renders, this O(N * M) operation causes severe main thread blocking. Also found inline calculation of `Array.from(new Set(wmsLocations.map(l => l.zone)))` doing redundant mapping and set creation on every frame.
+**Action:** Always extract O(N*M) loop searches into a single `useMemo` block that produces a `Map` (or Set/String) to provide O(1) lookups during the render phase. Inline `Array.map` and `new Set` constructions should also be strictly extracted into `useMemo` hooks.
