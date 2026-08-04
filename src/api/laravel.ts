@@ -487,12 +487,12 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
-    const pos: PurchaseOrder[] = [];
-    for (const id of ids) {
+
+    const posPromises = ids.map(async (id) => {
       try {
         const po = await this.request('GET', `/api/purchase-orders/${id}?tenantId=${tenantId}`);
         if (po) {
-          pos.push({
+          return {
             id: po.id,
             tenantId: po.tenant_id || po.tenantId,
             supplier: po.supplier,
@@ -503,13 +503,17 @@ export class LaravelRESTAdapter implements InventoryClient {
               quantity: i.quantity,
               unitCostCents: i.unit_cost_cents || i.unitCostCents || 0
             }))
-          });
+          };
         }
+        return null;
       } catch (e) {
         console.error(`Failed to load PO ${id}:`, e);
+        return null;
       }
-    }
-    return pos;
+    });
+
+    const pos = await Promise.all(posPromises);
+    return pos.filter((po) => po !== null) as PurchaseOrder[];
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
