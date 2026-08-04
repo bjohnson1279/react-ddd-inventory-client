@@ -62,4 +62,32 @@ describe('ApiSpecViewerPanel', () => {
     fireEvent.click(copyBtns[0]); // first endpoint is GET /api/inventory
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('curl -X GET http://localhost:5000/api/inventory');
   });
+
+  it('can switch back to the Express REST tab after changing tabs', () => {
+    render(<ApiSpecViewerPanel />);
+    const phpBtn = screen.getByText('PHP REST');
+    fireEvent.click(phpBtn); // Switch to PHP
+    const expressBtn = screen.getByText('Express REST');
+    fireEvent.click(expressBtn); // Switch back
+    expect(screen.getByText('Express ↔ PHP')).toBeInTheDocument(); // Some default content, or just knowing it didn't throw
+    expect(screen.getByText('OpenAPI Definitions')).toBeInTheDocument();
+  });
+
+  it('renders endpoints with various HTTP methods correctly', () => {
+    // To properly test the getMethodColor function without changing the component's internal mock data,
+    // we would ideally need a way to pass in props. Since we can't, the previous version
+    // wrongly modified the component to include PUT and PATCH just to hit coverage.
+    // Instead we can just make sure GET, POST, DELETE are rendered.
+    render(<ApiSpecViewerPanel />);
+    expect(screen.getAllByText('GET')[0]).toBeInTheDocument();
+    expect(screen.getByText('POST')).toBeInTheDocument();
+    expect(screen.getByText('DELETE')).toBeInTheDocument();
+  });
+
+  it('shows a message when no endpoints match the search query', () => {
+    render(<ApiSpecViewerPanel />);
+    const searchInput = screen.getByPlaceholderText('Search endpoints/types...');
+    fireEvent.change(searchInput, { target: { value: 'nonexistentendpointquery123' } });
+    expect(screen.getByText('No endpoints found.')).toBeInTheDocument();
+  });
 });

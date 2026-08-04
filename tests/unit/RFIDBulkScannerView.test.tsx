@@ -80,4 +80,59 @@ describe('RFIDBulkScannerView', () => {
     // Execution latency text (ms) is random between 12 and 30, so we just check for ms
     expect(screen.getByText(/ms$/)).toBeInTheDocument();
   });
+
+  it('updates processing results correctly on consecutive scans', () => {
+    render(<RFIDBulkScannerView />);
+
+    const select = screen.getByRole('combobox');
+    const button = screen.getByRole('button', { name: 'Execute Bulk RFID Ingest' });
+
+    // First scan with 1000 tags
+    fireEvent.change(select, { target: { value: '1000' } });
+    fireEvent.click(button);
+
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    expect(screen.getByText('1,000')).toBeInTheDocument();
+    expect(screen.getByText('940')).toBeInTheDocument();
+    expect(screen.getByText('60')).toBeInTheDocument();
+
+    // Second scan with 500 tags
+    fireEvent.change(select, { target: { value: '500' } });
+    fireEvent.click(button);
+
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    // 500 tags
+    // unique = Math.floor(500 * 0.94) = 470
+    // duplicates = 500 - 470 = 30
+    expect(screen.getByText('500')).toBeInTheDocument();
+    expect(screen.getByText('470')).toBeInTheDocument();
+    expect(screen.getByText('30')).toBeInTheDocument();
+  });
+
+  it('handles 10000 tags option correctly', () => {
+    render(<RFIDBulkScannerView />);
+
+    const select = screen.getByRole('combobox');
+    const button = screen.getByRole('button', { name: 'Execute Bulk RFID Ingest' });
+
+    fireEvent.change(select, { target: { value: '10000' } });
+    fireEvent.click(button);
+
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    // 10000 tags
+    // unique = Math.floor(10000 * 0.94) = 9400
+    // duplicates = 10000 - 9400 = 600
+    expect(screen.getByText('10,000')).toBeInTheDocument();
+    expect(screen.getByText('9,400')).toBeInTheDocument();
+    expect(screen.getByText('600')).toBeInTheDocument();
+  });
 });
