@@ -754,54 +754,78 @@ function App() {
     if (!token || backendType !== 'laravel') return;
 
     const activeToken = localStorage.getItem('auth_token') || '';
-    const eventSource = new EventSource(`http://localhost:8000/api/notifications/subscribe?token=${activeToken}`);
+    const abortController = new AbortController();
 
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === 'stock_changed') {
-          const data = JSON.parse(payload.message);
-          setInventoryItems(prev => {
-            const idx = prev.findIndex(item => item.sku === data.sku && item.locationId === data.locationId);
-            if (idx !== -1) {
-              const updated = [...prev];
-              updated[idx] = {
-                ...updated[idx],
-                quantity: data.quantity
-              };
-              return updated;
-            } else {
-              return [
-                ...prev,
-                {
-                  id: Math.random().toString(36).substring(7),
-                  sku: data.sku,
-                  locationId: data.locationId,
-                  quantity: data.quantity,
-                  version: 1
-                }
-              ];
+    fetch(`http://localhost:8000/api/notifications/subscribe`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${activeToken}`,
+        'Accept': 'text/event-stream'
+      },
+      signal: abortController.signal
+    }).then(async (response) => {
+      const reader = response.body?.getReader();
+      if (!reader) return;
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const payload = JSON.parse(line.substring(6));
+              if (payload.type === 'stock_changed') {
+                const data = JSON.parse(payload.message);
+                setInventoryItems(prev => {
+                  const idx = prev.findIndex(item => item.sku === data.sku && item.locationId === data.locationId);
+                  if (idx !== -1) {
+                    const updated = [...prev];
+                    updated[idx] = {
+                      ...updated[idx],
+                      quantity: data.quantity
+                    };
+                    return updated;
+                  } else {
+                    return [
+                      ...prev,
+                      {
+                        id: Math.random().toString(36).substring(7),
+                        sku: data.sku,
+                        locationId: data.locationId,
+                        quantity: data.quantity,
+                        version: 1
+                      }
+                    ];
+                  }
+                });
+                setMessage({ type: 'success', text: `Real-time Stock Update (Laravel): SKU ${data.sku} is now ${data.quantity} units.` });
+              } else if (payload.type === 'webhook_failed') {
+                const data = JSON.parse(payload.message);
+                setMessage({
+                  type: 'error',
+                  text: `Real-time Warning (Laravel): Webhook failed (Type: ${data.eventType}, Error: ${data.errorMessage}).`
+                });
+              }
+            } catch (err) {
+              console.error('[Laravel SSE] Collaborative message error:', err);
             }
-          });
-          setMessage({ type: 'success', text: `Real-time Stock Update (Laravel): SKU ${data.sku} is now ${data.quantity} units.` });
-        } else if (payload.type === 'webhook_failed') {
-          const data = JSON.parse(payload.message);
-          setMessage({
-            type: 'error',
-            text: `Real-time Warning (Laravel): Webhook failed (Type: ${data.eventType}, Error: ${data.errorMessage}).`
-          });
+          }
         }
-      } catch (err) {
-        console.error('[Laravel SSE] Collaborative message error:', err);
       }
-    };
-
-    eventSource.onerror = (err) => {
-      console.error('[Laravel SSE] Collaborative connection error:', err);
-    };
+    }).catch(err => {
+      if (err.name !== 'AbortError') {
+        console.error('[Laravel SSE] Collaborative connection error:', err);
+      }
+    });
 
     return () => {
-      eventSource.close();
+      abortController.abort();
     };
   }, [token, tenantId, backendType]);
 
