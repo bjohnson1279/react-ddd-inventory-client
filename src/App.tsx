@@ -1429,8 +1429,9 @@ function App() {
           </div>
           
           <div className="control-item" style={{ marginBottom: '1.5rem', justifyContent: 'center' }}>
-            <label>Backend API Node:</label>
+            <label htmlFor="backend-api-node">Backend API Node:</label>
             <select 
+              id="backend-api-node"
               value={backendType} 
               onChange={(e) => setBackendType(e.target.value as BackendType)}
               style={{ padding: '0.4rem 1rem', marginLeft: '0.5rem' }}
@@ -1444,16 +1445,16 @@ function App() {
           <h2 className="form-section-title" style={{ textAlign: 'center' }}>System Authentication</h2>
           <form onSubmit={handleLogin}>
             <div className="form-group">
-              <label>Tenant ID</label>
-              <input id="login-tenant-id" aria-label="Tenant ID" type="text" value={loginTenant} onChange={(e) => setLoginTenant(e.target.value)} required />
+              <label htmlFor="login-tenant-id">Tenant ID</label>
+              <input id="login-tenant-id" type="text" value={loginTenant} onChange={(e) => setLoginTenant(e.target.value)} required />
             </div>
             <div className="form-group">
-              <label>Actor ID / Email</label>
-              <input type="text" value={loginActor} onChange={(e) => setLoginActor(e.target.value)} required />
+              <label htmlFor="login-actor-id">Actor ID / Email</label>
+              <input id="login-actor-id" type="text" value={loginActor} onChange={(e) => setLoginActor(e.target.value)} required />
             </div>
             <div className="form-group">
-              <label>Assigned Role</label>
-              <select value={loginRole} onChange={(e) => setLoginRole(e.target.value)}>
+              <label htmlFor="login-role">Assigned Role</label>
+              <select id="login-role" value={loginRole} onChange={(e) => setLoginRole(e.target.value)}>
                 <option value="admin">Administrator</option>
                 <option value="warehouse_operator">Warehouse Operator</option>
                 <option value="accountant">Accountant</option>
@@ -1461,8 +1462,8 @@ function App() {
               </select>
             </div>
             <div className="form-group">
-              <label>Secure Key / Password</label>
-              <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
+              <label htmlFor="login-password">Secure Key / Password</label>
+              <input id="login-password" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
             </div>
             
             <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
