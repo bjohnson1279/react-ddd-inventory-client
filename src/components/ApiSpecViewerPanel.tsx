@@ -32,9 +32,14 @@ export const ApiSpecViewerPanel: React.FC = () => {
     }
   };
 
-  const filteredEndpoints = openApiEndpoints.filter(ep => 
+  // ⚡ Bolt: Memoize filtered array to prevent O(n) filtering on every render
+  const filteredEndpoints = React.useMemo(() => openApiEndpoints.filter(ep =>
     ep.path.includes(searchQuery) || ep.summary.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ), [openApiEndpoints, searchQuery]);
+
+  // ⚡ Bolt: Memoize filtered arrays to prevent O(n) filtering on every render
+  const filteredGraphqlQueries = React.useMemo(() => graphqlQueries.filter(q => q.name.includes(searchQuery)), [graphqlQueries, searchQuery]);
+  const filteredGraphqlTypes = React.useMemo(() => graphqlTypes.filter(t => t.name.includes(searchQuery) || t.fields.includes(searchQuery)), [graphqlTypes, searchQuery]);
 
   return (
     <div className="api-spec-viewer">
@@ -107,7 +112,7 @@ export const ApiSpecViewerPanel: React.FC = () => {
             <div className="graphql-explorer">
               <h4 style={{ color: 'var(--accent)', marginBottom: '1rem' }}>Queries</h4>
               <div className="endpoint-list" style={{ marginBottom: '2rem' }}>
-                {graphqlQueries.filter(q => q.name.includes(searchQuery)).map((q, idx) => (
+                {filteredGraphqlQueries.map((q, idx) => (
                   <div className="endpoint-card" key={idx}>
                     <code className="path-text">query {q.name}: {q.returns}</code>
                   </div>
@@ -116,7 +121,7 @@ export const ApiSpecViewerPanel: React.FC = () => {
 
               <h4 style={{ color: 'var(--accent)', marginBottom: '1rem' }}>Types</h4>
               <div className="endpoint-list">
-                {graphqlTypes.filter(t => t.name.includes(searchQuery) || t.fields.includes(searchQuery)).map((t, idx) => (
+                {filteredGraphqlTypes.map((t, idx) => (
                   <div className="endpoint-card" key={idx}>
                     <code className="path-text" style={{ color: 'var(--primary)' }}>type {t.name} {'{'}</code>
                     <pre style={{ margin: '0.5rem 0 0.5rem 1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{t.fields}</pre>
