@@ -455,13 +455,13 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
       </div>
 
       {!isOnline && (
-        <div className="alert-box alert-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+        <div role="alert" aria-live="assertive" className="alert-box alert-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
           <strong>Industrial Dead Zone Alert:</strong> Connection lost. Scans will be buffered locally in IndexedDB and synchronized automatically once network is restored.
         </div>
       )}
 
       {offlineQueueCount > 0 && isOnline && (
-        <div className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
+        <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
           <span><strong>Buffered Scans:</strong> You have {offlineQueueCount} scan(s) waiting in IndexedDB queue.</span>
           <button className="btn btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', marginLeft: '1rem' }} onClick={handleSyncQueue} disabled={loading}>
             Sync Queue Now
@@ -1603,7 +1603,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
         </form>
 
         {putawayResult.length > 0 && (
-          <div style={{ marginTop: '1rem' }} className="alert-box alert-success">
+          <div role="alert" aria-live="assertive" style={{ marginTop: '1rem' }} className="alert-box alert-success">
             <strong>Suggested Bin:</strong> <code>{putawayResult[0].locationId}</code> (Fulfill: {putawayResult[0].suggestedQuantity} units)
           </div>
         )}
@@ -1934,7 +1934,7 @@ export const RfidPanel: React.FC<{
         <div className="glass-panel">
           <h3 className="form-section-title">Register RFID Tag Mappings</h3>
           {message && (
-            <div className={`alert alert-${message.type}`} style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px', fontSize: '0.9rem' }}>
+            <div role="alert" aria-live="assertive" className={`alert alert-${message.type}`} style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px', fontSize: '0.9rem' }}>
               {message.text}
             </div>
           )}
@@ -2160,7 +2160,7 @@ export const LotManagementPanel = () => {
       <div className="glass-panel">
         <h3 className="form-section-title">🛡️ Lot Quarantine & Recall Traceability</h3>
         {statusMsg && (
-          <div className="alert alert-info" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px' }}>
+          <div role="alert" aria-live="assertive" className="alert alert-info" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px' }}>
             {statusMsg}
           </div>
         )}
