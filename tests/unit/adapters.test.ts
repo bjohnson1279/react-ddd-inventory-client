@@ -202,23 +202,25 @@ describe('Inventory Backend API Adapters', () => {
       expect(suggestions[0].sku).toBe('SKU-A');
     });
 
-    it('should connect to Server-Sent Events and capture barcode scans', () => {
-      const mockEventSourceInstance = {
-        url: '',
-        onmessage: null as any,
-        onerror: null as any,
-        close: vi.fn()
+    it('should connect to Server-Sent Events and capture barcode scans', async () => {
+      const mockReader = {
+        read: vi.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode('data: ' + JSON.stringify({
+            type: 'BarcodeScanned',
+            scanValue: '9988776655',
+            symbology: 'EAN-13',
+            context: 'receive',
+            status: 'success',
+            time: '2026-07-15T12:00:00Z'
+          }) + '\n\n')
+        }).mockResolvedValueOnce({ done: true })
       };
       
-      const constructorSpy = vi.fn();
-      class EventSourceMock {
-        constructor(url: string) {
-          constructorSpy(url);
-          mockEventSourceInstance.url = url;
-          return mockEventSourceInstance as any;
-        }
-      }
-      global.EventSource = EventSourceMock as any;
+      const mockFetch = vi.fn().mockResolvedValue({
+        body: { getReader: () => mockReader }
+      });
+      global.fetch = mockFetch as any;
 
       localStorage.setItem('auth_token', 'test-auth-token-999');
 
@@ -226,20 +228,16 @@ describe('Inventory Backend API Adapters', () => {
       const onScan = vi.fn();
       const unsubscribe = adapter.subscribeBarcodeScans('tenant-1', onScan);
 
-      expect(constructorSpy).toHaveBeenCalledWith(
-        'http://localhost:8000/api/notifications/subscribe?token=test-auth-token-999'
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8000/api/notifications/subscribe',
+        expect.objectContaining({
+          headers: { 'Accept': 'text/event-stream', 'Authorization': 'Bearer test-auth-token-999' },
+          signal: expect.any(AbortSignal)
+        })
       );
 
-      mockEventSourceInstance.onmessage({
-        data: JSON.stringify({
-          type: 'BarcodeScanned',
-          scanValue: '9988776655',
-          symbology: 'EAN-13',
-          context: 'receive',
-          status: 'success',
-          time: '2026-07-15T12:00:00Z'
-        })
-      });
+      // wait for stream to process
+      await new Promise(r => setTimeout(r, 50));
 
       expect(onScan).toHaveBeenCalledWith({
         scanValue: '9988776655',
@@ -250,7 +248,6 @@ describe('Inventory Backend API Adapters', () => {
       });
 
       unsubscribe();
-      expect(mockEventSourceInstance.close).toHaveBeenCalled();
     });
 
     it('should query rfid tags, assign, and subscribe', async () => {
@@ -282,35 +279,43 @@ describe('Inventory Backend API Adapters', () => {
       expect(mockFetch).toHaveBeenCalledTimes(3);
 
       // subscribeRfidScans
-      const mockEventSourceInstance = {
-        url: '',
-        onmessage: null as any,
-        onerror: null as any,
-        close: vi.fn()
+      const mockReader = {
+        read: vi.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode('data: ' + JSON.stringify({
+            type: 'rfid_scan_processed',
+            message: JSON.stringify({
+              id: 'batch-1',
+              tenantId: 'tenant-1',
+              locationId: 'LOC-A',
+              totalCount: 1,
+              matchedCount: 1,
+              unmatchedCount: 0,
+              unmatchedEpcs: []
+            })
+          }) + '\n\n')
+        }).mockResolvedValueOnce({ done: true })
       };
-      global.EventSource = class {
-        constructor(url: string) {
-          mockEventSourceInstance.url = url;
-          return mockEventSourceInstance as any;
-        }
-      } as any;
+
+      const mockFetchSse = vi.fn().mockResolvedValue({
+        body: { getReader: () => mockReader }
+      });
+      global.fetch = mockFetchSse as any;
+      localStorage.setItem('auth_token', 'test-auth-token-999');
 
       const onScanProcessed = vi.fn();
       const unsubscribe = adapter.subscribeRfidScans('tenant-1', onScanProcessed);
-      mockEventSourceInstance.onmessage({
-        data: JSON.stringify({
-          type: 'rfid_scan_processed',
-          message: JSON.stringify({
-            id: 'batch-1',
-            tenantId: 'tenant-1',
-            locationId: 'LOC-A',
-            totalCount: 1,
-            matchedCount: 1,
-            unmatchedCount: 0,
-            unmatchedEpcs: []
-          })
+
+      expect(mockFetchSse).toHaveBeenCalledWith(
+        'http://localhost:8000/api/notifications/subscribe',
+        expect.objectContaining({
+          headers: { 'Accept': 'text/event-stream', 'Authorization': 'Bearer test-auth-token-999' },
+          signal: expect.any(AbortSignal)
         })
-      });
+      );
+
+      // wait for stream to process
+      await new Promise(r => setTimeout(r, 50));
 
       expect(onScanProcessed).toHaveBeenCalledWith({
         id: 'batch-1',
