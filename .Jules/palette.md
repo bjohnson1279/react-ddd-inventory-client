@@ -8,3 +8,6 @@
 ## 2024-05-24 - Missing Input Labels in React App
 **Learning:** React form inputs without matching `id` and `htmlFor` attributes on their adjacent `<label>` elements break accessibility and screen reader support, even if wrapped properly visually. Relying on `aria-label` when a visible label exists is an anti-pattern as it does not allow users to click the label to focus the input.
 **Action:** Always ensure every form `<input>` and `<select>` component in the codebase has a unique `id` attribute corresponding to the `htmlFor` property of its `<label>`.
+## 2026-08-07 - Dynamic Alert ARIA Live Region Enhancement
+**Learning:** Found that dynamic error alerts (using `role="alert"`) across several panel components lacked the `aria-live="assertive"` attribute. While `role="alert"` implies an assertive live region in modern screen readers, adding `aria-live="assertive"` explicitly ensures immediate and reliable announcements of critical error messages across all assistive technology variants.
+**Action:** Always pair `role="alert"` with `aria-live="assertive"` when rendering dynamic error or status messages that require immediate user attention to maximize compatibility and explicitly signal the intended behavior.
