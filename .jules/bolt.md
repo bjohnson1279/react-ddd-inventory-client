@@ -17,3 +17,6 @@
 ## 2024-05-18 - Memoize inline array filtering inside render loops
 **Learning:** Found multiple instances where array filtering (`.filter()`) was performed directly inside the render loop, specifically to calculate counts (e.g., `inventoryItems.filter(item => item.quantity < 10).length`) or list filtered elements (e.g., `graphqlQueries.filter(q => q.name.includes(searchQuery))`). This causes an O(N) operation to run synchronously on every render, which degrades performance, especially in components with text inputs that trigger frequent re-renders on keystrokes.
 **Action:** Extract inline array filtering operations in React components into `useMemo` hooks, ensuring they only recalculate when their dependencies change.
+## 2024-05-19 - [Inline Array Traversals blocking render]
+**Learning:** Performing `Array.filter` and `Array.some` directly inside the render block blocks the main thread with O(N) operations during every component re-render. Since `App.tsx` contains heavy state that forces re-renders, operations such as filtering `wmsLocations` and `purchaseOrders` cause significant frame drops on larger datasets.
+**Action:** Extract nested/inline array filtering into `useMemo` hooks, allowing derived arrays (e.g. `sentPurchaseOrders`, `filteredWmsLocations`) to safely skip recalculation as long as their dependencies remain unchanged.

@@ -204,6 +204,11 @@ function App() {
   const activeShopifyConnsCount = useMemo(() => shopifyConns.filter(c => c.isActive).length, [shopifyConns]);
   const urgentActionsCount = useMemo(() => forecastingReport.filter(item => item.currentStock <= item.suggestedROP).length, [forecastingReport]);
 
+  // ⚡ Bolt: Memoize filtered purchase orders to prevent O(N) filtering on every render pass in the procurement tab
+  const sentPurchaseOrders = useMemo(() => purchaseOrders.filter(po => po.status === 'sent'), [purchaseOrders]);
+
+  // ⚡ Bolt: Memoize filtered WMS locations to avoid iterating the large warehouse grid array on every render
+  const filteredWmsLocations = useMemo(() => wmsLocations.filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone), [wmsLocations, wmsSelectedZone]);
 
   // --- Admin Portal States ---
   const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
@@ -2648,7 +2653,7 @@ function App() {
                 </button>
               </form>
 
-              {purchaseOrders.some(po => po.status === 'sent') && (
+              {sentPurchaseOrders.length > 0 && (
                 <div style={{ marginTop: '2.5rem' }}>
                   <h3 className="form-section-title">Receive Purchase Order Inventory</h3>
                   <form onSubmit={handleReceivePO}>
@@ -2667,7 +2672,7 @@ function App() {
                         required
                       >
                         <option value="">-- Select Active PO --</option>
-                        {purchaseOrders.filter(po => po.status === 'sent').map(po => (
+                        {sentPurchaseOrders.map(po => (
                           <option key={po.id} value={po.id}>{po.id} ({po.supplier})</option>
                         ))}
                       </select>
@@ -2969,8 +2974,7 @@ function App() {
                 }}
               >
                 {(() => {
-                  return wmsLocations
-                    .filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone)
+                  return filteredWmsLocations
                     .map((loc, idx) => {
                       const locInvItems = itemsByLocation.get(loc.id) || [];
                       let currentWeight = 0;

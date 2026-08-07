@@ -1,12 +1,8 @@
-1. **Fix Sentinel Issue: Remove hardcoded secrets in codebase**
-   - **`src/api/graphql.ts`**: The method `createWebhook` uses a hardcoded secret (`"secret-key"`). This is a critical vulnerability.
-   - **Fix**: Modify `src/api/graphql.ts` to dynamically generate a random UUID using `crypto.randomUUID()` to use as the webhook secret instead of a hardcoded string.
-   - **`src/api/laravel.ts` & `src/api/express.ts`**: Both files have a fallback `password || 'SecurePassword123'` and `password || 'Password123!'`.
-   - **Fix**: Modify `src/api/laravel.ts` and `src/api/express.ts` to throw an error if no password is provided, removing the hardcoded fallback passwords.
-   - These changes address the CRITICAL vulnerabilities related to hardcoded secrets and passwords in the codebase.
-2. **Add a Sentinel Journal Entry**
-   - Create `.jules/sentinel.md` with an entry noting the discovery of hardcoded API secrets/passwords and the importance of using dynamically generated secrets and user-provided inputs.
-3. **Pre-commit Steps**
-   - Run `pre_commit_instructions` tool to ensure proper testing, verifications, reviews, and reflections are done.
-4. **Submit PR**
-   - Submit the changes using the Sentinel format for a CRITICAL severity issue.
+1. **Identify Performance Bottlenecks**: Review `src/App.tsx` for inline array traversals (`.filter()`, `.some()`) that run on every render pass.
+2. **Implement Memoization optimizations**:
+    - Memoize `sentPurchaseOrders` to replace inline `purchaseOrders.some(...)` and `purchaseOrders.filter(...)` inside the render loop of the 'procurement' tab.
+    - Memoize `filteredWmsLocations` to replace the inline `wmsLocations.filter(...)` inside the 'warehouse' map rendering.
+3. **Add explanatory comments**: Annotate the optimized code with `// ⚡ Bolt: ` as per guidelines.
+4. **Update Journal**: Add a new entry to `.jules/bolt.md` detailing the performance patterns optimized (memoizing inline filtering to prevent main thread blocking).
+5. **Pre-commit verification**: Run test/lint equivalents (or pre-commit instructions) to ensure code quality and safety.
+6. **Submit PR**: Submit the changes with appropriate title and description as "Bolt".
