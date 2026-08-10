@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { InventoryClient } from '../api/client';
 import { Spinner } from './Panels';
 
@@ -29,9 +29,12 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({ ap
     fetchData();
   }, [api]);
 
-  const filteredAlerts = data?.alerts?.filter((alert: any) => 
-    filter === 'All' || alert.severity.toLowerCase() === filter.toLowerCase()
-  ) || [];
+  // ⚡ Bolt: Memoize filtered alerts to prevent O(N) array filtering inside the render loop every time a state changes
+  const filteredAlerts = useMemo(() => {
+    return data?.alerts?.filter((alert: any) =>
+      filter === 'All' || alert.severity.toLowerCase() === filter.toLowerCase()
+    ) || [];
+  }, [data?.alerts, filter]);
 
   return (
     <div className="anomaly-panel">
