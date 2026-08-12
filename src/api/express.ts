@@ -353,18 +353,22 @@ export class ExpressRESTAdapter implements InventoryClient {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
 
-    const posPromises = ids.map(async (id) => {
-      try {
-        const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
-        return po;
-      } catch (err) {
-        console.error(`Failed to fetch PO ${id}`, err);
-        return null;
-      }
-    });
+    if (ids.length === 0) {
+      return [];
+    }
 
-    const results = await Promise.all(posPromises);
-    return results.filter((po) => po !== null) as PurchaseOrder[];
+    try {
+      // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
+      const response = await this.request('GET', `/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
+
+      const bulkData = (response?.data || response || []);
+      const allPos = Array.isArray(bulkData) ? bulkData : [];
+
+      return allPos.filter((po: any) => po && ids.includes(po.id));
+    } catch (err) {
+      console.error(`Failed to fetch POs in bulk`, err);
+      return [];
+    }
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
@@ -509,35 +513,37 @@ export class ExpressRESTAdapter implements InventoryClient {
         skuQtyMap.set(item.sku, (skuQtyMap.get(item.sku) || 0) + item.quantity);
       }
 
-      const items: ValuationItem[] = [];
+      // ⚡ Bolt: Batch concurrent valuation requests using Promise.all to resolve N+1 API calls
+      // Chunk size of 50 to prevent overwhelming connection pools for bulk asynchronous operations
+      const thunks: (() => Promise<ValuationItem>)[] = [];
+
       for (const p of products) {
         for (const v of p.variants) {
-          try {
-            const qty = skuQtyMap.get(v.sku) || 0;
-            if (qty > 0) {
-              const val = await this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`);
-              items.push({
-                variantId: v.id,
-                sku: v.sku,
-                name: p.name + (v.attributes?.length ? ` (${v.attributes.map(a => a.value).join(', ')})` : ''),
-                costingMethod: val.methodUsed || method || 'FIFO',
-                totalQuantity: qty,
-                totalValueCents: val.totalCostCents || 0,
-                unitCostCents: val.unitCostCents || 0
-              });
-            } else {
-              items.push({
-                variantId: v.id,
-                sku: v.sku,
-                name: p.name,
-                costingMethod: method || 'FIFO',
-                totalQuantity: 0,
-                totalValueCents: 0,
-                unitCostCents: 0
-              });
-            }
-          } catch {
-            items.push({
+          const qty = skuQtyMap.get(v.sku) || 0;
+          if (qty > 0) {
+            thunks.push(() =>
+              this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`)
+                .then(val => ({
+                  variantId: v.id,
+                  sku: v.sku,
+                  name: p.name + (v.attributes?.length ? ` (${v.attributes.map(a => a.value).join(', ')})` : ''),
+                  costingMethod: val.methodUsed || method || 'FIFO',
+                  totalQuantity: qty,
+                  totalValueCents: val.totalCostCents || 0,
+                  unitCostCents: val.unitCostCents || 0
+                }))
+                .catch(() => ({
+                  variantId: v.id,
+                  sku: v.sku,
+                  name: p.name,
+                  costingMethod: method || 'FIFO',
+                  totalQuantity: 0,
+                  totalValueCents: 0,
+                  unitCostCents: 0
+                }))
+            );
+          } else {
+            thunks.push(() => Promise.resolve({
               variantId: v.id,
               sku: v.sku,
               name: p.name,
@@ -545,10 +551,19 @@ export class ExpressRESTAdapter implements InventoryClient {
               totalQuantity: 0,
               totalValueCents: 0,
               unitCostCents: 0
-            });
+            }));
           }
         }
       }
+
+      const items: ValuationItem[] = [];
+      const chunkSize = 50;
+      for (let i = 0; i < thunks.length; i += chunkSize) {
+        const chunk = thunks.slice(i, i + chunkSize);
+        const results = await Promise.all(chunk.map(thunk => thunk()));
+        items.push(...results);
+      }
+
       return items;
     } catch {
       return [];
