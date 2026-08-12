@@ -706,7 +706,7 @@ function App() {
                 return [
                   ...prev,
                   {
-                    id: Math.random().toString(36).substring(7),
+                    id: crypto.randomUUID(),
                     sku: data.sku,
                     locationId: data.locationId,
                     quantity: data.quantity,
@@ -795,7 +795,7 @@ function App() {
                     return [
                       ...prev,
                       {
-                        id: Math.random().toString(36).substring(7),
+                        id: crypto.randomUUID(),
                         sku: data.sku,
                         locationId: data.locationId,
                         quantity: data.quantity,
