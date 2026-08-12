@@ -23,6 +23,6 @@
 ## 2024-08-11 - Memoize array filtering inside render functions for alert counts
 **Learning:** In React dashboards such as `AnomalyDetectionPanel`, using un-memoized `Array.filter` inline to count or filter dynamic lists on every render (e.g. `data?.alerts?.filter()`) triggers an O(N) calculation each frame. While not instantly crashing the app for small data sets, it compounds negatively when parent components like `App.tsx` re-render frequently (e.g., from hovering features or inputs).
 **Action:** Extract inline array filtering inside render logic (such as for metrics counts or filtered lists) into a `React.useMemo` hook, ensuring dependent recalculations only happen when the underlying data changes, not unconditionally on every frame update.
-## 2025-02-28 - Optimize N+1 queries in Laravel API adapter
-**Learning:** The `LaravelRESTAdapter.getInventoryItems` had an N+1 query problem, doing a blocking GET request for stock levels for every variant sequentially inside a nested loop, leading to slow performance.
-**Action:** Use `Promise.all()` with batched/chunked processing to execute the variant stock queries concurrently. This prevents overwhelming the server or connection pool while significantly decreasing the overall latency (from ~121ms to ~17ms for 50 variants in testing). Added `// ⚡ Bolt:` inline comment for visibility.
+## 2026-08-12 - [Resolve N+1 API fetching]
+**Learning:** When refactoring multiple GET requests to a bulk fetch, failing to append the filtering criteria to the URL effectively queries the entire dataset into memory.
+**Action:** Always append filtering parameters (e.g., `&ids=${ids.join(',')}`) for bulk fetches.
