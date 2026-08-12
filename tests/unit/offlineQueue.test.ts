@@ -17,7 +17,13 @@ describe('Offline Queue DB', () => {
     };
 
     mockDB = {
-      transaction: () => mockTransaction,
+      transaction: () => {
+        // Need to simulate oncomplete for transaction in deleteScans
+        setTimeout(() => {
+          if ((mockTransaction as any).oncomplete) (mockTransaction as any).oncomplete();
+        }, 0);
+        return mockTransaction;
+      },
       objectStoreNames: {
         contains: () => true,
       },

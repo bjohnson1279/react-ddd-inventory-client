@@ -32,6 +32,22 @@ function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
+export async function deleteScans(ids: number[]): Promise<void> {
+  if (ids.length === 0) return;
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+
+    ids.forEach(id => {
+      store.delete(id);
+    });
+  });
+}
+
 export async function addScanToQueue(scan: Omit<QueuedScan, 'timestamp'>): Promise<number> {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
@@ -93,14 +109,19 @@ export async function syncOfflineQueue(client: InventoryClient): Promise<{ succe
           scan.locationId,
           scan.actorId
         );
-        await deleteScan(scan.id);
-        return { success: true, value: scan.value };
+        return { success: true, value: scan.value, id: scan.id };
       } catch (err: any) {
-        return { success: false, value: scan.value, message: err.message };
+        return { success: false, value: scan.value, message: err.message, id: scan.id };
       }
     });
 
     const results = await Promise.all(promises);
+
+    // ⚡ Bolt: Batch deleting successful scans to prevent sequential IndexedDB I/O overhead.
+    const successfulIds = results.filter(r => r?.success && r.id).map(r => r!.id as number);
+    if (successfulIds.length > 0) {
+      await deleteScans(successfulIds);
+    }
 
     for (const result of results) {
       if (!result) continue;
