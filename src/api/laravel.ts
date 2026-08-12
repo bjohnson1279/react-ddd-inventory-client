@@ -1,6 +1,6 @@
 import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
 
-const LARAVEL_BASE_URL = 'http://localhost:8000';
+const LARAVEL_BASE_URL = import.meta.env.VITE_LARAVEL_API_URL || 'http://localhost:8000';
 
 export class LaravelRESTAdapter implements InventoryClient {
   private getHeaders(customToken?: string): Record<string, string> {
