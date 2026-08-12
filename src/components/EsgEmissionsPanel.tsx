@@ -54,7 +54,7 @@ export const EsgEmissionsPanel: React.FC<EsgEmissionsPanelProps> = ({ api }) => 
       </div>
 
       {error && (
-        <div role="alert" style={{ padding: '12px', background: '#7f1d1d', color: '#fecaca', borderRadius: '6px', marginBottom: '16px' }}>
+        <div role="alert" aria-live="assertive" style={{ padding: '12px', background: '#7f1d1d', color: '#fecaca', borderRadius: '6px', marginBottom: '16px' }}>
           {error}
         </div>
       )}
