@@ -17,4 +17,7 @@
 **Vulnerability:** Sending auth tokens in URL query strings for SSE endpoints via `EventSource`.
 **Learning:** SSE natively doesn't support custom headers easily, so it's a common anti-pattern to send tokens in URL parameters where they are logged in access logs, proxies, and browser history.
 **Prevention:** Use a `fetch`-based stream reader with `Accept: text/event-stream` and an `Authorization` header to secure the token and read the event stream securely instead of using `EventSource`.
-## 2026-08-12 - Prevent XSS in Template Literals\n**Vulnerability:** XSS vulnerability in `alert()` via untrusted input (`rec.sku`).\n**Learning:** Even though standard `alert()` dialogues render plain text, security scanners commonly flag them as XSS sinks when untrusted input is interpolated directly. Implementing standard HTML sanitization acts as defense-in-depth and satisfies security tooling requirements.\n**Prevention:** Always implement a `sanitizeText` or similar escaping utility before passing external/untrusted input to UI rendering contexts or alert sinks.
+## 2024-08-12 - Fix Insecure Randomness in App.tsx
+ **Vulnerability:** Used Math.random().toString(36).substring(7) for unique ID generation in App.tsx.
+ **Learning:** Math.random() is not cryptographically secure and can lead to predictable IDs and potential collisions or exploitation if IDs are used in security contexts.
+ **Prevention:** Use crypto.randomUUID() for secure, standard UUID generation in browsers/Node.js.
