@@ -1,10 +1,17 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import '@testing-library/jest-dom';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ThermalPrintingArPanel } from '../ThermalPrintingArPanel';
 
 describe('ThermalPrintingArPanel', () => {
+  const originalFetch = globalThis.fetch;
+
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
   it('renders correctly', () => {
@@ -32,7 +39,7 @@ describe('ThermalPrintingArPanel', () => {
 
   it('handles error path when fetch throws an error (no api handler provided)', async () => {
     const mockFetch = vi.fn().mockRejectedValue(new Error('Fetch Network Error'));
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     render(<ThermalPrintingArPanel />);
 
