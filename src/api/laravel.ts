@@ -86,28 +86,33 @@ export class LaravelRESTAdapter implements InventoryClient {
       const productsList = prodData.products || [];
       const stockItems: InventoryItem[] = [];
 
-      for (const p of productsList) {
-        for (const v of p.variants || []) {
+      // ⚡ Bolt: Batched execution of N+1 stock level queries to prevent blocking loop
+      const variants = productsList.flatMap((p: any) => p.variants || []);
+      const chunkSize = 10;
+
+      for (let i = 0; i < variants.length; i += chunkSize) {
+        const chunk = variants.slice(i, i + chunkSize);
+        const chunkResults = await Promise.all(chunk.map(async (v: any) => {
           try {
-            // Get stock level for SKU
             const stockRes = await this.request('GET', `/api/inventory/${v.sku}/stock`);
-            stockItems.push({
+            return {
               id: `${v.id}-stock`,
               sku: v.sku,
               locationId: stockRes.location_id || 'default',
               quantity: stockRes.available_quantity ?? stockRes.quantity ?? 0,
               version: 1
-            });
+            };
           } catch {
-            stockItems.push({
+            return {
               id: `${v.id}-stock`,
               sku: v.sku,
               locationId: 'default',
               quantity: 0,
               version: 1
-            });
+            };
           }
-        }
+        }));
+        stockItems.push(...chunkResults);
       }
       return stockItems;
     } catch {
@@ -304,12 +309,19 @@ export class LaravelRESTAdapter implements InventoryClient {
       as_of_date: asOfDate
     });
     const onboardingId = data.id;
-    for (const item of items) {
-      await this.request('POST', `/api/onboardings/${onboardingId}/items`, {
-        variant_id: item.variantId,
-        quantity: item.quantity,
-        unit_cost_cents: item.unitCostCents
-      });
+    // ⚡ Bolt: Chunking API requests to prevent N+1 sequential bottlenecks while avoiding overwhelming the server
+    const chunkSize = 5;
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+      await Promise.all(
+        chunk.map(item =>
+          this.request('POST', `/api/onboardings/${onboardingId}/items`, {
+            variant_id: item.variantId,
+            quantity: item.quantity,
+            unit_cost_cents: item.unitCostCents
+          })
+        )
+      );
     }
   }
 
