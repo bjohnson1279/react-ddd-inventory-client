@@ -97,7 +97,7 @@ export const ApiSpecViewerPanel: React.FC = () => {
                       <span className="method-badge" style={{ backgroundColor: getMethodColor(ep.method) }}>{ep.method}</span>
                       <code className="path-text">{ep.path}</code>
                     </div>
-                    <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={() => navigator.clipboard.writeText(`curl -X ${ep.method} http://localhost:5000${ep.path}`)}>
+                    <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={() => navigator.clipboard.writeText(`curl -X ${ep.method} ${import.meta.env.VITE_EXPRESS_API_URL_BASE || 'http://localhost:5000'}${ep.path}`)}>
                       Copy cURL
                     </button>
                   </div>

@@ -247,9 +247,9 @@ function App() {
   useEffect(() => {
     const checkHealth = async () => {
       const nodes: Record<BackendType, string> = {
-        graphql: 'http://localhost:4000',
-        express: 'http://localhost:5000',
-        laravel: 'http://localhost:8000'
+        graphql: import.meta.env.VITE_GRAPHQL_API_URL || 'http://localhost:4000',
+        express: import.meta.env.VITE_EXPRESS_API_URL_BASE || 'http://localhost:5000',
+        laravel: import.meta.env.VITE_LARAVEL_API_URL || 'http://localhost:8000'
       };
 
       const promises = (Object.entries(nodes) as [BackendType, string][]).map(async ([type, url]) => {
@@ -685,7 +685,8 @@ function App() {
   useEffect(() => {
     if (!token || backendType !== 'express') return;
 
-    const wsUrl = `ws://localhost:5000?tenantId=${tenantId}`;
+    const baseWsUrl = import.meta.env.VITE_EXPRESS_WS_URL || 'ws://localhost:5000';
+    const wsUrl = `${baseWsUrl}?tenantId=${tenantId}`;
     let socket: WebSocket | null = null;
     let reconnectTimeout: any = null;
 
@@ -761,7 +762,8 @@ function App() {
     const activeToken = localStorage.getItem('auth_token') || '';
     const abortController = new AbortController();
 
-    fetch(`http://localhost:8000/api/notifications/subscribe`, {
+    const baseUrl = import.meta.env.VITE_LARAVEL_API_URL || 'http://localhost:8000';
+    fetch(`${baseUrl}/api/notifications/subscribe`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${activeToken}`,
