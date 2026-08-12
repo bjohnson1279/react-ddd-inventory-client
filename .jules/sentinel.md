@@ -17,3 +17,7 @@
 **Vulnerability:** Sending auth tokens in URL query strings for SSE endpoints via `EventSource`.
 **Learning:** SSE natively doesn't support custom headers easily, so it's a common anti-pattern to send tokens in URL parameters where they are logged in access logs, proxies, and browser history.
 **Prevention:** Use a `fetch`-based stream reader with `Accept: text/event-stream` and an `Authorization` header to secure the token and read the event stream securely instead of using `EventSource`.
+## 2024-05-18 - Insecure JWT Parsing
+ **Vulnerability:** JWT token was being parsed directly via `JSON.parse(atob(token.split(.)[1]))` on the client without signature verification to derive authorization roles.
+ **Learning:** Client-side parsing of untrusted/unverified JWTs is dangerous because users can trivially base64 encode arbitrary payloads to spoof roles, bypassing frontend controls.
+ **Prevention:** Never use client-parsed JWT contents for state. Instead, persist backend-validated details (like roles) explicitly on login, relying entirely on the server as the source of truth.
