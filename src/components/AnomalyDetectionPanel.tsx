@@ -29,9 +29,12 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({ ap
     fetchData();
   }, [api]);
 
-  const filteredAlerts = data?.alerts?.filter((alert: any) => 
-    filter === 'All' || alert.severity.toLowerCase() === filter.toLowerCase()
-  ) || [];
+  // ⚡ Bolt: Memoize filtered alerts to prevent O(N) array filtering on every render
+  const filteredAlerts = React.useMemo(() => {
+    return data?.alerts?.filter((alert: any) =>
+      filter === 'All' || alert.severity.toLowerCase() === filter.toLowerCase()
+    ) || [];
+  }, [data?.alerts, filter]);
 
   return (
     <div className="anomaly-panel">
