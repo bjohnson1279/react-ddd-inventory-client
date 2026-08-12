@@ -8,3 +8,6 @@
 ## 2024-05-24 - Missing Input Labels in React App
 **Learning:** React form inputs without matching `id` and `htmlFor` attributes on their adjacent `<label>` elements break accessibility and screen reader support, even if wrapped properly visually. Relying on `aria-label` when a visible label exists is an anti-pattern as it does not allow users to click the label to focus the input.
 **Action:** Always ensure every form `<input>` and `<select>` component in the codebase has a unique `id` attribute corresponding to the `htmlFor` property of its `<label>`.
+## 2024-08-09 - Ensure Temporary Files Are Not Committed
+**Learning:** Found that running scripts and package managers can leave artifacts that accidentally get added to commits. This clutters up pull requests and violates constraints (e.g. max lines).
+**Action:** Make sure to run `git rm -f` on any created scratch scripts or lockfiles that shouldn't be added.
