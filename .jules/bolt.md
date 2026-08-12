@@ -23,3 +23,6 @@
 ## 2024-08-11 - Memoize array filtering inside render functions for alert counts
 **Learning:** In React dashboards such as `AnomalyDetectionPanel`, using un-memoized `Array.filter` inline to count or filter dynamic lists on every render (e.g. `data?.alerts?.filter()`) triggers an O(N) calculation each frame. While not instantly crashing the app for small data sets, it compounds negatively when parent components like `App.tsx` re-render frequently (e.g., from hovering features or inputs).
 **Action:** Extract inline array filtering inside render logic (such as for metrics counts or filtered lists) into a `React.useMemo` hook, ensuring dependent recalculations only happen when the underlying data changes, not unconditionally on every frame update.
+## 2026-08-12 - Batched Promise Execution for API Request Performance
+ **Learning:** In high-latency networking scenarios with API clients processing large input arrays, utilizing sequential `await` calls for every item causes severe N+1 bottlenecks.
+ **Action:** Instead of strictly awaiting sequential calls, implement array chunking (e.g. `items.slice(i, i + chunkSize)`) coupled with `await Promise.all(chunk.map(...))`. This parallelizes calls to optimize latency without overwhelming backend servers with unbounded concurrency.
