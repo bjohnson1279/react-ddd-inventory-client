@@ -44,7 +44,7 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({ 
       </div>
 
       {error && (
-        <div role="alert" className="alert-box alert-error flex-between" style={{ marginBottom: '24px' }}>
+        <div role="alert" aria-live="assertive" className="alert-box alert-error flex-between" style={{ marginBottom: '24px' }}>
           <span>{error}</span>
           <button className="btn btn-secondary" onClick={fetchData}>Retry</button>
         </div>

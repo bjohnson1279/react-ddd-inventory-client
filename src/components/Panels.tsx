@@ -24,7 +24,12 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
   journals,
   loadDashboardData,
   loading
-}) => (
+}) => {
+  // ⚡ Bolt: Memoize derived data counts to prevent O(n) filtering on every render
+  const lowStockCount = React.useMemo(() => inventoryItems.filter(item => item.quantity < 10).length, [inventoryItems]);
+  const activeShopifyConns = React.useMemo(() => shopifyConns.filter(c => c.isActive).length, [shopifyConns]);
+
+  return (
   <>
     <div className="grid-cols-4">
       <div className="stat-card">
@@ -35,13 +40,13 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
       <div className="stat-card accent">
         <span className="stat-title">Low Stock SKUs</span>
         <span className="stat-value">
-          {inventoryItems.filter(item => item.quantity < 10).length}
+          {lowStockCount}
         </span>
         <span className="stat-desc">SKUs below safety threshold (10)</span>
       </div>
       <div className="stat-card">
         <span className="stat-title">Platform Integrations</span>
-        <span className="stat-value">{shopifyConns.filter(c => c.isActive).length}</span>
+        <span className="stat-value">{activeShopifyConns}</span>
         <span className="stat-desc">Active Shopify Connections</span>
       </div>
       <div className="stat-card accent">
@@ -102,7 +107,8 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
       </div>
     </div>
   </>
-);
+  );
+};
 
 // --- 2. ShopifyPanel ---
 interface ShopifyPanelProps {
@@ -449,13 +455,13 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
       </div>
 
       {!isOnline && (
-        <div className="alert-box alert-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+        <div role="alert" aria-live="assertive" className="alert-box alert-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
           <strong>Industrial Dead Zone Alert:</strong> Connection lost. Scans will be buffered locally in IndexedDB and synchronized automatically once network is restored.
         </div>
       )}
 
       {offlineQueueCount > 0 && isOnline && (
-        <div className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
+        <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
           <span><strong>Buffered Scans:</strong> You have {offlineQueueCount} scan(s) waiting in IndexedDB queue.</span>
           <button className="btn btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', marginLeft: '1rem' }} onClick={handleSyncQueue} disabled={loading}>
             Sync Queue Now
@@ -919,7 +925,11 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
   recallResult,
   handleTraceRecall,
   loading
-}) => (
+}) => {
+  // ⚡ Bolt: Memoize derived data count to prevent O(n) filtering on every render
+  const urgentActionsCount = React.useMemo(() => forecastingReport.filter(item => item.currentStock <= item.suggestedROP).length, [forecastingReport]);
+
+  return (
   <>
     <div className="grid-cols-3">
       <div className="stat-card">
@@ -930,7 +940,7 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
       <div className="stat-card accent">
         <span className="stat-title">Urgent Actions</span>
         <span className="stat-value">
-          {forecastingReport.filter(item => item.currentStock <= item.suggestedROP).length}
+          {urgentActionsCount}
         </span>
         <span className="stat-desc">SKUs below recommended Reorder Point</span>
       </div>
@@ -1164,7 +1174,8 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
       </div>
     </div>
   </>
-);
+  );
+};
 
 // --- 9. RoutingPanel ---
 interface RoutingPanelProps {
@@ -1305,7 +1316,11 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
   handleApprovePO,
   handleSendPO,
   loading
-}) => (
+}) => {
+  // ⚡ Bolt: Memoize filtered array to prevent O(n) filtering on every render
+  const sentPurchaseOrders = React.useMemo(() => purchaseOrders.filter(po => po.status === 'sent'), [purchaseOrders]);
+
+  return (
   <div className="grid-cols-2">
     <div className="glass-panel">
       <h3 className="form-section-title">Create Purchase Order (PO) Draft</h3>
@@ -1388,7 +1403,7 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                 required
               >
                 <option value="">-- Select Active PO --</option>
-                {purchaseOrders.filter(po => po.status === 'sent').map(po => (
+                {sentPurchaseOrders.map(po => (
                   <option key={po.id} value={po.id}>{po.id} ({po.supplier})</option>
                 ))}
               </select>
@@ -1486,7 +1501,8 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
       </div>
     </div>
   </div>
-);
+  );
+};
 
 // --- 11. WarehousePanel ---
 interface WarehousePanelProps {
@@ -1587,7 +1603,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
         </form>
 
         {putawayResult.length > 0 && (
-          <div style={{ marginTop: '1rem' }} className="alert-box alert-success">
+          <div role="alert" aria-live="assertive" style={{ marginTop: '1rem' }} className="alert-box alert-success">
             <strong>Suggested Bin:</strong> <code>{putawayResult[0].locationId}</code> (Fulfill: {putawayResult[0].suggestedQuantity} units)
           </div>
         )}
@@ -1918,7 +1934,7 @@ export const RfidPanel: React.FC<{
         <div className="glass-panel">
           <h3 className="form-section-title">Register RFID Tag Mappings</h3>
           {message && (
-            <div className={`alert alert-${message.type}`} style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px', fontSize: '0.9rem' }}>
+            <div role="alert" aria-live="assertive" className={`alert alert-${message.type}`} style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px', fontSize: '0.9rem' }}>
               {message.text}
             </div>
           )}
@@ -2144,7 +2160,7 @@ export const LotManagementPanel = () => {
       <div className="glass-panel">
         <h3 className="form-section-title">🛡️ Lot Quarantine & Recall Traceability</h3>
         {statusMsg && (
-          <div className="alert alert-info" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px' }}>
+          <div role="alert" aria-live="assertive" className="alert alert-info" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px' }}>
             {statusMsg}
           </div>
         )}

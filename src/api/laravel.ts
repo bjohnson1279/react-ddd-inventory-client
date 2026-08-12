@@ -336,34 +336,45 @@ export class LaravelRESTAdapter implements InventoryClient {
   subscribeBarcodeScans(tenantId: string, onScan: (scan: any) => void): () => void {
     // Laravel uses Server-Sent Events (SSE) for notifications
     const activeToken = localStorage.getItem('auth_token') || '';
-    const eventSource = new EventSource(`${LARAVEL_BASE_URL}/api/notifications/subscribe?token=${activeToken}`);
+    const controller = new AbortController();
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        // Map scan notifications if available
-        if (data.type === 'BarcodeScanned' || data.type === 'barcode_scanned') {
-          onScan({
-            scanValue: data.scanValue || data.value,
-            symbology: data.symbology,
-            context: data.context,
-            status: data.status || 'success',
-            time: data.time || new Date().toISOString()
-          });
+    fetch(`${LARAVEL_BASE_URL}/api/notifications/subscribe`, {
+      headers: { 'Accept': 'text/event-stream', 'Authorization': `Bearer ${activeToken}` },
+      signal: controller.signal
+    }).then(async (response) => {
+      const reader = response.body?.getReader();
+      if (!reader) return;
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.substring(6).trim());
+              // Map scan notifications if available
+              if (data.type === 'BarcodeScanned' || data.type === 'barcode_scanned') {
+                onScan({
+                  scanValue: data.scanValue || data.value,
+                  symbology: data.symbology,
+                  context: data.context,
+                  status: data.status || 'success',
+                  time: data.time || new Date().toISOString()
+                });
+              }
+            } catch (err) {
+              console.error('Laravel SSE Parse Error:', err);
+            }
+          }
         }
-      } catch (err) {
-        console.error('Laravel SSE Parse Error:', err);
       }
-    };
+    }).catch(err => err.name !== 'AbortError' && console.error('Laravel SSE Error:', err));
 
-    eventSource.onerror = (err) => {
-      console.error('Laravel SSE Error:', err);
-      eventSource.close();
-    };
-
-    return () => {
-      eventSource.close();
-    };
+    return () => controller.abort();
   }
 
   // --- Advanced Admin Operations for Laravel ---
@@ -775,36 +786,47 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
     const activeToken = localStorage.getItem('auth_token') || '';
-    const eventSource = new EventSource(`${LARAVEL_BASE_URL}/api/notifications/subscribe?token=${activeToken}`);
+    const controller = new AbortController();
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'rfid_scan_processed') {
-          const payload = typeof data.message === 'string' ? JSON.parse(data.message) : data;
-          onScanProcessed({
-            id: payload.id,
-            tenantId: payload.tenantId,
-            locationId: payload.locationId,
-            totalCount: payload.totalCount,
-            matchedCount: payload.matchedCount,
-            unmatchedCount: payload.unmatchedCount,
-            unmatchedEpcs: payload.unmatchedEpcs
-          });
+    fetch(`${LARAVEL_BASE_URL}/api/notifications/subscribe`, {
+      headers: { 'Accept': 'text/event-stream', 'Authorization': `Bearer ${activeToken}` },
+      signal: controller.signal
+    }).then(async (response) => {
+      const reader = response.body?.getReader();
+      if (!reader) return;
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.substring(6).trim());
+              if (data.type === 'rfid_scan_processed') {
+                const payload = typeof data.message === 'string' ? JSON.parse(data.message) : data;
+                onScanProcessed({
+                  id: payload.id,
+                  tenantId: payload.tenantId,
+                  locationId: payload.locationId,
+                  totalCount: payload.totalCount,
+                  matchedCount: payload.matchedCount,
+                  unmatchedCount: payload.unmatchedCount,
+                  unmatchedEpcs: payload.unmatchedEpcs
+                });
+              }
+            } catch (err) {
+              console.error('Laravel SSE Rfid Parse Error:', err);
+            }
+          }
         }
-      } catch (err) {
-        console.error('Laravel SSE Rfid Parse Error:', err);
       }
-    };
+    }).catch(err => err.name !== 'AbortError' && console.error('Laravel SSE Rfid Error:', err));
 
-    eventSource.onerror = (err) => {
-      console.error('Laravel SSE Rfid Error:', err);
-      eventSource.close();
-    };
-
-    return () => {
-      eventSource.close();
-    };
+    return () => controller.abort();
   }
 
   async analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any> {
