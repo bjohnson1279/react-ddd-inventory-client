@@ -247,9 +247,9 @@ function App() {
   useEffect(() => {
     const checkHealth = async () => {
       const nodes: Record<BackendType, string> = {
-        graphql: import.meta.env.VITE_GRAPHQL_API_URL || 'http://localhost:4000',
-        express: import.meta.env.VITE_EXPRESS_API_URL_BASE || 'http://localhost:5000',
-        laravel: import.meta.env.VITE_LARAVEL_API_URL || 'http://localhost:8000'
+        graphql: 'http://localhost:4000',
+        express: 'http://localhost:5000',
+        laravel: 'http://localhost:8000'
       };
 
       const promises = (Object.entries(nodes) as [BackendType, string][]).map(async ([type, url]) => {
@@ -358,8 +358,8 @@ function App() {
       setActorId(loginActor);
       setRole(loginRole);
       setMessage({ type: 'success', text: 'Authentication successful. Secure session started!' });
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Login failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Login failed.' });
     } finally {
       setLoading(false);
     }
@@ -390,8 +390,8 @@ function App() {
 
       const glData = await client.getJournalEntries(tenantId);
       setJournals(glData || []);
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to connect to backend server.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to connect to backend server.' });
     } finally {
       setLoading(false);
     }
@@ -402,8 +402,8 @@ function App() {
     try {
       const data = await client.getStockOnboardings(tenantId);
       setOnboardings(data || []);
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -414,8 +414,8 @@ function App() {
     try {
       const data = await client.getForecastingReport(locationId);
       setForecastingReport(data || []);
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to load forecasting report.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load forecasting report.' });
     } finally {
       setLoading(false);
     }
@@ -426,8 +426,8 @@ function App() {
     try {
       const data = await client.getPurchaseOrders(tenantId);
       setPurchaseOrders(data || []);
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to load Purchase Orders.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load Purchase Orders.' });
     } finally {
       setLoading(false);
     }
@@ -438,8 +438,8 @@ function App() {
     try {
       const data = await client.getWarehouseLocations(tenantId);
       setWmsLocations(data || []);
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to load WMS locations.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load WMS locations.' });
     } finally {
       setLoading(false);
     }
@@ -450,7 +450,7 @@ function App() {
     try {
       const data = await client.getSlottingSuggestions(tenantId);
       setSlottingSuggestions(data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[SlottingSuggestions] Failed to load:', err);
     } finally {
       setLoadingSlotting(false);
@@ -462,8 +462,8 @@ function App() {
     try {
       const data = await client.getComplianceLedger(tenantId);
       setComplianceLedger(data || []);
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to load Compliance Ledger.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load Compliance Ledger.' });
     } finally {
       setLoading(false);
     }
@@ -480,8 +480,8 @@ function App() {
       } else {
         setMessage({ type: 'error', text: `Compliance Ledger compromised! Failed at sequence #${result.failedSequenceNumber}.` });
       }
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Verification execution failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Verification execution failed.' });
     } finally {
       setVerifyingLedger(false);
     }
@@ -493,8 +493,8 @@ function App() {
       const res = await client.reconstructState(tenantId, reconstructTimestamp || undefined);
       setReconstructedState(res);
       setMessage({ type: 'success', text: `Reconstructed state as of ${res.timestamp} (${res.eventsReplayedCount} events replayed).` });
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'State reconstruction failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'State reconstruction failed.' });
     } finally {
       setReconstructingState(false);
     }
@@ -506,8 +506,8 @@ function App() {
       const steps = await client.replayAudit(tenantId, reconstructTimestamp || undefined);
       setAuditReplaySteps(steps);
       setMessage({ type: 'success', text: `Loaded ${steps.length} audit replay steps.` });
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Audit replay failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Audit replay failed.' });
     } finally {
       setReplayingAudit(false);
     }
@@ -517,7 +517,7 @@ function App() {
     try {
       const stats = await client.getCacheStats();
       setCacheStats(stats);
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Failed to fetch cache stats:', err);
     }
   };
@@ -527,8 +527,8 @@ function App() {
       const result = await client.clearCache(tenantId);
       setMessage({ type: 'success', text: `Tier-2 Distributed Redis Cache flushed (${result.clearedKeysCount} keys cleared).` });
       handleFetchCacheStats();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to flush cache.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to flush cache.' });
     }
   };
 
@@ -540,8 +540,8 @@ function App() {
       setWebhooks(subs || []);
       const logs = await client.getWebhookDeliveries(tenantId);
       setWebhookDeliveries(logs || []);
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to load Webhook configurations.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load Webhook configurations.' });
     } finally {
       setLoading(false);
     }
@@ -552,8 +552,8 @@ function App() {
     try {
       const data = await client.getReorderPolicies(tenantId);
       setReorderPolicies(data || []);
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to load Reorder Policies.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load Reorder Policies.' });
     } finally {
       setLoading(false);
     }
@@ -590,9 +590,9 @@ function App() {
         const v = await client.getValuationReport(tenantId, undefined, method);
         setValuationItems(v);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load admin data:', err);
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to load administrative data.' });
+      setMessage({ type: 'error', text: err.message || 'Failed to load administrative data.' });
     } finally {
       setLoading(false);
     }
@@ -680,8 +680,7 @@ function App() {
   useEffect(() => {
     if (!token || backendType !== 'express') return;
 
-    const baseWsUrl = import.meta.env.VITE_EXPRESS_WS_URL || 'ws://localhost:5000';
-    const wsUrl = `${baseWsUrl}?tenantId=${tenantId}`;
+    const wsUrl = `ws://localhost:5000?tenantId=${tenantId}`;
     let socket: WebSocket | null = null;
     let reconnectTimeout: any = null;
 
@@ -707,7 +706,7 @@ function App() {
                 return [
                   ...prev,
                   {
-                    id: crypto.randomUUID(),
+                    id: Math.random().toString(36).substring(7),
                     sku: data.sku,
                     locationId: data.locationId,
                     quantity: data.quantity,
@@ -757,8 +756,7 @@ function App() {
     const activeToken = localStorage.getItem('auth_token') || '';
     const abortController = new AbortController();
 
-    const baseUrl = import.meta.env.VITE_LARAVEL_API_URL || 'http://localhost:8000';
-    fetch(`${baseUrl}/api/notifications/subscribe`, {
+    fetch(`http://localhost:8000/api/notifications/subscribe`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${activeToken}`,
@@ -797,7 +795,7 @@ function App() {
                     return [
                       ...prev,
                       {
-                        id: crypto.randomUUID(),
+                        id: Math.random().toString(36).substring(7),
                         sku: data.sku,
                         locationId: data.locationId,
                         quantity: data.quantity,
@@ -842,8 +840,8 @@ function App() {
       setNewProdId('');
       setNewProdName('');
       loadDashboardData();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -860,8 +858,8 @@ function App() {
       setNewVarSku('');
       setNewVarAttrs([{ name: '', value: '' }]);
       loadDashboardData();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -876,8 +874,8 @@ function App() {
       setAssignSku('');
       setAssignVal('');
       loadDashboardData();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -889,8 +887,8 @@ function App() {
       const generated = await client.generateInternalBarcode(sku, tenantId);
       setMessage({ type: 'success', text: `Generated barcode: ${generated}` });
       loadDashboardData();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -902,8 +900,8 @@ function App() {
       await client.createStockOnboarding(tenantId, locationId, new Date().toISOString(), []);
       setMessage({ type: 'success', text: `Draft onboarding sheet created.` });
       loadOnboardings();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -919,8 +917,8 @@ function App() {
       setMessage({ type: 'success', text: 'Onboarding items posted to General Ledger and lock completed.' });
       loadOnboardings();
       setSelectedOnboarding(null);
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -937,8 +935,8 @@ function App() {
       } else {
         setMessage({ type: 'success', text: `All ${res.successCount} buffered scans synced successfully.` });
       }
-    } catch (err) {
-      setMessage({ type: 'error', text: `Sync failed: ${(err instanceof Error ? err.message : String(err))}` });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: `Sync failed: ${err.message}` });
     } finally {
       setLoading(false);
     }
@@ -974,12 +972,12 @@ function App() {
         setScanVal('');
         setMessage({ type: 'success', text: 'Scan successfully routed to workflow context.' });
       }
-    } catch (err) {
+    } catch (err: any) {
       setScanHistory(prev => [
-        { time: new Date().toLocaleTimeString(), scan: scanVal, context: scanContext, status: `Error: ${(err instanceof Error ? err.message : String(err))}` },
+        { time: new Date().toLocaleTimeString(), scan: scanVal, context: scanContext, status: `Error: ${err.message}` },
         ...prev
       ]);
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -995,8 +993,8 @@ function App() {
         throw new Error(`No serialized item found for serial number ${traceSerialNum}`);
       }
       setTracedItem(data);
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1011,8 +1009,8 @@ function App() {
       setNewShopifyDomain('');
       setNewShopifyToken('');
       loadDashboardData();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1033,8 +1031,8 @@ function App() {
         { accountCode: '2000', amountCents: 0, type: 'credit', memo: '' }
       ]);
       loadDashboardData();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1050,8 +1048,8 @@ function App() {
       const plan = await client.routeOrder(routingSku, Number(routingQuantity), routingAddress, routingStrategy);
       setRoutingPlan(plan);
       setMessage({ type: 'success', text: 'Order routing optimization completed successfully!' });
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Routing failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Routing failed.' });
     } finally {
       setLoading(false);
     }
@@ -1067,8 +1065,8 @@ function App() {
       setNewPoSupplier('');
       setNewPoLines([{ sku: '', quantity: 1, unitCostCents: 1000 }]);
       loadPurchaseOrders();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to create Purchase Order.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to create Purchase Order.' });
     } finally {
       setLoading(false);
     }
@@ -1080,8 +1078,8 @@ function App() {
       await client.approvePurchaseOrder(tenantId, id);
       setMessage({ type: 'success', text: `Purchase Order ${id} approved.` });
       loadPurchaseOrders();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Approval failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Approval failed.' });
     } finally {
       setLoading(false);
     }
@@ -1093,8 +1091,8 @@ function App() {
       await client.sendPurchaseOrder(tenantId, id);
       setMessage({ type: 'success', text: `Purchase Order ${id} sent to supplier.` });
       loadPurchaseOrders();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Sending PO failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Sending PO failed.' });
     } finally {
       setLoading(false);
     }
@@ -1111,8 +1109,8 @@ function App() {
       setReceivePoLines([]);
       loadPurchaseOrders();
       loadDashboardData();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Receiving PO items failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Receiving PO items failed.' });
     } finally {
       setLoading(false);
     }
@@ -1140,8 +1138,8 @@ function App() {
       setWmsWidth(1);
       setWmsHeight(1);
       loadWmsLocations();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Saving WMS location failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Saving WMS location failed.' });
     } finally {
       setLoading(false);
     }
@@ -1153,8 +1151,8 @@ function App() {
       await client.deleteWarehouseLocation(tenantId, id);
       setMessage({ type: 'success', text: `Warehouse location ${id} deleted.` });
       loadWmsLocations();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Deleting WMS location failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Deleting WMS location failed.' });
     } finally {
       setLoading(false);
     }
@@ -1167,8 +1165,8 @@ function App() {
       const data = await client.getPutawaySuggestions(tenantId, putawaySku, Number(putawayQty));
       setPutawayResult(data || []);
       setMessage({ type: 'success', text: 'Putaway recommendation generated!' });
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to suggest putaway.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to suggest putaway.' });
     } finally {
       setLoading(false);
     }
@@ -1182,8 +1180,8 @@ function App() {
       const data = await client.getOptimizedPickRoute(tenantId, skus);
       setPickRouteResult(data || []);
       setMessage({ type: 'success', text: 'Pick path optimization completed.' });
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Pick path optimization failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Pick path optimization failed.' });
     } finally {
       setLoading(false);
     }
@@ -1197,8 +1195,8 @@ function App() {
       setMessage({ type: 'success', text: `Webhook subscription created for ${webhookUrl}` });
       setWebhookUrl('');
       loadWebhooks();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to subscribe webhook.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to subscribe webhook.' });
     } finally {
       setLoading(false);
     }
@@ -1210,8 +1208,8 @@ function App() {
       await client.deleteWebhook(tenantId, id);
       setMessage({ type: 'success', text: `Webhook subscription ${id} deleted.` });
       loadWebhooks();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to unsubscribe webhook.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to unsubscribe webhook.' });
     } finally {
       setLoading(false);
     }
@@ -1232,8 +1230,8 @@ function App() {
       setPolicySku('');
       setPolicyLoc('');
       loadReorderPolicies();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to save reorder policy.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to save reorder policy.' });
     } finally {
       setLoading(false);
     }
@@ -1245,8 +1243,8 @@ function App() {
       await client.evaluateReorderPolicies(tenantId);
       setMessage({ type: 'success', text: 'Dynamic ROP recalculations and safety checks completed!' });
       loadForecastingReport();
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'ROP evaluation failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'ROP evaluation failed.' });
     } finally {
       setLoading(false);
     }
@@ -1259,8 +1257,8 @@ function App() {
       const data = await client.getFefoPickSuggestions(tenantId, fefoSku, Number(fefoQty));
       setFefoResult(data || []);
       setMessage({ type: 'success', text: 'FEFO pick recommendations loaded.' });
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'FEFO calculation failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'FEFO calculation failed.' });
     } finally {
       setLoading(false);
     }
@@ -1273,8 +1271,8 @@ function App() {
       const data = await client.traceRecall(tenantId, recallLotNum);
       setRecallResult(data);
       setMessage({ type: 'success', text: 'Recall trace report compiled.' });
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Recall tracing failed.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Recall tracing failed.' });
     } finally {
       setLoading(false);
     }
@@ -1292,8 +1290,8 @@ function App() {
       setMessage({ type: 'success', text: `Successfully invited user ${newUserEmail}.` });
       setNewUserEmail('');
       loadAdminData('users');
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to invite user.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to invite user.' });
     } finally {
       setLoading(false);
     }
@@ -1306,8 +1304,8 @@ function App() {
       await client.updateUserRole(tenantId, uId, uRole);
       setMessage({ type: 'success', text: `Successfully updated user role to ${uRole}.` });
       loadAdminData('users');
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to update user role.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update user role.' });
     } finally {
       setLoading(false);
     }
@@ -1323,8 +1321,8 @@ function App() {
         : 'Audit triggered/completed successfully.';
       setMessage({ type: 'success', text });
       loadAdminData('audits');
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to trigger audit.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to trigger audit.' });
     } finally {
       setLoading(false);
     }
@@ -1343,8 +1341,8 @@ function App() {
         return next;
       });
       loadAdminData('audits');
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to resolve discrepancy.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to resolve discrepancy.' });
     } finally {
       setLoading(false);
     }
@@ -1357,8 +1355,8 @@ function App() {
       await client.retryOutboxEvent(id);
       setMessage({ type: 'success', text: 'Outbox event retried successfully.' });
       loadAdminData('outbox');
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to retry outbox event.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to retry outbox event.' });
     } finally {
       setLoading(false);
     }
@@ -1375,8 +1373,8 @@ function App() {
       });
       setMessage({ type: 'success', text: 'Tenant accounting configuration updated.' });
       loadAdminData('tenantConfig');
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to save tenant config.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to save tenant config.' });
     } finally {
       setLoading(false);
     }
@@ -1396,8 +1394,8 @@ function App() {
       setMessage({ type: 'success', text: `Successfully assembled ${kitQty} units of Kit ${kitSku}.` });
       setKitSku('');
       setKitRef('');
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to assemble kit.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to assemble kit.' });
     } finally {
       setLoading(false);
     }
@@ -1417,8 +1415,8 @@ function App() {
       setMessage({ type: 'success', text: `Successfully disassembled ${kitQty} units of Kit ${kitSku}.` });
       setKitSku('');
       setKitRef('');
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to disassemble kit.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to disassemble kit.' });
     } finally {
       setLoading(false);
     }
@@ -1437,8 +1435,8 @@ function App() {
         return next;
       });
       loadAdminData('quarantine');
-    } catch (err) {
-      setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Failed to resolve quarantine.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to resolve quarantine.' });
     } finally {
       setLoading(false);
     }
