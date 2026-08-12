@@ -3,11 +3,14 @@ import { LaravelRESTAdapter } from '../../src/api/laravel';
 import { ExpressRESTAdapter } from '../../src/api/express';
 
 describe('Performance: getPurchaseOrders', () => {
-  it('LaravelRESTAdapter should fetch POs concurrently (< 300ms for 5 items)', async () => {
+  it('LaravelRESTAdapter should fetch POs in bulk (< 300ms for 5 items)', async () => {
     const adapter = new LaravelRESTAdapter();
     const mockRequest = vi.spyOn(adapter as any, 'request').mockImplementation(async () => {
       await new Promise(resolve => setTimeout(resolve, 100)); // simulate 100ms network delay
-      return { id: 'test', tenant_id: 'tenant1', supplier: 'supplier', status: 'pending', created_at: 'now', items: [] };
+      return [
+        { id: 'id1', tenant_id: 'tenant1', supplier: 'supplier', status: 'pending', created_at: 'now', items: [] },
+        { id: 'id2', tenant_id: 'tenant1', supplier: 'supplier', status: 'pending', created_at: 'now', items: [] }
+      ];
     });
 
     const originalLocalStorage = global.localStorage;
@@ -31,11 +34,14 @@ describe('Performance: getPurchaseOrders', () => {
     global.localStorage = originalLocalStorage;
   });
 
-  it('ExpressRESTAdapter should fetch POs concurrently (< 300ms for 5 items)', async () => {
+  it('ExpressRESTAdapter should fetch POs in bulk (< 300ms for 5 items)', async () => {
     const adapter = new ExpressRESTAdapter();
     const mockRequest = vi.spyOn(adapter as any, 'request').mockImplementation(async () => {
       await new Promise(resolve => setTimeout(resolve, 100)); // simulate 100ms delay per request
-      return { id: 'test', tenant_id: 'tenant1', supplier: 'supplier', status: 'pending', created_at: 'now', items: [] };
+      return [
+        { id: 'id1', tenant_id: 'tenant1', supplier: 'supplier', status: 'pending', created_at: 'now', items: [] },
+        { id: 'id2', tenant_id: 'tenant1', supplier: 'supplier', status: 'pending', created_at: 'now', items: [] }
+      ];
     });
 
     const originalLocalStorage = global.localStorage;
