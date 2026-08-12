@@ -23,6 +23,3 @@
 ## 2024-08-11 - Memoize array filtering inside render functions for alert counts
 **Learning:** In React dashboards such as `AnomalyDetectionPanel`, using un-memoized `Array.filter` inline to count or filter dynamic lists on every render (e.g. `data?.alerts?.filter()`) triggers an O(N) calculation each frame. While not instantly crashing the app for small data sets, it compounds negatively when parent components like `App.tsx` re-render frequently (e.g., from hovering features or inputs).
 **Action:** Extract inline array filtering inside render logic (such as for metrics counts or filtered lists) into a `React.useMemo` hook, ensuring dependent recalculations only happen when the underlying data changes, not unconditionally on every frame update.
-## 2026-08-12 - [Resolve N+1 API fetching]
-**Learning:** When refactoring multiple GET requests to a bulk fetch, failing to append the filtering criteria to the URL effectively queries the entire dataset into memory.
-**Action:** Always append filtering parameters (e.g., `&ids=${ids.join(',')}`) for bulk fetches.

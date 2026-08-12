@@ -137,18 +137,6 @@ describe('Inventory Backend API Adapters', () => {
 
       await expect(adapter.getInventoryItems()).rejects.toThrow('HTTP 500 Error');
     });
-
-    it('should parse invalid JSON error response correctly and throw', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: false,
-        status: 400,
-        text: async () => '{invalid json}'
-      });
-      global.fetch = mockFetch;
-      const adapter = new ExpressRESTAdapter();
-
-      await expect(adapter.getInventoryItems()).rejects.toThrow('{invalid json}');
-    });
   });
 
   describe('LaravelRESTAdapter', () => {

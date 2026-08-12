@@ -1,6 +1,6 @@
 import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
 
-const LARAVEL_BASE_URL = import.meta.env.VITE_LARAVEL_API_URL || 'http://localhost:8000';
+const LARAVEL_BASE_URL = 'http://localhost:8000';
 
 export class LaravelRESTAdapter implements InventoryClient {
   private getHeaders(customToken?: string): Record<string, string> {
@@ -86,33 +86,28 @@ export class LaravelRESTAdapter implements InventoryClient {
       const productsList = prodData.products || [];
       const stockItems: InventoryItem[] = [];
 
-      // ⚡ Bolt: Batched execution of N+1 stock level queries to prevent blocking loop
-      const variants = productsList.flatMap((p: any) => p.variants || []);
-      const chunkSize = 10;
-
-      for (let i = 0; i < variants.length; i += chunkSize) {
-        const chunk = variants.slice(i, i + chunkSize);
-        const chunkResults = await Promise.all(chunk.map(async (v: any) => {
+      for (const p of productsList) {
+        for (const v of p.variants || []) {
           try {
+            // Get stock level for SKU
             const stockRes = await this.request('GET', `/api/inventory/${v.sku}/stock`);
-            return {
+            stockItems.push({
               id: `${v.id}-stock`,
               sku: v.sku,
               locationId: stockRes.location_id || 'default',
               quantity: stockRes.available_quantity ?? stockRes.quantity ?? 0,
               version: 1
-            };
+            });
           } catch {
-            return {
+            stockItems.push({
               id: `${v.id}-stock`,
               sku: v.sku,
               locationId: 'default',
               quantity: 0,
               version: 1
-            };
+            });
           }
-        }));
-        stockItems.push(...chunkResults);
+        }
       }
       return stockItems;
     } catch {
@@ -309,19 +304,12 @@ export class LaravelRESTAdapter implements InventoryClient {
       as_of_date: asOfDate
     });
     const onboardingId = data.id;
-    // ⚡ Bolt: Chunking API requests to prevent N+1 sequential bottlenecks while avoiding overwhelming the server
-    const chunkSize = 5;
-    for (let i = 0; i < items.length; i += chunkSize) {
-      const chunk = items.slice(i, i + chunkSize);
-      await Promise.all(
-        chunk.map(item =>
-          this.request('POST', `/api/onboardings/${onboardingId}/items`, {
-            variant_id: item.variantId,
-            quantity: item.quantity,
-            unit_cost_cents: item.unitCostCents
-          })
-        )
-      );
+    for (const item of items) {
+      await this.request('POST', `/api/onboardings/${onboardingId}/items`, {
+        variant_id: item.variantId,
+        quantity: item.quantity,
+        unit_cost_cents: item.unitCostCents
+      });
     }
   }
 
@@ -511,36 +499,32 @@ export class LaravelRESTAdapter implements InventoryClient {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
 
-    if (ids.length === 0) {
-      return [];
-    }
+    const posPromises = ids.map(async (id) => {
+      try {
+        const po = await this.request('GET', `/api/purchase-orders/${id}?tenantId=${tenantId}`);
+        if (po) {
+          return {
+            id: po.id,
+            tenantId: po.tenant_id || po.tenantId,
+            supplier: po.supplier,
+            status: po.status,
+            createdAt: po.created_at || po.createdAt,
+            items: (po.items || []).map((i: any) => ({
+              sku: i.sku,
+              quantity: i.quantity,
+              unitCostCents: i.unit_cost_cents || i.unitCostCents || 0
+            }))
+          };
+        }
+        return null;
+      } catch (e) {
+        console.error(`Failed to load PO ${id}:`, e);
+        return null;
+      }
+    });
 
-    try {
-      // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
-      const response = await this.request('GET', `/api/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
-
-      const bulkData = (response?.data || response || []);
-      const allPos = Array.isArray(bulkData) ? bulkData : [];
-
-      // Filter out only the POs stored in local storage
-      const pos = allPos.filter((po: any) => po && ids.includes(po.id)).map((po: any) => ({
-        id: po.id,
-        tenantId: po.tenant_id || po.tenantId,
-        supplier: po.supplier,
-        status: po.status,
-        createdAt: po.created_at || po.createdAt,
-        items: (po.items || []).map((i: any) => ({
-          sku: i.sku,
-          quantity: i.quantity,
-          unitCostCents: i.unit_cost_cents || i.unitCostCents || 0
-        }))
-      }));
-
-      return pos;
-    } catch (e) {
-      console.error(`Failed to load POs in bulk:`, e);
-      return [];
-    }
+    const pos = await Promise.all(posPromises);
+    return pos.filter((po) => po !== null) as PurchaseOrder[];
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {

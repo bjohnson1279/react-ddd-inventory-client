@@ -18,9 +18,9 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
   const checkHealth = async () => {
     setIsRefreshing(true);
     const endpoints = [
-      { name: 'GraphQL', url: import.meta.env.VITE_GRAPHQL_API_URL || 'http://localhost:4000' },
-      { name: 'Express REST', url: import.meta.env.VITE_EXPRESS_API_URL_BASE || 'http://localhost:5000' },
-      { name: 'PHP REST', url: import.meta.env.VITE_LARAVEL_API_URL || 'http://localhost:8000' }
+      { name: 'GraphQL', url: 'http://localhost:4000' },
+      { name: 'Express REST', url: 'http://localhost:5000' },
+      { name: 'PHP REST', url: 'http://localhost:8000' }
     ];
 
     const results = await Promise.all(
@@ -122,9 +122,9 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
       };
 
       const [graphqlRes, expressRes, phpRes] = await Promise.all([
-        fetchApi(import.meta.env.VITE_GRAPHQL_API_URL || 'http://localhost:4000', true),
-        fetchApi(import.meta.env.VITE_EXPRESS_API_URL_BASE || 'http://localhost:5000', false),
-        fetchApi(import.meta.env.VITE_LARAVEL_API_URL || 'http://localhost:8000', false)
+        fetchApi('http://localhost:4000', true),
+        fetchApi('http://localhost:5000', false),
+        fetchApi('http://localhost:8000', false)
       ]);
 
       setComparisonResults({ graphql: graphqlRes, express: expressRes, php: phpRes });

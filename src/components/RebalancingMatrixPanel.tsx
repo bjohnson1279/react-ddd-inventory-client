@@ -2,16 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { InventoryClient } from '../api/client';
 import { Spinner } from './Panels';
 
-const sanitizeText = (text: string): string => {
-  if (!text) return '';
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-};
-
 interface RebalancingMatrixPanelProps {
   api: InventoryClient;
 }
@@ -165,7 +155,7 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({ 
                           </div>
                         </div>
                       </div>
-                      <button className="transfer-execute-btn" onClick={() => alert(`Executing transfer for ${sanitizeText(rec.sku)}`)}>
+                      <button className="transfer-execute-btn" onClick={() => alert(`Executing transfer for ${rec.sku}`)}>
                         Execute Transfer
                       </button>
                     </div>
