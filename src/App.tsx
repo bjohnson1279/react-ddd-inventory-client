@@ -33,11 +33,11 @@ function App() {
   const [loginActor, setLoginActor] = useState('admin-user');
   const [loginRole, setLoginRole] = useState('admin');
   const [loginPassword, setLoginPassword] = useState('');
-  const [role, setRole] = useState('admin');
+  const [role, setRole] = useState(localStorage.getItem('auth_role') || 'admin');
 
-  const [tenantId, setTenantId] = useState('tenant-1');
+  const [tenantId, setTenantId] = useState(localStorage.getItem('auth_tenant') || 'tenant-1');
   const [locationId, setLocationId] = useState('loc-1');
-  const [actorId, setActorId] = useState('admin-user');
+  const [actorId, setActorId] = useState(localStorage.getItem('auth_actor') || 'admin-user');
 
   // --- Offline PWA States ---
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -280,20 +280,6 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Decode JWT details to synchronize client parameters
-  useEffect(() => {
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.tenantId) setTenantId(payload.tenantId);
-        if (payload.actorId) setActorId(payload.actorId);
-        if (payload.role) setRole(payload.role);
-      } catch (err) {
-        console.error('Failed to parse token payload:', err);
-      }
-    }
-  }, [token]);
-
   // Redirect to dashboard if the active tab is not allowed for the role
   useEffect(() => {
     const allowedTabs = ['dashboard'];
@@ -364,7 +350,13 @@ function App() {
       setLoading(true);
       const jwtToken = await client.login(loginTenant, loginActor, loginRole, loginPassword);
       localStorage.setItem('auth_token', jwtToken);
+      localStorage.setItem('auth_tenant', loginTenant);
+      localStorage.setItem('auth_actor', loginActor);
+      localStorage.setItem('auth_role', loginRole);
       setToken(jwtToken);
+      setTenantId(loginTenant);
+      setActorId(loginActor);
+      setRole(loginRole);
       setMessage({ type: 'success', text: 'Authentication successful. Secure session started!' });
     } catch (err) {
       setMessage({ type: 'error', text: (err instanceof Error ? err.message : String(err)) || 'Login failed.' });
@@ -375,6 +367,9 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_tenant');
+    localStorage.removeItem('auth_actor');
+    localStorage.removeItem('auth_role');
     setToken(null);
     setRole('viewer');
     setMessage({ type: 'success', text: 'Logged out successfully.' });
