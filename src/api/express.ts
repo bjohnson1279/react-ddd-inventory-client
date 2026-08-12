@@ -1,7 +1,7 @@
 import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
 
-const EXPRESS_BASE_URL = 'http://localhost:5000/api';
-const EXPRESS_WS_URL = 'ws://localhost:5000';
+const EXPRESS_BASE_URL = import.meta.env.VITE_EXPRESS_API_URL || 'http://localhost:5000/api';
+const EXPRESS_WS_URL = import.meta.env.VITE_EXPRESS_WS_URL || 'ws://localhost:5000';
 
 export class ExpressRESTAdapter implements InventoryClient {
   private getHeaders(customToken?: string): Record<string, string> {
@@ -353,18 +353,22 @@ export class ExpressRESTAdapter implements InventoryClient {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
 
-    const posPromises = ids.map(async (id) => {
-      try {
-        const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
-        return po;
-      } catch (err) {
-        console.error(`Failed to fetch PO ${id}`, err);
-        return null;
-      }
-    });
+    if (ids.length === 0) {
+      return [];
+    }
 
-    const results = await Promise.all(posPromises);
-    return results.filter((po) => po !== null) as PurchaseOrder[];
+    try {
+      // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
+      const response = await this.request('GET', `/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
+
+      const bulkData = (response?.data || response || []);
+      const allPos = Array.isArray(bulkData) ? bulkData : [];
+
+      return allPos.filter((po: any) => po && ids.includes(po.id));
+    } catch (err) {
+      console.error(`Failed to fetch POs in bulk`, err);
+      return [];
+    }
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
