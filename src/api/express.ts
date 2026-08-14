@@ -353,30 +353,10 @@ export class ExpressRESTAdapter implements InventoryClient {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
 
-    const posPromises = ids.map(async (id) => {
-      try {
-        const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
-        return po;
-      } catch (err) {
-        console.error(`Failed to fetch PO ${id}`, err);
-        return null;
-      }
-    });
+    if (ids.length === 0) return [];
 
-<<<<<<< HEAD
-    const results = await Promise.all(posPromises);
-    return results.filter((po) => po !== null) as PurchaseOrder[];
-=======
-<<<<<<< HEAD
-    // ⚡ Bolt: Batch GET request for Purchase Orders to resolve N+1 parallel fetching inefficiency
     try {
-      const results = await this.request('GET', `/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
-      return Array.isArray(results) ? results : [];
-    } catch (err) {
-      console.error(`Failed to fetch POs for tenant ${tenantId}`, err);
-=======
-    try {
-      // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
+      // ⚡ Bolt: Batch GET request for Purchase Orders to resolve N+1 parallel fetching inefficiency
       const response = await this.request('GET', `/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
 
       const bulkData = (response?.data || response || []);
@@ -385,10 +365,8 @@ export class ExpressRESTAdapter implements InventoryClient {
       return allPos.filter((po: any) => po && ids.includes(po.id));
     } catch (err) {
       console.error(`Failed to fetch POs in bulk`, err);
->>>>>>> origin/main
       return [];
     }
->>>>>>> origin/main
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
@@ -533,35 +511,37 @@ export class ExpressRESTAdapter implements InventoryClient {
         skuQtyMap.set(item.sku, (skuQtyMap.get(item.sku) || 0) + item.quantity);
       }
 
-      const items: ValuationItem[] = [];
+      // ⚡ Bolt: Resolving N+1 HTTP Requests with Promise.all for concurrent fetching
+      const promises: Promise<ValuationItem>[] = [];
+
       for (const p of products) {
         for (const v of p.variants) {
-          try {
-            const qty = skuQtyMap.get(v.sku) || 0;
-            if (qty > 0) {
-              const val = await this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`);
-              items.push({
-                variantId: v.id,
-                sku: v.sku,
-                name: p.name + (v.attributes?.length ? ` (${v.attributes.map(a => a.value).join(', ')})` : ''),
-                costingMethod: val.methodUsed || method || 'FIFO',
-                totalQuantity: qty,
-                totalValueCents: val.totalCostCents || 0,
-                unitCostCents: val.unitCostCents || 0
-              });
-            } else {
-              items.push({
-                variantId: v.id,
-                sku: v.sku,
-                name: p.name,
-                costingMethod: method || 'FIFO',
-                totalQuantity: 0,
-                totalValueCents: 0,
-                unitCostCents: 0
-              });
-            }
-          } catch {
-            items.push({
+          const qty = skuQtyMap.get(v.sku) || 0;
+
+          if (qty > 0) {
+            promises.push(
+              this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`)
+                .then((val) => ({
+                  variantId: v.id,
+                  sku: v.sku,
+                  name: p.name + (v.attributes?.length ? ` (${v.attributes.map((a: any) => a.value).join(', ')})` : ''),
+                  costingMethod: val.methodUsed || method || 'FIFO',
+                  totalQuantity: qty,
+                  totalValueCents: val.totalCostCents || 0,
+                  unitCostCents: val.unitCostCents || 0
+                }))
+                .catch(() => ({
+                  variantId: v.id,
+                  sku: v.sku,
+                  name: p.name,
+                  costingMethod: method || 'FIFO',
+                  totalQuantity: 0,
+                  totalValueCents: 0,
+                  unitCostCents: 0
+                }))
+            );
+          } else {
+            promises.push(Promise.resolve({
               variantId: v.id,
               sku: v.sku,
               name: p.name,
@@ -569,10 +549,12 @@ export class ExpressRESTAdapter implements InventoryClient {
               totalQuantity: 0,
               totalValueCents: 0,
               unitCostCents: 0
-            });
+            }));
           }
         }
       }
+
+      const items = await Promise.all(promises);
       return items;
     } catch {
       return [];

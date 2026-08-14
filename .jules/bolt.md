@@ -23,3 +23,6 @@
 ## 2024-08-11 - Memoize array filtering inside render functions for alert counts
 **Learning:** In React dashboards such as `AnomalyDetectionPanel`, using un-memoized `Array.filter` inline to count or filter dynamic lists on every render (e.g. `data?.alerts?.filter()`) triggers an O(N) calculation each frame. While not instantly crashing the app for small data sets, it compounds negatively when parent components like `App.tsx` re-render frequently (e.g., from hovering features or inputs).
 **Action:** Extract inline array filtering inside render logic (such as for metrics counts or filtered lists) into a `React.useMemo` hook, ensuring dependent recalculations only happen when the underlying data changes, not unconditionally on every frame update.
+## 2026-08-12 - Resolve N+1 HTTP Requests in Express API
+ **Improvement:** Reduced O(N*M) sequential HTTP fetches in `getValuationReport` to concurrent fetch utilizing `Promise.all`
+ **Result:** Improved fetching time drastically by initiating network bounds concurrently. Also cleaned up extraneous git-merge diff markers inside `src/api/express.ts`.
