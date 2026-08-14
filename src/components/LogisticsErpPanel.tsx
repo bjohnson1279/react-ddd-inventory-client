@@ -36,6 +36,8 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const activeToken = localStorage.getItem('auth_token') || '';
+
   const handleCalculateRates = async () => {
     setLoading(true);
     setError(null);
@@ -53,7 +55,10 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
         // Direct REST fallback call
         const response = await fetch('/api/shipping/quote', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeToken}`
+          },
           body: JSON.stringify({
             carrier,
             originPostalCode: originPostal,
@@ -89,7 +94,10 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
       } else {
         const response = await fetch('/api/shipping/label', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeToken}`
+          },
           body: JSON.stringify({
             carrier: labelCarrier,
             recipientName,
@@ -134,7 +142,10 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
       } else {
         const response = await fetch('/api/erp/sync', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeToken}`
+          },
           body: JSON.stringify(payload),
         });
         const data = await response.json();

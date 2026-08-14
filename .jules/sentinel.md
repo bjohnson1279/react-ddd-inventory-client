@@ -17,3 +17,8 @@
 **Vulnerability:** Sending auth tokens in URL query strings for SSE endpoints via `EventSource`.
 **Learning:** SSE natively doesn't support custom headers easily, so it's a common anti-pattern to send tokens in URL parameters where they are logged in access logs, proxies, and browser history.
 **Prevention:** Use a `fetch`-based stream reader with `Accept: text/event-stream` and an `Authorization` header to secure the token and read the event stream securely instead of using `EventSource`.
+
+## 2024-05-20 - [Fix Missing Authorization Header on Logistics Fetch endpoints]
+**Vulnerability:** Direct `fetch` calls to backend endpoints (`/api/shipping/quote`, `/api/shipping/label`, `/api/erp/sync`) in `LogisticsErpPanel.tsx` lacked the `Authorization` header, potentially allowing unauthenticated or unauthorized access to sensitive logistics and ERP operations.
+**Learning:** Hardcoded or custom fallback `fetch` API calls in React components often miss global authentication interceptors typically present in wrappers like Axios or an API client singleton.
+**Prevention:** Always verify that direct `fetch` calls inside React components retrieve and pass the required authentication token (e.g., from `localStorage`) via the `Authorization` header, or enforce the use of a centralized authenticated API client for all network requests.
