@@ -214,12 +214,17 @@ export class ExpressRESTAdapter implements InventoryClient {
   async createStockOnboarding(tenantId: string, locationId: string, asOfDate: string, items: Item[]): Promise<void> {
     const data = await this.request('POST', '/onboarding', { tenantId, locationId, asOfDate });
     const onboardingId = data.id;
-    for (const item of items) {
-      await this.request('POST', `/onboarding/${onboardingId}/items`, {
+
+    // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+      const promises = batch.map(item => this.request('POST', `/onboarding/${onboardingId}/items`, {
         variantId: item.variantId,
         quantity: item.quantity,
         unitCostCents: item.unitCostCents
-      });
+      }));
+      await Promise.all(promises);
     }
   }
 
@@ -363,18 +368,6 @@ export class ExpressRESTAdapter implements InventoryClient {
       }
     });
 
-<<<<<<< HEAD
-    const results = await Promise.all(posPromises);
-    return results.filter((po) => po !== null) as PurchaseOrder[];
-=======
-<<<<<<< HEAD
-    // ⚡ Bolt: Batch GET request for Purchase Orders to resolve N+1 parallel fetching inefficiency
-    try {
-      const results = await this.request('GET', `/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
-      return Array.isArray(results) ? results : [];
-    } catch (err) {
-      console.error(`Failed to fetch POs for tenant ${tenantId}`, err);
-=======
     try {
       // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
       const response = await this.request('GET', `/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
@@ -385,10 +378,8 @@ export class ExpressRESTAdapter implements InventoryClient {
       return allPos.filter((po: any) => po && ids.includes(po.id));
     } catch (err) {
       console.error(`Failed to fetch POs in bulk`, err);
->>>>>>> origin/main
       return [];
     }
->>>>>>> origin/main
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
