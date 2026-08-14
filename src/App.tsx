@@ -257,8 +257,11 @@ function App() {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 2000);
-          await fetch(`${url}/health`, { signal: controller.signal }).catch(() => {});
+          const response = await fetch(`${url}/health`, { signal: controller.signal });
           clearTimeout(timeoutId);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
           return { type, status: 'online' as const, latencyMs: Date.now() - start };
         } catch (error) {
           return { type, status: 'offline' as const, latencyMs: 0 };
