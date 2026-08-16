@@ -353,15 +353,9 @@ export class ExpressRESTAdapter implements InventoryClient {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
 
-    const posPromises = ids.map(async (id) => {
-      try {
-        const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
-        return po;
-      } catch (err) {
-        console.error(`Failed to fetch PO ${id}`, err);
-        return null;
-      }
-    });
+    if (ids.length === 0) {
+      return [];
+    }
 
     try {
       // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
