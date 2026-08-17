@@ -214,12 +214,17 @@ export class ExpressRESTAdapter implements InventoryClient {
   async createStockOnboarding(tenantId: string, locationId: string, asOfDate: string, items: Item[]): Promise<void> {
     const data = await this.request('POST', '/onboarding', { tenantId, locationId, asOfDate });
     const onboardingId = data.id;
-    for (const item of items) {
-      await this.request('POST', `/onboarding/${onboardingId}/items`, {
+
+    // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+      const promises = batch.map(item => this.request('POST', `/onboarding/${onboardingId}/items`, {
         variantId: item.variantId,
         quantity: item.quantity,
         unitCostCents: item.unitCostCents
-      });
+      }));
+      await Promise.all(promises);
     }
   }
 
@@ -513,35 +518,37 @@ export class ExpressRESTAdapter implements InventoryClient {
         skuQtyMap.set(item.sku, (skuQtyMap.get(item.sku) || 0) + item.quantity);
       }
 
-      const items: ValuationItem[] = [];
+      // ⚡ Bolt: Resolving N+1 HTTP Requests with Promise.all for concurrent fetching
+      const promises: Promise<ValuationItem>[] = [];
+
       for (const p of products) {
         for (const v of p.variants) {
-          try {
-            const qty = skuQtyMap.get(v.sku) || 0;
-            if (qty > 0) {
-              const val = await this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`);
-              items.push({
-                variantId: v.id,
-                sku: v.sku,
-                name: p.name + (v.attributes?.length ? ` (${v.attributes.map(a => a.value).join(', ')})` : ''),
-                costingMethod: val.methodUsed || method || 'FIFO',
-                totalQuantity: qty,
-                totalValueCents: val.totalCostCents || 0,
-                unitCostCents: val.unitCostCents || 0
-              });
-            } else {
-              items.push({
-                variantId: v.id,
-                sku: v.sku,
-                name: p.name,
-                costingMethod: method || 'FIFO',
-                totalQuantity: 0,
-                totalValueCents: 0,
-                unitCostCents: 0
-              });
-            }
-          } catch {
-            items.push({
+          const qty = skuQtyMap.get(v.sku) || 0;
+
+          if (qty > 0) {
+            promises.push(
+              this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`)
+                .then((val) => ({
+                  variantId: v.id,
+                  sku: v.sku,
+                  name: p.name + (v.attributes?.length ? ` (${v.attributes.map((a: any) => a.value).join(', ')})` : ''),
+                  costingMethod: val.methodUsed || method || 'FIFO',
+                  totalQuantity: qty,
+                  totalValueCents: val.totalCostCents || 0,
+                  unitCostCents: val.unitCostCents || 0
+                }))
+                .catch(() => ({
+                  variantId: v.id,
+                  sku: v.sku,
+                  name: p.name,
+                  costingMethod: method || 'FIFO',
+                  totalQuantity: 0,
+                  totalValueCents: 0,
+                  unitCostCents: 0
+                }))
+            );
+          } else {
+            promises.push(Promise.resolve({
               variantId: v.id,
               sku: v.sku,
               name: p.name,
@@ -549,10 +556,12 @@ export class ExpressRESTAdapter implements InventoryClient {
               totalQuantity: 0,
               totalValueCents: 0,
               unitCostCents: 0
-            });
+            }));
           }
         }
       }
+
+      const items = await Promise.all(promises);
       return items;
     } catch {
       return [];

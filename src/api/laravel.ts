@@ -85,29 +85,35 @@ export class LaravelRESTAdapter implements InventoryClient {
       const prodData = await this.request('GET', '/api/catalog/products');
       const productsList = prodData.products || [];
       const stockItems: InventoryItem[] = [];
+      const variants = productsList.flatMap((p: any) => p.variants || []);
 
-      for (const p of productsList) {
-        for (const v of p.variants || []) {
-          try {
-            // Get stock level for SKU
-            const stockRes = await this.request('GET', `/api/inventory/${v.sku}/stock`);
-            stockItems.push({
-              id: `${v.id}-stock`,
-              sku: v.sku,
-              locationId: stockRes.location_id || 'default',
-              quantity: stockRes.available_quantity ?? stockRes.quantity ?? 0,
-              version: 1
-            });
-          } catch {
-            stockItems.push({
-              id: `${v.id}-stock`,
-              sku: v.sku,
-              locationId: 'default',
-              quantity: 0,
-              version: 1
-            });
-          }
-        }
+      // ⚡ Bolt: Use Promise.all to fetch stock levels concurrently in chunks to prevent N+1 bottleneck
+      const chunkSize = 20;
+      for (let i = 0; i < variants.length; i += chunkSize) {
+        const chunk = variants.slice(i, i + chunkSize);
+        const chunkResults = await Promise.all(
+          chunk.map(async (v: any) => {
+            try {
+              const stockRes = await this.request('GET', `/api/inventory/${v.sku}/stock`);
+              return {
+                id: `${v.id}-stock`,
+                sku: v.sku,
+                locationId: stockRes.location_id || 'default',
+                quantity: stockRes.available_quantity ?? stockRes.quantity ?? 0,
+                version: 1
+              };
+            } catch {
+              return {
+                id: `${v.id}-stock`,
+                sku: v.sku,
+                locationId: 'default',
+                quantity: 0,
+                version: 1
+              };
+            }
+          })
+        );
+        stockItems.push(...chunkResults);
       }
       return stockItems;
     } catch {
