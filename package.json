@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "npx -p typescript tsc && npx vite build",
     "preview": "vite preview",
-    "test:unit": "vitest run",
+    "test:unit": "vitest run --pool=threads",
     "test:e2e": "npx playwright test"
   },
   "dependencies": {

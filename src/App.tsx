@@ -254,14 +254,15 @@ function App() {
 
       const promises = (Object.entries(nodes) as [BackendType, string][]).map(async ([type, url]) => {
         const start = Date.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
-          await fetch(`${url}/health`, { signal: controller.signal }).catch(() => {});
-          clearTimeout(timeoutId);
+          await fetch(`${url}/health`, { signal: controller.signal });
           return { type, status: 'online' as const, latencyMs: Date.now() - start };
         } catch (error) {
           return { type, status: 'offline' as const, latencyMs: 0 };
+        } finally {
+          clearTimeout(timeoutId);
         }
       });
 
