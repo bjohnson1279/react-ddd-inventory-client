@@ -310,12 +310,17 @@ export class LaravelRESTAdapter implements InventoryClient {
       as_of_date: asOfDate
     });
     const onboardingId = data.id;
-    for (const item of items) {
-      await this.request('POST', `/api/onboardings/${onboardingId}/items`, {
+
+    // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+      const promises = batch.map(item => this.request('POST', `/api/onboardings/${onboardingId}/items`, {
         variant_id: item.variantId,
         quantity: item.quantity,
         unit_cost_cents: item.unitCostCents
-      });
+      }));
+      await Promise.all(promises);
     }
   }
 
