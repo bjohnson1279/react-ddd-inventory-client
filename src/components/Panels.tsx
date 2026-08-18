@@ -1384,7 +1384,8 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
         </button>
       </form>
 
-      {purchaseOrders.some(po => po.status === 'sent') && (
+       {/* ⚡ Bolt: Reuse memoized sentPurchaseOrders length instead of re-evaluating O(N) .some() on every render. (O(N) -> O(1) lookups) */}
+      {sentPurchaseOrders.length > 0 && (
         <div style={{ marginTop: '2.5rem' }}>
           <h3 className="form-section-title">Receive Purchase Order Inventory</h3>
           <form onSubmit={handleReceivePO}>
