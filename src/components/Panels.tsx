@@ -1638,7 +1638,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
                   <td>{loc.maxWeightGrams}g</td>
                   <td>{loc.maxVolumeCubicMeters}m³</td>
                   <td>
-                    <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)}>
+                    <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)} aria-label={`Delete warehouse location ${loc.id}`}>
                       Delete
                     </button>
                   </td>
@@ -1765,7 +1765,7 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
                       ))}
                     </td>
                     <td>
-                      <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)}>
+                      <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)} aria-label={`Delete webhook for ${w.url}`}>
                         Delete
                       </button>
                     </td>
