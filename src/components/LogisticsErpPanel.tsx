@@ -25,7 +25,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
   // ERP State
   const [erpProvider, setErpProvider] = useState('QUICKBOOKS');
-  const [referenceId, setReferenceId] = useState(`SO-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [referenceId, setReferenceId] = useState(`SO-${crypto.randomUUID().split('-')[0]}`);
   const [memo, setMemo] = useState('Inventory dispatch revenue posting');
   const [accountCode, setAccountCode] = useState('1200');
   const [amountCents, setAmountCents] = useState('45000');
