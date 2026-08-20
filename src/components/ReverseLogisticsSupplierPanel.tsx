@@ -190,7 +190,7 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
 
             <button
               onClick={handleInspectRMA}
-              disabled={loading}
+              disabled={loading} aria-busy={loading}
               style={{ width: '100%', padding: '10px', background: '#10b981', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
             >
               {loading ? 'Processing Disposition...' : 'Complete RMA Inspection'}
@@ -232,7 +232,7 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
               <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Expected Delivery Date</label>
               <input type="date" value={expectedDelivery} onChange={(e) => setExpectedDelivery(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
-            <button onClick={handleSubmitASN} disabled={loading} style={{ width: '100%', padding: '10px', background: '#0284c7', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+            <button onClick={handleSubmitASN} disabled={loading} aria-busy={loading} style={{ width: '100%', padding: '10px', background: '#0284c7', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
               {loading ? 'Submitting...' : 'Submit Supplier ASN'}
             </button>
 
@@ -247,7 +247,7 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
             <h3 style={{ marginTop: 0, color: '#f1f5f9', fontSize: '18px' }}>Supplier OTIF Performance Scorecard</h3>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
               <input type="text" value={otifSupplierId} onChange={(e) => setOtifSupplierId(e.target.value)} placeholder="Supplier ID" style={{ flex: 1, padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
-              <button onClick={handleFetchScorecard} disabled={loading} style={{ padding: '8px 16px', background: '#8b5cf6', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+              <button onClick={handleFetchScorecard} disabled={loading} aria-busy={loading} style={{ padding: '8px 16px', background: '#8b5cf6', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
                 Fetch Scorecard
               </button>
             </div>

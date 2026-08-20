@@ -45,7 +45,7 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({ ap
         <button 
           className="ai-panel-action-btn" 
           onClick={fetchData} 
-          disabled={loading}
+          disabled={loading} aria-busy={loading}
         >
           {loading ? 'Analyzing...' : 'Analyze Now'}
         </button>

@@ -1491,7 +1491,7 @@ function App() {
               <input id="login-password" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
             </div>
             
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading} aria-busy={loading}>
               {loading ? <Spinner /> : 'Authenticate Credentials'}
             </button>
           </form>
@@ -1720,7 +1720,7 @@ function App() {
                 <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>
                   Real-time Stock Levels
                 </h3>
-                <button className="btn btn-secondary" onClick={loadDashboardData} disabled={loading}>
+                <button className="btn btn-secondary" onClick={loadDashboardData} disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Refresh Stock'}
                 </button>
               </div>
@@ -1785,7 +1785,7 @@ function App() {
                   <label>Shopify API Access Token</label>
                   <input type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Connect Store'}
                 </button>
               </form>
@@ -1844,7 +1844,7 @@ function App() {
                   <label>Display Name</label>
                   <input type="text" value={newProdName} onChange={(e) => setNewProdName(e.target.value)} required placeholder="e.g. Wireless Charger" />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Register Product'}
                 </button>
               </form>
@@ -1902,7 +1902,7 @@ function App() {
                       </button>
                     </div>
 
-                    <button type="submit" className="btn btn-accent" disabled={loading}>
+                    <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
                       {loading ? <Spinner /> : 'Save Variant'}
                     </button>
                   </form>
@@ -2006,7 +2006,7 @@ function App() {
               {offlineQueueCount > 0 && isOnline && (
                 <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span><strong>Buffered:</strong> {offlineQueueCount} scan(s) in IndexedDB.</span>
-                  <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleSyncQueue} disabled={loading}>
+                  <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleSyncQueue} disabled={loading} aria-busy={loading}>
                     Sync Now
                   </button>
                 </div>
@@ -2040,7 +2040,7 @@ function App() {
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {isOnline ? 'Trigger Scanning Event' : 'Buffer Scan Offline'}
                 </button>
               </form>
@@ -2066,7 +2066,7 @@ function App() {
                         <option value="qr">QR Code</option>
                       </select>
                     </div>
-                    <button type="submit" className="btn btn-accent" disabled={loading}>
+                    <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
                       Save Assignment
                     </button>
                   </form>
@@ -2106,7 +2106,7 @@ function App() {
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
                 Onboarding sheets allow inventory stock to be loaded with baseline cost layers and posted as an opening balance on the General Ledger.
               </p>
-              <button onClick={handleCreateOnboarding} className="btn btn-primary" disabled={loading}>
+              <button onClick={handleCreateOnboarding} className="btn btn-primary" disabled={loading} aria-busy={loading}>
                 {loading ? <Spinner /> : 'Create Draft Onboarding Sheet'}
               </button>
 
@@ -2162,7 +2162,7 @@ function App() {
                     <button 
                       onClick={() => handleSubmitOnboarding(selectedOnboarding.id)}
                       className="btn btn-accent"
-                      disabled={loading}
+                      disabled={loading} aria-busy={loading}
                     >
                       Submit & Post Opening Balances
                     </button>
@@ -2305,7 +2305,7 @@ function App() {
                   </button>
                 </div>
 
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Post General Ledger Entry'}
                 </button>
               </form>
@@ -2365,7 +2365,7 @@ function App() {
                   <label>Item Serial Number</label>
                   <input type="text" value={traceSerialNum} onChange={(e) => setTraceSerialNum(e.target.value)} required placeholder="Enter unique serial number..." />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   Trace Serial History
                 </button>
               </form>
@@ -2442,7 +2442,7 @@ function App() {
                 <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>
                   Demand Planning & ROP Safety Stock Recommendations
                 </h3>
-                <button className="btn btn-secondary" onClick={loadForecastingReport} disabled={loading}>
+                <button className="btn btn-secondary" onClick={loadForecastingReport} disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Recalculate ROP'}
                 </button>
               </div>
@@ -2529,7 +2529,7 @@ function App() {
                     <option value="MINIMIZE_DISTANCE">Minimize Distance (Nearest origin warehouse)</option>
                   </select>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Compute Optimal Routing Plan'}
                 </button>
               </form>
@@ -2644,7 +2644,7 @@ function App() {
                   </button>
                 </div>
                 
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Draft Purchase Order'}
                 </button>
               </form>
@@ -2695,7 +2695,7 @@ function App() {
                       </div>
                     )}
 
-                    <button type="submit" className="btn btn-accent" disabled={loading}>
+                    <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
                       Fulfill PO & Receive Stock
                     </button>
                   </form>
@@ -2814,7 +2814,7 @@ function App() {
                     <input type="number" value={wmsHeight} onChange={(e) => setWmsHeight(Number(e.target.value))} required min={1} />
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   Configure Location
                 </button>
               </form>
@@ -2830,7 +2830,7 @@ function App() {
                     <label>Incoming Quantity</label>
                     <input type="number" value={putawayQty} onChange={(e) => setPutawayQty(Number(e.target.value))} required />
                   </div>
-                  <button type="submit" className="btn btn-accent" disabled={loading}>
+                  <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
                     Suggest Bin Location
                   </button>
                 </form>
@@ -2889,7 +2889,7 @@ function App() {
                     <label>List of SKUs to Pick (Comma separated)</label>
                     <input type="text" value={pickSkusInput} onChange={(e) => setPickSkusInput(e.target.value)} required placeholder="ROUTE-SKU, CHARGER-WRLS-BLK" />
                   </div>
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                  <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                     Generate Optimal Pick Sequence
                   </button>
                 </form>
@@ -3220,7 +3220,7 @@ function App() {
                     ))}
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   Create Webhook Subscription
                 </button>
               </form>
@@ -3567,7 +3567,7 @@ function App() {
                         <option value="viewer">System Observer (Read Only)</option>
                       </select>
                     </div>
-                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                    <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                       Invite Member
                     </button>
                   </form>
@@ -3641,7 +3641,7 @@ function App() {
               <div className="glass-panel">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h3 className="form-section-title" style={{ margin: 0 }}>Reconciliation & Inventory Auditing</h3>
-                  <button className="btn btn-primary" onClick={handleRunAudit} disabled={loading}>
+                  <button className="btn btn-primary" onClick={handleRunAudit} disabled={loading} aria-busy={loading}>
                     ⚡ Run Reconciliation Audit
                   </button>
                 </div>
@@ -3822,7 +3822,7 @@ function App() {
                     <input type="text" value={tenantConfig?.fiscalYearStart || '01-01'} disabled style={{ opacity: 0.6 }} />
                   </div>
 
-                  <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
+                  <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading} style={{ width: '100%' }}>
                     Save Accounting Policy Configurations
                   </button>
                 </form>
@@ -3862,10 +3862,10 @@ function App() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                    <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={handleAssembleKit} disabled={loading}>
+                    <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={handleAssembleKit} disabled={loading} aria-busy={loading}>
                       🛠️ Assemble Kit
                     </button>
-                    <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={handleDisassembleKit} disabled={loading}>
+                    <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={handleDisassembleKit} disabled={loading} aria-busy={loading}>
                       💥 Disassemble Kit
                     </button>
                   </div>

@@ -14,3 +14,6 @@
 ## 2026-08-17 - Adding aria-labels to buttons
 **Learning:** Found multiple instances where buttons had actions like "Delete" or "Copy cURL" but no specific `aria-label` to identify what item they applied to. This is especially important for repeated items in lists or tables, where a screen reader user might encounter multiple "Delete" buttons without knowing which item each deletes.
 **Action:** Always include an `aria-label` on repeated action buttons (like delete or edit) that includes a unique identifier or name for the item being acted upon (e.g., `aria-label="Delete warehouse location ${loc.id}"`).
+## 2024-05-18 - [Add aria-busy to loading buttons]
+**Learning:** [Dynamic buttons that indicate loading should use aria-busy="true"]
+**Action:** [I will always add aria-busy="true" (or aria-busy={loading}) to buttons indicating an asynchronous operation to screen readers]
