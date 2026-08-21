@@ -423,6 +423,27 @@ export class ExpressRESTAdapter implements InventoryClient {
     await this.request('PATCH', `/users/${userId}/role`, { tenantId, role });
   }
 
+  // RBAC
+  async getRoles(tenantId: string): Promise<Role[]> {
+    return this.request('GET', `/roles?tenantId=${tenantId}`);
+  }
+
+  async getPermissions(): Promise<Permission[]> {
+    return this.request('GET', `/roles/permissions`);
+  }
+
+  async createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role> {
+    return this.request('POST', `/roles`, { tenantId, name, description, permissionIds });
+  }
+
+  async updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
+    await this.request('PUT', `/roles/${roleId}/permissions`, { permissionIds });
+  }
+
+  async deleteRole(roleId: string): Promise<void> {
+    await this.request('DELETE', `/roles/${roleId}`);
+  }
+
   async runAudit(tenantId: string): Promise<any> {
     return this.request('POST', `/audit/run`, { tenantId });
   }

@@ -16,6 +16,7 @@ import { ReverseLogisticsSupplierPanel } from './components/ReverseLogisticsSupp
 import { ThermalPrintingArPanel } from './components/ThermalPrintingArPanel';
 import { DigitalTwinCopilotPanel } from './components/DigitalTwinCopilotPanel';
 import { EsgEmissionsPanel } from './components/EsgEmissionsPanel';
+import { RoleManagementPanel } from './components/RoleManagementPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -211,7 +212,7 @@ function App() {
   const filteredWmsLocations = useMemo(() => wmsLocations.filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone), [wmsLocations, wmsSelectedZone]);
 
   // --- Admin Portal States ---
-  const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
+  const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'roles' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
   const [adminUsers, setAdminUsers] = useState<User[]>([]);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState('warehouse_operator');
@@ -281,24 +282,49 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redirect to dashboard if the active tab is not allowed for the role
+  const [permissions, setPermissions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setPermissions(payload.permissions || []);
+      } catch (e) {
+        setPermissions([]);
+      }
+    } else {
+      setPermissions([]);
+    }
+  }, [token]);
+
+  const hasPermission = (resource: string, action: string) => {
+    return permissions.some(p => {
+      if (p === '*:*') return true;
+      const [pRes, pAct] = p.split(':');
+      if (pRes === '*' && pAct === '*') return true;
+      if (pRes.toLowerCase() === resource.toLowerCase() && (pAct === '*' || pAct.toLowerCase() === action.toLowerCase())) return true;
+      return false;
+    });
+  };
+
+  // Redirect to dashboard if the active tab is not allowed for the role/permissions
   useEffect(() => {
     const allowedTabs = ['dashboard'];
-    if (role === 'admin') {
-      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid');
-    } else if (role === 'warehouse_operator') {
-      allowedTabs.push('products', 'scanning', 'serials', 'forecasting', 'warehouse', 'procurement', 'autonomous', 'rfid');
-    } else if (role === 'accountant') {
-      allowedTabs.push('onboarding', 'products', 'ledger', 'forecasting', 'procurement');
-    } else if (role === 'viewer') {
-      allowedTabs.push('products', 'serials', 'forecasting');
+    if (role === 'admin' || hasPermission('*', '*')) {
+      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid', 'anomaly-detection', 'rebalancing', 'conformance', 'api-specs', 'logistics-erp', 'reverse-logistics', 'thermal-ar', 'digital-twin', 'esg');
+    } else {
+      if (hasPermission('inventory', 'read') || role === 'warehouse_operator') allowedTabs.push('products', 'scanning', 'serials', 'warehouse', 'autonomous', 'rfid', 'lots');
+      if (hasPermission('procurement', 'read') || role === 'warehouse_operator' || role === 'accountant') allowedTabs.push('procurement', 'forecasting', 'routing', 'rebalancing');
+      if (hasPermission('ledger', 'read') || role === 'accountant') allowedTabs.push('ledger', 'onboarding', 'compliance');
+      if (hasPermission('admin', 'read')) allowedTabs.push('admin');
+      
+      if (role === 'viewer') allowedTabs.push('products', 'serials', 'forecasting', 'api-specs');
     }
-
     
     if (!allowedTabs.includes(activeTab)) {
       setActiveTab('dashboard');
     }
-  }, [role, activeTab]);
+  }, [role, permissions, activeTab]);
 
   // --- PWA Offline Scan Synchronization and Listeners ---
   useEffect(() => {
@@ -3521,7 +3547,10 @@ function App() {
             <div className="glass-panel" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
               <div className="tabs-header" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
                 <button className={`btn ${adminActiveSubTab === 'users' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('users')}>
-                  👥 Users & RBAC
+                  👥 Users
+                </button>
+                <button className={`btn ${adminActiveSubTab === 'roles' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('roles')}>
+                  🛡️ Roles & Permissions
                 </button>
                 <button className={`btn ${adminActiveSubTab === 'audits' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('audits')}>
                   🔍 Audits & Discrepancies
@@ -3635,6 +3664,10 @@ function App() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {adminActiveSubTab === 'roles' && (
+              <RoleManagementPanel />
             )}
 
             {adminActiveSubTab === 'audits' && (

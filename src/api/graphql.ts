@@ -467,6 +467,40 @@ export class GraphQLAdapter implements InventoryClient {
     }`, { tenant: tenantId, userId, role });
   }
 
+  // RBAC
+  async getRoles(tenantId: string): Promise<Role[]> {
+    const data = await this.fetchGraphql(`query GetRoles($tenant: ID!) {
+      roles(tenantId: $tenant) { id name description isCustom tenantId permissions { id resource action } }
+    }`, { tenant: tenantId });
+    return data.roles || [];
+  }
+
+  async getPermissions(): Promise<Permission[]> {
+    const data = await this.fetchGraphql(`query {
+      permissions { id resource action description }
+    }`);
+    return data.permissions || [];
+  }
+
+  async createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role> {
+    const data = await this.fetchGraphql(`mutation CreateRole($tenant: ID!, $name: String!, $desc: String, $perms: [ID!]!) {
+      createRole(tenantId: $tenant, name: $name, description: $desc, permissionIds: $perms) { id name description isCustom tenantId permissions { id resource action } }
+    }`, { tenant: tenantId, name, desc: description, perms: permissionIds });
+    return data.createRole;
+  }
+
+  async updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
+    await this.fetchGraphql(`mutation UpdateRolePerms($roleId: ID!, $perms: [ID!]!) {
+      updateRolePermissions(roleId: $roleId, permissionIds: $perms)
+    }`, { roleId, perms: permissionIds });
+  }
+
+  async deleteRole(roleId: string): Promise<void> {
+    await this.fetchGraphql(`mutation DeleteRole($roleId: ID!) {
+      deleteRole(roleId: $roleId)
+    }`, { roleId });
+  }
+
   async runAudit(tenantId: string): Promise<any> {
     const data = await this.fetchGraphql(`mutation RunAudit($tenant: ID!) {
       runAudit(tenantId: $tenant) { shopifyDiscrepancies accountingDiscrepancies }
