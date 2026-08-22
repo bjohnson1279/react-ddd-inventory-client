@@ -138,7 +138,7 @@ export const RoleManagementPanel: React.FC = () => {
       {(isCreating || editingRole) ? (
         <form onSubmit={isCreating ? handleCreateRole : handleUpdatePermissions} style={{ background: 'rgba(255,255,255,0.03)', padding: '24px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
           <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#e2e8f0', marginBottom: '20px' }}>
-            {isCreating ? 'Create New Custom Role' : \`Edit Permissions: \${editingRole?.name}\`}
+            {isCreating ? 'Create New Custom Role' : `Edit Permissions: ${editingRole?.name}`}
           </h3>
           
           {isCreating && (
@@ -238,7 +238,7 @@ export const RoleManagementPanel: React.FC = () => {
                       textTransform: 'uppercase',
                       background: role.isCustom ? 'rgba(52, 211, 153, 0.1)' : 'rgba(56, 189, 248, 0.1)',
                       color: role.isCustom ? '#34d399' : '#38bdf8',
-                      border: \`1px solid \${role.isCustom ? 'rgba(52, 211, 153, 0.2)' : 'rgba(56, 189, 248, 0.2)'}\`
+                      border: `1px solid ${role.isCustom ? 'rgba(52, 211, 153, 0.2)' : 'rgba(56, 189, 248, 0.2)'}`
                     }}>
                       {role.isCustom ? 'Custom' : 'System'}
                     </span>
