@@ -1,3 +1,7 @@
+## 2024-08-22 - [Combine O(N) Array Reductions]
+**Learning:** Multiple array traversal methods (like multiple unmemoized `.reduce()` calls) calculating separate aggregate metrics on the same large array block the main thread unnecessarily.
+**Action:** Always combine calculations into a single `.reduce()` pass returning an object with multiple keys, and wrap it in `useMemo` to prevent recalculating on every React render.
+
 ## 2024-05-18 - Avoid O(N*M) list filtering inside render loops
 **Learning:** Found a major performance bottleneck where `inventoryItems.filter` was called inside `wmsLocations.map` during the warehouse layout render. This caused an O(N * M) operation blocking the main thread (1000 locations * 50,000 items took ~1.3 seconds to process on a test dataset).
 **Action:** Replace nested loops/filters in render functions with an O(N + M) grouping strategy. Group elements into a `Map` structure prior to iterating the second collection. This reduced the operation time from ~1.3 seconds to ~10 milliseconds (100x speedup) on the same dataset.
