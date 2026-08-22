@@ -144,8 +144,9 @@ export const RoleManagementPanel: React.FC = () => {
           {isCreating && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>Role Name *</label>
+                <label htmlFor="roleName" style={{ display: 'block', fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>Role Name *</label>
                 <input 
+                  id="roleName"
                   type="text" 
                   value={newRoleName}
                   onChange={e => setNewRoleName(e.target.value)}
@@ -155,8 +156,9 @@ export const RoleManagementPanel: React.FC = () => {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>Description</label>
+                <label htmlFor="roleDesc" style={{ display: 'block', fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>Description</label>
                 <input 
+                  id="roleDesc"
                   type="text" 
                   value={newRoleDesc}
                   onChange={e => setNewRoleDesc(e.target.value)}
@@ -260,6 +262,7 @@ export const RoleManagementPanel: React.FC = () => {
                   <td style={{ padding: '16px', textAlign: 'right' }}>
                     <button 
                       onClick={() => startEditing(role)}
+                      aria-label={`Edit role ${role.name}`}
                       style={{ background: 'transparent', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', marginRight: '8px', fontSize: '13px', transition: 'all 0.2s' }}
                       onMouseOver={e => e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)'}
                       onMouseOut={e => e.currentTarget.style.background = 'transparent'}
@@ -269,6 +272,7 @@ export const RoleManagementPanel: React.FC = () => {
                     {role.isCustom && (
                       <button 
                         onClick={() => handleDeleteRole(role.id)}
+                        aria-label={`Delete role ${role.name}`}
                         style={{ background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' }}
                         onMouseOver={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
                         onMouseOut={e => e.currentTarget.style.background = 'transparent'}
