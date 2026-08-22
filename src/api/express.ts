@@ -1,4 +1,4 @@
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
+import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
 
 const EXPRESS_BASE_URL = 'http://localhost:5000/api';
 const EXPRESS_WS_URL = 'ws://localhost:5000';
@@ -421,6 +421,27 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   async updateUserRole(tenantId: string, userId: string, role: string): Promise<void> {
     await this.request('PATCH', `/users/${userId}/role`, { tenantId, role });
+  }
+
+  // RBAC
+  async getRoles(tenantId: string): Promise<Role[]> {
+    return this.request('GET', `/roles?tenantId=${tenantId}`);
+  }
+
+  async getPermissions(): Promise<Permission[]> {
+    return this.request('GET', `/roles/permissions`);
+  }
+
+  async createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role> {
+    return this.request('POST', `/roles`, { tenantId, name, description, permissionIds });
+  }
+
+  async updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
+    await this.request('PUT', `/roles/${roleId}/permissions`, { permissionIds });
+  }
+
+  async deleteRole(roleId: string): Promise<void> {
+    await this.request('DELETE', `/roles/${roleId}`);
   }
 
   async runAudit(tenantId: string): Promise<any> {
