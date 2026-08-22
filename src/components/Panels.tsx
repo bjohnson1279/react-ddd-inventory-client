@@ -1924,8 +1924,14 @@ export const RfidPanel: React.FC<{
 
   // Metrics
   const totalProcessedBatches = scanEvents.length;
-  const totalMatched = scanEvents.reduce((acc, curr) => acc + curr.matchedCount, 0);
-  const totalScanned = scanEvents.reduce((acc, curr) => acc + curr.totalCount, 0);
+  // ⚡ Bolt: Memoize combined reduce to prevent O(N) array traversals on every render pass
+  const { totalMatched, totalScanned } = React.useMemo(() => {
+    return scanEvents.reduce((acc, curr) => {
+      acc.totalMatched += curr.matchedCount;
+      acc.totalScanned += curr.totalCount;
+      return acc;
+    }, { totalMatched: 0, totalScanned: 0 });
+  }, [scanEvents]);
   const averageMatchRate = totalScanned > 0 ? ((totalMatched / totalScanned) * 100).toFixed(1) : '100.0';
 
   return (
