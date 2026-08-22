@@ -252,7 +252,8 @@ test.describe('Admin Portal Sub-Consoles', () => {
 
   test('should render the admin portal shell and toggle sub-consoles', async ({ page }) => {
     // Assert active header tab is rendered
-    await expect(page.locator('.tabs-header')).toContainText('Users & RBAC');
+    await expect(page.locator('.tabs-header')).toContainText('Users');
+    await expect(page.locator('.tabs-header')).toContainText('Roles & Permissions');
     await expect(page.locator('.tabs-header')).toContainText('Audits & Discrepancies');
     await expect(page.locator('.tabs-header')).toContainText('Outbox Monitor');
   });
@@ -302,7 +303,7 @@ test.describe('Admin Portal Sub-Consoles', () => {
 
   test('should verify RBAC role management functionality', async ({ page }) => {
     // Depending on the UI, navigate to RBAC. Let's assume it's under Users & RBAC or a specific tab
-    await page.click('text=Users & RBAC');
+    await page.click('text=Roles & Permissions');
     
     // We expect the RoleManagementPanel to render "RBAC & Permission Engine"
     // Wait for the panel to load (if it's lazy or hidden, it might need navigation)

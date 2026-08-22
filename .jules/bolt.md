@@ -30,3 +30,7 @@
 ## 2024-05-20 - Memoize boolean derivations (Array.some) in render loops
 **Learning:** Found a performance bottleneck where `purchaseOrders.some(po => po.status === 'sent')` was called inside the render block. While `.some()` returns early upon finding a match, in cases where no match exists or the match is late in a large array, it acts as an O(N) operation blocking the main thread during frequent state updates (e.g., from text inputs).
 **Action:** Extract O(N) array evaluations into a `useMemo` block, or better yet, reuse an already-memoized filtered array (e.g. `sentPurchaseOrders.length > 0`) to provide an O(1) check in the render loop.
+
+## 2024-08-21 - Extract nested map operations in render for heavy calculations
+**Learning:** Found a performance bottleneck where `itemsByLocation.get(loc.id)` and iterating over its items (`locInvItems.forEach`) was executed inside `wmsLocations.map` during the warehouse layout render. This creates an O(N * M) calculation directly inside the render loop where N is the number of locations and M is the average number of inventory items per location. This blocks the main thread on every re-render (e.g. from hover events).
+**Action:** Always extract complex, nested iterations in render loops (such as summing weights/volumes for grid locations) into a single `useMemo` block that maps IDs to the pre-calculated aggregate result. Then provide O(1) lookups using this Map inside the render phase.
