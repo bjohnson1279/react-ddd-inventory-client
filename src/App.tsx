@@ -199,6 +199,29 @@ function App() {
     return map;
   }, [inventoryItems]);
 
+  // ⚡ Bolt: Pre-calculate location weights and volumes to avoid O(N*M) calculation in wmsLocations.map render loop
+  const locationCapacityMap = useMemo(() => {
+    const map = new Map<string, { weight: number; volume: number }>();
+    wmsLocations.forEach((loc) => {
+      const locInvItems = itemsByLocation.get(loc.id) || [];
+      let currentWeight = 0;
+      let currentVolume = 0;
+      locInvItems.forEach((item) => {
+        let itemWeight = 100;
+        let itemVolume = 0.001;
+        const variant = variantMap.get(item.sku);
+        if (variant) {
+          if (variant.weightGrams) itemWeight = variant.weightGrams;
+          if (variant.volumeCubicMeters) itemVolume = variant.volumeCubicMeters;
+        }
+        currentWeight += item.quantity * itemWeight;
+        currentVolume += item.quantity * itemVolume;
+      });
+      map.set(loc.id, { weight: currentWeight, volume: currentVolume });
+    });
+    return map;
+  }, [wmsLocations, itemsByLocation, variantMap]);
+
   // ⚡ Bolt: Memoize derived statistics to prevent expensive array filtering on every render pass
   const lowStockCount = useMemo(() => inventoryItems.filter(item => item.quantity < 10).length, [inventoryItems]);
   const activeShopifyConnsCount = useMemo(() => shopifyConns.filter(c => c.isActive).length, [shopifyConns]);
@@ -2972,23 +2995,9 @@ function App() {
                 {(() => {
                   return filteredWmsLocations
                     .map((loc, idx) => {
-                      const locInvItems = itemsByLocation.get(loc.id) || [];
-                      let currentWeight = 0;
-                      let currentVolume = 0;
-
-                      locInvItems.forEach(item => {
-                        let itemWeight = 100;
-                        let itemVolume = 0.001;
-
-                        const variant = variantMap.get(item.sku);
-                        if (variant) {
-                          if (variant.weightGrams) itemWeight = variant.weightGrams;
-                          if (variant.volumeCubicMeters) itemVolume = variant.volumeCubicMeters;
-                        }
-
-                        currentWeight += item.quantity * itemWeight;
-                        currentVolume += item.quantity * itemVolume;
-                      });
+                      const capacity = locationCapacityMap.get(loc.id) || { weight: 0, volume: 0 };
+                      const currentWeight = capacity.weight;
+                      const currentVolume = capacity.volume;
 
                     const weightLimit = loc.maxWeightGrams || 1000000;
                     const volumeLimit = loc.maxVolumeCubicMeters || 10;
