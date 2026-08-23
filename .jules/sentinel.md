@@ -17,3 +17,8 @@
 **Vulnerability:** Sending auth tokens in URL query strings for SSE endpoints via `EventSource`.
 **Learning:** SSE natively doesn't support custom headers easily, so it's a common anti-pattern to send tokens in URL parameters where they are logged in access logs, proxies, and browser history.
 **Prevention:** Use a `fetch`-based stream reader with `Accept: text/event-stream` and an `Authorization` header to secure the token and read the event stream securely instead of using `EventSource`.
+
+## 2025-02-28 - Replaced Math.random() with crypto.randomUUID()
+**Vulnerability:** Weak random ID generation using `Math.random().toString(36).substring(7)` and `Math.floor(1000 + Math.random() * 9000)` in React components and ERP hooks.
+**Learning:** `Math.random()` is not cryptographically secure and predictable. Generating IDs or tracking tokens using `Math.random()` can lead to collisions or ID-guessing attacks, even in optimistic state updates.
+**Prevention:** Always use `crypto.randomUUID()` when generating unique identifiers or tokens on the client-side, avoiding `Math.random()`.

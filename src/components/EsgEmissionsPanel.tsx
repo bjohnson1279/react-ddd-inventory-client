@@ -18,7 +18,17 @@ export const EsgEmissionsPanel: React.FC<EsgEmissionsPanelProps> = ({ api }) => 
         const res = await api.getEsgEmissionsReport({ tenantId });
         setReport(res);
       } else {
-        const response = await fetch(`/api/sustainability/emissions-report?tenantId=${tenantId}`);
+        const activeToken = localStorage.getItem('auth_token') || '';
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (activeToken && activeToken !== 'NONE') {
+          headers['Authorization'] = `Bearer ${activeToken}`;
+        }
+        const response = await fetch(`/api/sustainability/emissions-report?tenantId=${tenantId}`, {
+          headers
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ESG data: ${response.statusText}`);
+        }
         const data = await response.json();
         setReport(data);
       }

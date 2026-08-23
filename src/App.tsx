@@ -16,6 +16,7 @@ import { ReverseLogisticsSupplierPanel } from './components/ReverseLogisticsSupp
 import { ThermalPrintingArPanel } from './components/ThermalPrintingArPanel';
 import { DigitalTwinCopilotPanel } from './components/DigitalTwinCopilotPanel';
 import { EsgEmissionsPanel } from './components/EsgEmissionsPanel';
+import { RoleManagementPanel } from './components/RoleManagementPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -199,6 +200,29 @@ function App() {
     return map;
   }, [inventoryItems]);
 
+  // ⚡ Bolt: Pre-calculate location weights and volumes to avoid O(N*M) calculation in wmsLocations.map render loop
+  const locationCapacityMap = useMemo(() => {
+    const map = new Map<string, { weight: number; volume: number }>();
+    wmsLocations.forEach((loc) => {
+      const locInvItems = itemsByLocation.get(loc.id) || [];
+      let currentWeight = 0;
+      let currentVolume = 0;
+      locInvItems.forEach((item) => {
+        let itemWeight = 100;
+        let itemVolume = 0.001;
+        const variant = variantMap.get(item.sku);
+        if (variant) {
+          if (variant.weightGrams) itemWeight = variant.weightGrams;
+          if (variant.volumeCubicMeters) itemVolume = variant.volumeCubicMeters;
+        }
+        currentWeight += item.quantity * itemWeight;
+        currentVolume += item.quantity * itemVolume;
+      });
+      map.set(loc.id, { weight: currentWeight, volume: currentVolume });
+    });
+    return map;
+  }, [wmsLocations, itemsByLocation, variantMap]);
+
   // ⚡ Bolt: Memoize derived statistics to prevent expensive array filtering on every render pass
   const lowStockCount = useMemo(() => inventoryItems.filter(item => item.quantity < 10).length, [inventoryItems]);
   const activeShopifyConnsCount = useMemo(() => shopifyConns.filter(c => c.isActive).length, [shopifyConns]);
@@ -211,7 +235,7 @@ function App() {
   const filteredWmsLocations = useMemo(() => wmsLocations.filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone), [wmsLocations, wmsSelectedZone]);
 
   // --- Admin Portal States ---
-  const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
+  const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'roles' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
   const [adminUsers, setAdminUsers] = useState<User[]>([]);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState('warehouse_operator');
@@ -254,14 +278,15 @@ function App() {
 
       const promises = (Object.entries(nodes) as [BackendType, string][]).map(async ([type, url]) => {
         const start = Date.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
-          await fetch(`${url}/health`, { signal: controller.signal }).catch(() => {});
-          clearTimeout(timeoutId);
+          await fetch(`${url}/health`, { signal: controller.signal });
           return { type, status: 'online' as const, latencyMs: Date.now() - start };
         } catch (error) {
           return { type, status: 'offline' as const, latencyMs: 0 };
+        } finally {
+          clearTimeout(timeoutId);
         }
       });
 
@@ -280,24 +305,49 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redirect to dashboard if the active tab is not allowed for the role
+  const [permissions, setPermissions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setPermissions(payload.permissions || []);
+      } catch (e) {
+        setPermissions([]);
+      }
+    } else {
+      setPermissions([]);
+    }
+  }, [token]);
+
+  const hasPermission = (resource: string, action: string) => {
+    return permissions.some(p => {
+      if (p === '*:*') return true;
+      const [pRes, pAct] = p.split(':');
+      if (pRes === '*' && pAct === '*') return true;
+      if (pRes.toLowerCase() === resource.toLowerCase() && (pAct === '*' || pAct.toLowerCase() === action.toLowerCase())) return true;
+      return false;
+    });
+  };
+
+  // Redirect to dashboard if the active tab is not allowed for the role/permissions
   useEffect(() => {
     const allowedTabs = ['dashboard'];
-    if (role === 'admin') {
-      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid');
-    } else if (role === 'warehouse_operator') {
-      allowedTabs.push('products', 'scanning', 'serials', 'forecasting', 'warehouse', 'procurement', 'autonomous', 'rfid');
-    } else if (role === 'accountant') {
-      allowedTabs.push('onboarding', 'products', 'ledger', 'forecasting', 'procurement');
-    } else if (role === 'viewer') {
-      allowedTabs.push('products', 'serials', 'forecasting');
-    }
+    if (role === 'admin' || hasPermission('*', '*')) {
+      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid', 'anomaly-detection', 'rebalancing', 'conformance', 'api-specs', 'logistics-erp', 'reverse-logistics', 'thermal-ar', 'digital-twin', 'esg');
+    } else {
+      if (hasPermission('inventory', 'read') || role === 'warehouse_operator') allowedTabs.push('products', 'scanning', 'serials', 'warehouse', 'autonomous', 'rfid', 'lots');
+      if (hasPermission('procurement', 'read') || role === 'warehouse_operator' || role === 'accountant') allowedTabs.push('procurement', 'forecasting', 'routing', 'rebalancing');
+      if (hasPermission('ledger', 'read') || role === 'accountant') allowedTabs.push('ledger', 'onboarding', 'compliance');
+      if (hasPermission('admin', 'read')) allowedTabs.push('admin');
 
+      if (role === 'viewer') allowedTabs.push('products', 'serials', 'forecasting', 'api-specs');
+    }
     
     if (!allowedTabs.includes(activeTab)) {
       setActiveTab('dashboard');
     }
-  }, [role, activeTab]);
+  }, [role, permissions, activeTab]);
 
   // --- PWA Offline Scan Synchronization and Listeners ---
   useEffect(() => {
@@ -706,7 +756,7 @@ function App() {
                 return [
                   ...prev,
                   {
-                    id: Math.random().toString(36).substring(7),
+                    id: crypto.randomUUID(),
                     sku: data.sku,
                     locationId: data.locationId,
                     quantity: data.quantity,
@@ -795,7 +845,7 @@ function App() {
                     return [
                       ...prev,
                       {
-                        id: Math.random().toString(36).substring(7),
+                        id: crypto.randomUUID(),
                         sku: data.sku,
                         locationId: data.locationId,
                         quantity: data.quantity,
@@ -2870,7 +2920,7 @@ function App() {
                           <td>{loc.maxWeightGrams}g</td>
                           <td>{loc.maxVolumeCubicMeters}m³</td>
                           <td>
-                            <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)}>
+                            <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)} aria-label={`Delete warehouse location ${loc.id}`}>
                               Delete
                             </button>
                           </td>
@@ -2971,23 +3021,9 @@ function App() {
                 {(() => {
                   return filteredWmsLocations
                     .map((loc, idx) => {
-                      const locInvItems = itemsByLocation.get(loc.id) || [];
-                      let currentWeight = 0;
-                      let currentVolume = 0;
-
-                      locInvItems.forEach(item => {
-                        let itemWeight = 100;
-                        let itemVolume = 0.001;
-
-                        const variant = variantMap.get(item.sku);
-                        if (variant) {
-                          if (variant.weightGrams) itemWeight = variant.weightGrams;
-                          if (variant.volumeCubicMeters) itemVolume = variant.volumeCubicMeters;
-                        }
-
-                        currentWeight += item.quantity * itemWeight;
-                        currentVolume += item.quantity * itemVolume;
-                      });
+                      const capacity = locationCapacityMap.get(loc.id) || { weight: 0, volume: 0 };
+                      const currentWeight = capacity.weight;
+                      const currentVolume = capacity.volume;
 
                     const weightLimit = loc.maxWeightGrams || 1000000;
                     const volumeLimit = loc.maxVolumeCubicMeters || 10;
@@ -3254,7 +3290,7 @@ function App() {
                               ))}
                             </td>
                             <td>
-                              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)}>
+                              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)} aria-label={`Delete webhook for ${w.url}`}>
                                 Delete
                               </button>
                             </td>
@@ -3520,7 +3556,10 @@ function App() {
             <div className="glass-panel" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
               <div className="tabs-header" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
                 <button className={`btn ${adminActiveSubTab === 'users' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('users')}>
-                  👥 Users & RBAC
+                  👥 Users
+                </button>
+                <button className={`btn ${adminActiveSubTab === 'roles' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('roles')}>
+                  🛡️ Roles & Permissions
                 </button>
                 <button className={`btn ${adminActiveSubTab === 'audits' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('audits')}>
                   🔍 Audits & Discrepancies
@@ -3634,6 +3673,10 @@ function App() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {adminActiveSubTab === 'roles' && (
+              <RoleManagementPanel />
             )}
 
             {adminActiveSubTab === 'audits' && (

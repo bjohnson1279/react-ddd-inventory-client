@@ -155,7 +155,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
               <option value="15">Every 15s</option>
               <option value="30">Every 30s</option>
             </select>
-            <button className="btn btn-secondary" onClick={checkHealth} disabled={isRefreshing}>
+            <button className="btn btn-secondary" onClick={checkHealth} disabled={isRefreshing} aria-busy={isRefreshing}>
               {isRefreshing ? <Spinner /> : 'Refresh'}
             </button>
           </div>
@@ -236,7 +236,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
             <option value="inventory">Get Inventory Items</option>
             <option value="compliance">Get Compliance Ledger</option>
           </select>
-          <button className="btn btn-primary" onClick={handleCompare} disabled={isComparing}>
+          <button className="btn btn-primary" onClick={handleCompare} disabled={isComparing} aria-busy={isComparing}>
             {isComparing ? <Spinner /> : 'Compare Across Backends'}
           </button>
         </div>
