@@ -23,3 +23,6 @@
 ## 2024-08-11 - Memoize array filtering inside render functions for alert counts
 **Learning:** In React dashboards such as `AnomalyDetectionPanel`, using un-memoized `Array.filter` inline to count or filter dynamic lists on every render (e.g. `data?.alerts?.filter()`) triggers an O(N) calculation each frame. While not instantly crashing the app for small data sets, it compounds negatively when parent components like `App.tsx` re-render frequently (e.g., from hovering features or inputs).
 **Action:** Extract inline array filtering inside render logic (such as for metrics counts or filtered lists) into a `React.useMemo` hook, ensuring dependent recalculations only happen when the underlying data changes, not unconditionally on every frame update.
+## 2024-08-11 - Reuse memoized array length check instead of inline array some traversal
+**Learning:** Found a performance bottleneck where `purchaseOrders.some(...)` was called inside the render loop for conditional rendering. This triggers an O(N) traversal on every render. If an already-memoized filtered array exists (e.g. `sentPurchaseOrders`), checking its `.length > 0` gives the exact same result in O(1) time.
+**Action:** Replace redundant O(N) array traversals (like `.some()`) with O(1) `.length` checks by reusing already-memoized filtered arrays in render blocks.
