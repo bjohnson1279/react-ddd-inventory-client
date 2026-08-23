@@ -91,6 +91,16 @@ export const RoleManagementPanel: React.FC = () => {
     setSelectedPerms(role.permissions.map(p => p.id));
   };
 
+  // Organized permissions by resource
+  // ⚡ Bolt: Memoize derived permissions mapping to prevent O(n) array traversal on every render
+  const permsByResource = React.useMemo(() => {
+    return permissions.reduce((acc, p) => {
+      if (!acc[p.resource]) acc[p.resource] = [];
+      acc[p.resource].push(p);
+      return acc;
+    }, {} as Record<string, Permission[]>);
+  }, [permissions]);
+
   if (loading && roles.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -98,13 +108,6 @@ export const RoleManagementPanel: React.FC = () => {
       </div>
     );
   }
-
-  // Organized permissions by resource
-  const permsByResource = permissions.reduce((acc, p) => {
-    if (!acc[p.resource]) acc[p.resource] = [];
-    acc[p.resource].push(p);
-    return acc;
-  }, {} as Record<string, Permission[]>);
 
   return (
     <div style={{ padding: '24px', background: 'linear-gradient(145deg, #0f172a, #1e293b)', color: '#f8fafc', borderRadius: '16px', minHeight: '600px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
