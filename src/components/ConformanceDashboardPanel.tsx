@@ -5,24 +5,6 @@ interface ConformanceDashboardPanelProps {
   tenantId: string;
 }
 
-
-const conformanceResults = [
-  { module: 'Inventory CRUD', graphql: { pass: 24, fail: 0, skip: 0 }, express: { pass: 24, fail: 0, skip: 0 }, php: { pass: 23, fail: 1, skip: 0 } },
-  { module: 'Accounting Ledger', graphql: { pass: 15, fail: 0, skip: 0 }, express: { pass: 15, fail: 0, skip: 0 }, php: { pass: 15, fail: 0, skip: 0 } },
-  { module: 'Compliance Rules', graphql: { pass: 10, fail: 0, skip: 0 }, express: { pass: 10, fail: 0, skip: 0 }, php: { pass: 9, fail: 0, skip: 1 } },
-];
-
-const totalStats = conformanceResults.reduce(
-  (acc, cur) => {
-    acc.total += 3 * (cur.graphql.pass + cur.graphql.fail + cur.graphql.skip);
-    acc.pass += cur.graphql.pass + cur.express.pass + cur.php.pass;
-    acc.fail += cur.graphql.fail + cur.express.fail + cur.php.fail;
-    acc.skip += cur.graphql.skip + cur.express.skip + cur.php.skip;
-    return acc;
-  },
-  { total: 0, pass: 0, fail: 0, skip: 0 }
-);
-
 export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps> = ({ tenantId }) => {
   // --- Section A: Live Backend Health Monitor ---
   const [healthData, setHealthData] = useState([
@@ -75,8 +57,22 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
 
 
   // --- Section B: Conformance Test Results Viewer ---
-  // ⚡ Bolt: Use pre-calculated static totalStats outside of the render function to prevent reduction on every render
+  const conformanceResults = [
+    { module: 'Inventory CRUD', graphql: { pass: 24, fail: 0, skip: 0 }, express: { pass: 24, fail: 0, skip: 0 }, php: { pass: 23, fail: 1, skip: 0 } },
+    { module: 'Accounting Ledger', graphql: { pass: 15, fail: 0, skip: 0 }, express: { pass: 15, fail: 0, skip: 0 }, php: { pass: 15, fail: 0, skip: 0 } },
+    { module: 'Compliance Rules', graphql: { pass: 10, fail: 0, skip: 0 }, express: { pass: 10, fail: 0, skip: 0 }, php: { pass: 9, fail: 0, skip: 1 } },
+  ];
 
+  const totalStats = conformanceResults.reduce(
+    (acc, cur) => {
+      acc.total += 3 * (cur.graphql.pass + cur.graphql.fail + cur.graphql.skip);
+      acc.pass += cur.graphql.pass + cur.express.pass + cur.php.pass;
+      acc.fail += cur.graphql.fail + cur.express.fail + cur.php.fail;
+      acc.skip += cur.graphql.skip + cur.express.skip + cur.php.skip;
+      return acc;
+    },
+    { total: 0, pass: 0, fail: 0, skip: 0 }
+  );
 
   const parityPercentage = ((totalStats.pass / totalStats.total) * 100).toFixed(1);
 
@@ -159,7 +155,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
               <option value="15">Every 15s</option>
               <option value="30">Every 30s</option>
             </select>
-            <button className="btn btn-secondary" onClick={checkHealth} disabled={isRefreshing} aria-busy={isRefreshing}>
+            <button className="btn btn-secondary" onClick={checkHealth} disabled={isRefreshing}>
               {isRefreshing ? <Spinner /> : 'Refresh'}
             </button>
           </div>
@@ -240,7 +236,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
             <option value="inventory">Get Inventory Items</option>
             <option value="compliance">Get Compliance Ledger</option>
           </select>
-          <button className="btn btn-primary" onClick={handleCompare} disabled={isComparing} aria-busy={isComparing}>
+          <button className="btn btn-primary" onClick={handleCompare} disabled={isComparing}>
             {isComparing ? <Spinner /> : 'Compare Across Backends'}
           </button>
         </div>
