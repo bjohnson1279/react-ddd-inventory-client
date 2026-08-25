@@ -1,5 +1,5 @@
 import { createClient } from 'graphql-ws';
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate, AnomalyAnalysis } from './client';
 
 const GRAPHQL_HTTP_URL = 'http://localhost:4000/graphql';
 const GRAPHQL_WS_URL = 'ws://localhost:4000/graphql';
@@ -753,11 +753,12 @@ export class GraphQLAdapter implements InventoryClient {
     };
   }
 
-  async analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any> {
+  async analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<AnomalyAnalysis> {
     const query = `query AnalyzeAnomalies($tenantId: String!, $startDate: String, $endDate: String) {
       analyzeInventoryAnomalies(tenantId: $tenantId, startDate: $startDate, endDate: $endDate) {
         alerts { alertType severity confidence sku locationId actorId title description evidence detectedAt }
         totalCritical totalHigh totalMedium totalLow overallRiskScore
+        actorRisks { actorId riskScore }
       }
     }`;
     const data = await this.fetchGraphql(query, { tenantId, startDate, endDate });

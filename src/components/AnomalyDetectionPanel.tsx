@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { InventoryClient } from '../api/client';
+import { InventoryClient, AnomalyAnalysis, AnomalyAlert, ActorRisk } from '../api/client';
 import { Spinner } from './Panels';
 
 interface AnomalyDetectionPanelProps {
@@ -7,7 +7,7 @@ interface AnomalyDetectionPanelProps {
 }
 
 export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({ api }) => {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AnomalyAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('All');
@@ -31,7 +31,7 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({ ap
 
   // ⚡ Bolt: Memoize filtered alerts to prevent O(N) array filtering on every render
   const filteredAlerts = React.useMemo(() => {
-    return data?.alerts?.filter((alert: any) =>
+    return data?.alerts?.filter((alert: AnomalyAlert) =>
       filter === 'All' || alert.severity.toLowerCase() === filter.toLowerCase()
     ) || [];
   }, [data?.alerts, filter]);
@@ -117,7 +117,7 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({ ap
                     No alerts found for this filter.
                   </div>
                 ) : (
-                  filteredAlerts.map((alert: any, idx: number) => (
+                  filteredAlerts.map((alert: AnomalyAlert, idx: number) => (
                     <AlertCard key={idx} alert={alert} />
                   ))
                 )}
@@ -131,7 +131,7 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({ ap
                 </div>
                 <div style={{ marginTop: '16px' }}>
                   {data.actorRisks?.length ? (
-                    data.actorRisks.map((actor: any, idx: number) => (
+                    data.actorRisks.map((actor: ActorRisk, idx: number) => (
                       <div className="actor-risk-bar" key={idx}>
                         <div className="actor-risk-label" title={actor.actorId}>{actor.actorId}</div>
                         <div className="actor-risk-track">
@@ -159,7 +159,7 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({ ap
                   <span>⏱️</span> Temporal Pattern Timeline
                 </div>
                 <div className="temporal-timeline">
-                  {data.alerts?.map((alert: any, idx: number) => {
+                  {data.alerts?.map((alert: AnomalyAlert, idx: number) => {
                     const time = new Date(alert.detectedAt).getHours();
                     const left = `${(time / 24) * 100}%`;
                     const top = `${20 + Math.random() * 60}%`;
@@ -190,7 +190,7 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({ ap
   );
 };
 
-const AlertCard: React.FC<{ alert: any }> = ({ alert }) => {
+const AlertCard: React.FC<{ alert: AnomalyAlert }> = ({ alert }) => {
   const [expanded, setExpanded] = useState(false);
   const severityClass = alert.severity.toLowerCase();
 

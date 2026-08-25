@@ -1,4 +1,4 @@
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate, AnomalyAnalysis } from './client';
 
 const LARAVEL_BASE_URL = 'http://localhost:8000';
 
@@ -829,7 +829,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     return () => controller.abort();
   }
 
-  async analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any> {
+  async analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<AnomalyAnalysis> {
     const params = new URLSearchParams({ tenantId });
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
