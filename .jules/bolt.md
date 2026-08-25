@@ -34,7 +34,3 @@
 ## 2024-08-21 - Extract nested map operations in render for heavy calculations
 **Learning:** Found a performance bottleneck where `itemsByLocation.get(loc.id)` and iterating over its items (`locInvItems.forEach`) was executed inside `wmsLocations.map` during the warehouse layout render. This creates an O(N * M) calculation directly inside the render loop where N is the number of locations and M is the average number of inventory items per location. This blocks the main thread on every re-render (e.g. from hover events).
 **Action:** Always extract complex, nested iterations in render loops (such as summing weights/volumes for grid locations) into a single `useMemo` block that maps IDs to the pre-calculated aggregate result. Then provide O(1) lookups using this Map inside the render phase.
-
-## 2026-08-12 - Offline Queue Bulk Processing Single Pass Optimization
-**Learning:** Chaining `.filter().map()` immediately followed by a `for...of` loop over the same array creates redundant O(N) traversals and unnecessary intermediate array allocations, degrading performance in high-throughput offline queue processors.
-**Action:** Always combine array operations like `.filter()`, `.map()`, and summary aggregations (like success/failure counters) into a single pass when iterating over arrays in performance-critical execution paths.
