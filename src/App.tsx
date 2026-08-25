@@ -16,6 +16,7 @@ import { ReverseLogisticsSupplierPanel } from './components/ReverseLogisticsSupp
 import { ThermalPrintingArPanel } from './components/ThermalPrintingArPanel';
 import { DigitalTwinCopilotPanel } from './components/DigitalTwinCopilotPanel';
 import { EsgEmissionsPanel } from './components/EsgEmissionsPanel';
+import { RoleManagementPanel } from './components/RoleManagementPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -199,6 +200,29 @@ function App() {
     return map;
   }, [inventoryItems]);
 
+  // ⚡ Bolt: Pre-calculate location weights and volumes to avoid O(N*M) calculation in wmsLocations.map render loop
+  const locationCapacityMap = useMemo(() => {
+    const map = new Map<string, { weight: number; volume: number }>();
+    wmsLocations.forEach((loc) => {
+      const locInvItems = itemsByLocation.get(loc.id) || [];
+      let currentWeight = 0;
+      let currentVolume = 0;
+      locInvItems.forEach((item) => {
+        let itemWeight = 100;
+        let itemVolume = 0.001;
+        const variant = variantMap.get(item.sku);
+        if (variant) {
+          if (variant.weightGrams) itemWeight = variant.weightGrams;
+          if (variant.volumeCubicMeters) itemVolume = variant.volumeCubicMeters;
+        }
+        currentWeight += item.quantity * itemWeight;
+        currentVolume += item.quantity * itemVolume;
+      });
+      map.set(loc.id, { weight: currentWeight, volume: currentVolume });
+    });
+    return map;
+  }, [wmsLocations, itemsByLocation, variantMap]);
+
   // ⚡ Bolt: Memoize derived statistics to prevent expensive array filtering on every render pass
   const lowStockCount = useMemo(() => inventoryItems.filter(item => item.quantity < 10).length, [inventoryItems]);
   const activeShopifyConnsCount = useMemo(() => shopifyConns.filter(c => c.isActive).length, [shopifyConns]);
@@ -211,7 +235,7 @@ function App() {
   const filteredWmsLocations = useMemo(() => wmsLocations.filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone), [wmsLocations, wmsSelectedZone]);
 
   // --- Admin Portal States ---
-  const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
+  const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'roles' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
   const [adminUsers, setAdminUsers] = useState<User[]>([]);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState('warehouse_operator');
@@ -254,14 +278,15 @@ function App() {
 
       const promises = (Object.entries(nodes) as [BackendType, string][]).map(async ([type, url]) => {
         const start = Date.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
-          await fetch(`${url}/health`, { signal: controller.signal }).catch(() => {});
-          clearTimeout(timeoutId);
+          await fetch(`${url}/health`, { signal: controller.signal });
           return { type, status: 'online' as const, latencyMs: Date.now() - start };
         } catch (error) {
           return { type, status: 'offline' as const, latencyMs: 0 };
+        } finally {
+          clearTimeout(timeoutId);
         }
       });
 
@@ -280,24 +305,49 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redirect to dashboard if the active tab is not allowed for the role
+  const [permissions, setPermissions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setPermissions(payload.permissions || []);
+      } catch (e) {
+        setPermissions([]);
+      }
+    } else {
+      setPermissions([]);
+    }
+  }, [token]);
+
+  const hasPermission = (resource: string, action: string) => {
+    return permissions.some(p => {
+      if (p === '*:*') return true;
+      const [pRes, pAct] = p.split(':');
+      if (pRes === '*' && pAct === '*') return true;
+      if (pRes.toLowerCase() === resource.toLowerCase() && (pAct === '*' || pAct.toLowerCase() === action.toLowerCase())) return true;
+      return false;
+    });
+  };
+
+  // Redirect to dashboard if the active tab is not allowed for the role/permissions
   useEffect(() => {
     const allowedTabs = ['dashboard'];
-    if (role === 'admin') {
-      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid');
-    } else if (role === 'warehouse_operator') {
-      allowedTabs.push('products', 'scanning', 'serials', 'forecasting', 'warehouse', 'procurement', 'autonomous', 'rfid');
-    } else if (role === 'accountant') {
-      allowedTabs.push('onboarding', 'products', 'ledger', 'forecasting', 'procurement');
-    } else if (role === 'viewer') {
-      allowedTabs.push('products', 'serials', 'forecasting');
+    if (role === 'admin' || hasPermission('*', '*')) {
+      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid', 'anomaly-detection', 'rebalancing', 'conformance', 'api-specs', 'logistics-erp', 'reverse-logistics', 'thermal-ar', 'digital-twin', 'esg');
+    } else {
+      if (hasPermission('inventory', 'read') || role === 'warehouse_operator') allowedTabs.push('products', 'scanning', 'serials', 'warehouse', 'autonomous', 'rfid', 'lots');
+      if (hasPermission('procurement', 'read') || role === 'warehouse_operator' || role === 'accountant') allowedTabs.push('procurement', 'forecasting', 'routing', 'rebalancing');
+      if (hasPermission('ledger', 'read') || role === 'accountant') allowedTabs.push('ledger', 'onboarding', 'compliance');
+      if (hasPermission('admin', 'read')) allowedTabs.push('admin');
+      
+      if (role === 'viewer') allowedTabs.push('products', 'serials', 'forecasting', 'api-specs');
     }
-
     
     if (!allowedTabs.includes(activeTab)) {
       setActiveTab('dashboard');
     }
-  }, [role, activeTab]);
+  }, [role, permissions, activeTab]);
 
   // --- PWA Offline Scan Synchronization and Listeners ---
   useEffect(() => {
@@ -706,7 +756,7 @@ function App() {
                 return [
                   ...prev,
                   {
-                    id: Math.random().toString(36).substring(7),
+                    id: crypto.randomUUID(),
                     sku: data.sku,
                     locationId: data.locationId,
                     quantity: data.quantity,
@@ -795,7 +845,7 @@ function App() {
                     return [
                       ...prev,
                       {
-                        id: Math.random().toString(36).substring(7),
+                        id: crypto.randomUUID(),
                         sku: data.sku,
                         locationId: data.locationId,
                         quantity: data.quantity,
@@ -1490,7 +1540,7 @@ function App() {
               <input id="login-password" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
             </div>
             
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading} aria-busy={loading}>
               {loading ? <Spinner /> : 'Authenticate Credentials'}
             </button>
           </form>
@@ -1719,7 +1769,7 @@ function App() {
                 <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>
                   Real-time Stock Levels
                 </h3>
-                <button className="btn btn-secondary" onClick={loadDashboardData} disabled={loading}>
+                <button className="btn btn-secondary" onClick={loadDashboardData} disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Refresh Stock'}
                 </button>
               </div>
@@ -1784,7 +1834,7 @@ function App() {
                   <label>Shopify API Access Token</label>
                   <input type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Connect Store'}
                 </button>
               </form>
@@ -1843,7 +1893,7 @@ function App() {
                   <label>Display Name</label>
                   <input type="text" value={newProdName} onChange={(e) => setNewProdName(e.target.value)} required placeholder="e.g. Wireless Charger" />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Register Product'}
                 </button>
               </form>
@@ -1901,7 +1951,7 @@ function App() {
                       </button>
                     </div>
 
-                    <button type="submit" className="btn btn-accent" disabled={loading}>
+                    <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
                       {loading ? <Spinner /> : 'Save Variant'}
                     </button>
                   </form>
@@ -2005,7 +2055,7 @@ function App() {
               {offlineQueueCount > 0 && isOnline && (
                 <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span><strong>Buffered:</strong> {offlineQueueCount} scan(s) in IndexedDB.</span>
-                  <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleSyncQueue} disabled={loading}>
+                  <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleSyncQueue} disabled={loading} aria-busy={loading}>
                     Sync Now
                   </button>
                 </div>
@@ -2039,7 +2089,7 @@ function App() {
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {isOnline ? 'Trigger Scanning Event' : 'Buffer Scan Offline'}
                 </button>
               </form>
@@ -2065,7 +2115,7 @@ function App() {
                         <option value="qr">QR Code</option>
                       </select>
                     </div>
-                    <button type="submit" className="btn btn-accent" disabled={loading}>
+                    <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
                       Save Assignment
                     </button>
                   </form>
@@ -2105,7 +2155,7 @@ function App() {
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
                 Onboarding sheets allow inventory stock to be loaded with baseline cost layers and posted as an opening balance on the General Ledger.
               </p>
-              <button onClick={handleCreateOnboarding} className="btn btn-primary" disabled={loading}>
+              <button onClick={handleCreateOnboarding} className="btn btn-primary" disabled={loading} aria-busy={loading}>
                 {loading ? <Spinner /> : 'Create Draft Onboarding Sheet'}
               </button>
 
@@ -2161,7 +2211,7 @@ function App() {
                     <button 
                       onClick={() => handleSubmitOnboarding(selectedOnboarding.id)}
                       className="btn btn-accent"
-                      disabled={loading}
+                      disabled={loading} aria-busy={loading}
                     >
                       Submit & Post Opening Balances
                     </button>
@@ -2304,7 +2354,7 @@ function App() {
                   </button>
                 </div>
 
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Post General Ledger Entry'}
                 </button>
               </form>
@@ -2364,7 +2414,7 @@ function App() {
                   <label>Item Serial Number</label>
                   <input type="text" value={traceSerialNum} onChange={(e) => setTraceSerialNum(e.target.value)} required placeholder="Enter unique serial number..." />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   Trace Serial History
                 </button>
               </form>
@@ -2441,7 +2491,7 @@ function App() {
                 <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>
                   Demand Planning & ROP Safety Stock Recommendations
                 </h3>
-                <button className="btn btn-secondary" onClick={loadForecastingReport} disabled={loading}>
+                <button className="btn btn-secondary" onClick={loadForecastingReport} disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Recalculate ROP'}
                 </button>
               </div>
@@ -2528,7 +2578,7 @@ function App() {
                     <option value="MINIMIZE_DISTANCE">Minimize Distance (Nearest origin warehouse)</option>
                   </select>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Compute Optimal Routing Plan'}
                 </button>
               </form>
@@ -2643,7 +2693,7 @@ function App() {
                   </button>
                 </div>
                 
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   {loading ? <Spinner /> : 'Draft Purchase Order'}
                 </button>
               </form>
@@ -2694,7 +2744,7 @@ function App() {
                       </div>
                     )}
 
-                    <button type="submit" className="btn btn-accent" disabled={loading}>
+                    <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
                       Fulfill PO & Receive Stock
                     </button>
                   </form>
@@ -2813,7 +2863,7 @@ function App() {
                     <input type="number" value={wmsHeight} onChange={(e) => setWmsHeight(Number(e.target.value))} required min={1} />
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   Configure Location
                 </button>
               </form>
@@ -2829,7 +2879,7 @@ function App() {
                     <label>Incoming Quantity</label>
                     <input type="number" value={putawayQty} onChange={(e) => setPutawayQty(Number(e.target.value))} required />
                   </div>
-                  <button type="submit" className="btn btn-accent" disabled={loading}>
+                  <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
                     Suggest Bin Location
                   </button>
                 </form>
@@ -2870,7 +2920,7 @@ function App() {
                           <td>{loc.maxWeightGrams}g</td>
                           <td>{loc.maxVolumeCubicMeters}m³</td>
                           <td>
-                            <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)}>
+                            <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)} aria-label={`Delete warehouse location ${loc.id}`}>
                               Delete
                             </button>
                           </td>
@@ -2888,7 +2938,7 @@ function App() {
                     <label>List of SKUs to Pick (Comma separated)</label>
                     <input type="text" value={pickSkusInput} onChange={(e) => setPickSkusInput(e.target.value)} required placeholder="ROUTE-SKU, CHARGER-WRLS-BLK" />
                   </div>
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                  <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                     Generate Optimal Pick Sequence
                   </button>
                 </form>
@@ -2971,23 +3021,9 @@ function App() {
                 {(() => {
                   return filteredWmsLocations
                     .map((loc, idx) => {
-                      const locInvItems = itemsByLocation.get(loc.id) || [];
-                      let currentWeight = 0;
-                      let currentVolume = 0;
-
-                      locInvItems.forEach(item => {
-                        let itemWeight = 100;
-                        let itemVolume = 0.001;
-
-                        const variant = variantMap.get(item.sku);
-                        if (variant) {
-                          if (variant.weightGrams) itemWeight = variant.weightGrams;
-                          if (variant.volumeCubicMeters) itemVolume = variant.volumeCubicMeters;
-                        }
-
-                        currentWeight += item.quantity * itemWeight;
-                        currentVolume += item.quantity * itemVolume;
-                      });
+                      const capacity = locationCapacityMap.get(loc.id) || { weight: 0, volume: 0 };
+                      const currentWeight = capacity.weight;
+                      const currentVolume = capacity.volume;
 
                     const weightLimit = loc.maxWeightGrams || 1000000;
                     const volumeLimit = loc.maxVolumeCubicMeters || 10;
@@ -3219,7 +3255,7 @@ function App() {
                     ))}
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                   Create Webhook Subscription
                 </button>
               </form>
@@ -3254,7 +3290,7 @@ function App() {
                               ))}
                             </td>
                             <td>
-                              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)}>
+                              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)} aria-label={`Delete webhook for ${w.url}`}>
                                 Delete
                               </button>
                             </td>
@@ -3520,7 +3556,10 @@ function App() {
             <div className="glass-panel" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
               <div className="tabs-header" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
                 <button className={`btn ${adminActiveSubTab === 'users' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('users')}>
-                  👥 Users & RBAC
+                  👥 Users
+                </button>
+                <button className={`btn ${adminActiveSubTab === 'roles' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('roles')}>
+                  🛡️ Roles & Permissions
                 </button>
                 <button className={`btn ${adminActiveSubTab === 'audits' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('audits')}>
                   🔍 Audits & Discrepancies
@@ -3566,7 +3605,7 @@ function App() {
                         <option value="viewer">System Observer (Read Only)</option>
                       </select>
                     </div>
-                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                    <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
                       Invite Member
                     </button>
                   </form>
@@ -3636,11 +3675,15 @@ function App() {
               </div>
             )}
 
+            {adminActiveSubTab === 'roles' && (
+              <RoleManagementPanel />
+            )}
+
             {adminActiveSubTab === 'audits' && (
               <div className="glass-panel">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h3 className="form-section-title" style={{ margin: 0 }}>Reconciliation & Inventory Auditing</h3>
-                  <button className="btn btn-primary" onClick={handleRunAudit} disabled={loading}>
+                  <button className="btn btn-primary" onClick={handleRunAudit} disabled={loading} aria-busy={loading}>
                     ⚡ Run Reconciliation Audit
                   </button>
                 </div>
@@ -3821,7 +3864,7 @@ function App() {
                     <input type="text" value={tenantConfig?.fiscalYearStart || '01-01'} disabled style={{ opacity: 0.6 }} />
                   </div>
 
-                  <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
+                  <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading} style={{ width: '100%' }}>
                     Save Accounting Policy Configurations
                   </button>
                 </form>
@@ -3861,10 +3904,10 @@ function App() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                    <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={handleAssembleKit} disabled={loading}>
+                    <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={handleAssembleKit} disabled={loading} aria-busy={loading}>
                       🛠️ Assemble Kit
                     </button>
-                    <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={handleDisassembleKit} disabled={loading}>
+                    <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={handleDisassembleKit} disabled={loading} aria-busy={loading}>
                       💥 Disassemble Kit
                     </button>
                   </div>
