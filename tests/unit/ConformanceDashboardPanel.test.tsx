@@ -33,6 +33,10 @@ describe('ConformanceDashboardPanel', () => {
 
     render(<ConformanceDashboardPanel tenantId="test-tenant" />);
 
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     expect(screen.getByText('Cross-Backend Conformance')).toBeInTheDocument();
     expect(screen.getByText('Live Backend Health')).toBeInTheDocument();
 
