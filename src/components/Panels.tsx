@@ -138,16 +138,16 @@ export const ShopifyPanel: React.FC<ShopifyPanelProps> = ({
       <h3 className="form-section-title">Configure Shopify Connection</h3>
       <form onSubmit={handleConnectShopify}>
         <div className="form-group">
-          <label>Connection Name / ID</label>
-          <input type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
+          <label htmlFor="panel-shopify-connection-id">Connection Name / ID</label>
+          <input id="panel-shopify-connection-id" type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
         </div>
         <div className="form-group">
-          <label>Store Domain</label>
-          <input type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
+          <label htmlFor="panel-shopify-store-domain">Store Domain</label>
+          <input id="panel-shopify-store-domain" type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
         </div>
         <div className="form-group">
-          <label>Shopify API Access Token</label>
-          <input type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
+          <label htmlFor="panel-shopify-access-token">Shopify API Access Token</label>
+          <input id="panel-shopify-access-token" type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
         </div>
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <Spinner /> : 'Connect Store'}

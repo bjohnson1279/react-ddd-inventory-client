@@ -1778,16 +1778,16 @@ function App() {
               <h3 className="form-section-title">Configure Shopify Connection</h3>
               <form onSubmit={handleConnectShopify}>
                 <div className="form-group">
-                  <label>Connection Name / ID</label>
-                  <input type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
+                  <label htmlFor="shopify-connection-id">Connection Name / ID</label>
+                  <input id="shopify-connection-id" type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
                 </div>
                 <div className="form-group">
-                  <label>Store Domain</label>
-                  <input type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
+                  <label htmlFor="shopify-store-domain">Store Domain</label>
+                  <input id="shopify-store-domain" type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
                 </div>
                 <div className="form-group">
-                  <label>Shopify API Access Token</label>
-                  <input type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
+                  <label htmlFor="shopify-access-token">Shopify API Access Token</label>
+                  <input id="shopify-access-token" type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
                 </div>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
                   {loading ? <Spinner /> : 'Connect Store'}
