@@ -1,3 +1,7 @@
+## 2024-08-22 - [Combine O(N) Array Reductions]
+**Learning:** Multiple array traversal methods (like multiple unmemoized `.reduce()` calls) calculating separate aggregate metrics on the same large array block the main thread unnecessarily.
+**Action:** Always combine calculations into a single `.reduce()` pass returning an object with multiple keys, and wrap it in `useMemo` to prevent recalculating on every React render.
+
 ## 2024-05-18 - Avoid O(N*M) list filtering inside render loops
 **Learning:** Found a major performance bottleneck where `inventoryItems.filter` was called inside `wmsLocations.map` during the warehouse layout render. This caused an O(N * M) operation blocking the main thread (1000 locations * 50,000 items took ~1.3 seconds to process on a test dataset).
 **Action:** Replace nested loops/filters in render functions with an O(N + M) grouping strategy. Group elements into a `Map` structure prior to iterating the second collection. This reduced the operation time from ~1.3 seconds to ~10 milliseconds (100x speedup) on the same dataset.
@@ -23,6 +27,13 @@
 ## 2024-08-11 - Memoize array filtering inside render functions for alert counts
 **Learning:** In React dashboards such as `AnomalyDetectionPanel`, using un-memoized `Array.filter` inline to count or filter dynamic lists on every render (e.g. `data?.alerts?.filter()`) triggers an O(N) calculation each frame. While not instantly crashing the app for small data sets, it compounds negatively when parent components like `App.tsx` re-render frequently (e.g., from hovering features or inputs).
 **Action:** Extract inline array filtering inside render logic (such as for metrics counts or filtered lists) into a `React.useMemo` hook, ensuring dependent recalculations only happen when the underlying data changes, not unconditionally on every frame update.
-## 2024-05-20 - [Reuse memoized arrays for O(1) checks]
-**Learning:** Found redundant O(N) array traversals (like `.some()`) used to check if items exist, even though a memoized filtered array for the exact same condition already existed in the component.
-**Action:** Replace redundant O(N) array traversals like `.some()` with O(1) `.length > 0` checks by reusing already-memoized filtered arrays to improve render performance.
+## 2024-05-20 - Memoize boolean derivations (Array.some) in render loops
+**Learning:** Found a performance bottleneck where `purchaseOrders.some(po => po.status === 'sent')` was called inside the render block. While `.some()` returns early upon finding a match, in cases where no match exists or the match is late in a large array, it acts as an O(N) operation blocking the main thread during frequent state updates (e.g., from text inputs).
+**Action:** Extract O(N) array evaluations into a `useMemo` block, or better yet, reuse an already-memoized filtered array (e.g. `sentPurchaseOrders.length > 0`) to provide an O(1) check in the render loop.
+
+## 2024-08-21 - Extract nested map operations in render for heavy calculations
+**Learning:** Found a performance bottleneck where `itemsByLocation.get(loc.id)` and iterating over its items (`locInvItems.forEach`) was executed inside `wmsLocations.map` during the warehouse layout render. This creates an O(N * M) calculation directly inside the render loop where N is the number of locations and M is the average number of inventory items per location. This blocks the main thread on every re-render (e.g. from hover events).
+**Action:** Always extract complex, nested iterations in render loops (such as summing weights/volumes for grid locations) into a single `useMemo` block that maps IDs to the pre-calculated aggregate result. Then provide O(1) lookups using this Map inside the render phase.
+## 2026-08-25 - [Optimize syncOfflineQueue Traversal]
+**Learning:** Combining multiple array passes (`filter` + `map`) into a single pass (like `for...of` or `reduce`) when iterating over large datasets avoids redundant O(N) traversals and decreases memory allocation overhead.
+**Action:** When extracting nested loop metrics and simultaneously gathering IDs from a local array, consolidate the logic into a single loop structure rather than chaining multiple array methods.

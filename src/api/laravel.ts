@@ -1,4 +1,4 @@
-import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
+import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
 
 const LARAVEL_BASE_URL = 'http://localhost:8000';
 
@@ -85,29 +85,35 @@ export class LaravelRESTAdapter implements InventoryClient {
       const prodData = await this.request('GET', '/api/catalog/products');
       const productsList = prodData.products || [];
       const stockItems: InventoryItem[] = [];
+      const variants = productsList.flatMap((p: any) => p.variants || []);
 
-      for (const p of productsList) {
-        for (const v of p.variants || []) {
-          try {
-            // Get stock level for SKU
-            const stockRes = await this.request('GET', `/api/inventory/${v.sku}/stock`);
-            stockItems.push({
-              id: `${v.id}-stock`,
-              sku: v.sku,
-              locationId: stockRes.location_id || 'default',
-              quantity: stockRes.available_quantity ?? stockRes.quantity ?? 0,
-              version: 1
-            });
-          } catch {
-            stockItems.push({
-              id: `${v.id}-stock`,
-              sku: v.sku,
-              locationId: 'default',
-              quantity: 0,
-              version: 1
-            });
-          }
-        }
+      // ⚡ Bolt: Use Promise.all to fetch stock levels concurrently in chunks to prevent N+1 bottleneck
+      const chunkSize = 20;
+      for (let i = 0; i < variants.length; i += chunkSize) {
+        const chunk = variants.slice(i, i + chunkSize);
+        const chunkResults = await Promise.all(
+          chunk.map(async (v: any) => {
+            try {
+              const stockRes = await this.request('GET', `/api/inventory/${v.sku}/stock`);
+              return {
+                id: `${v.id}-stock`,
+                sku: v.sku,
+                locationId: stockRes.location_id || 'default',
+                quantity: stockRes.available_quantity ?? stockRes.quantity ?? 0,
+                version: 1
+              };
+            } catch {
+              return {
+                id: `${v.id}-stock`,
+                sku: v.sku,
+                locationId: 'default',
+                quantity: 0,
+                version: 1
+              };
+            }
+          })
+        );
+        stockItems.push(...chunkResults);
       }
       return stockItems;
     } catch {
@@ -304,12 +310,17 @@ export class LaravelRESTAdapter implements InventoryClient {
       as_of_date: asOfDate
     });
     const onboardingId = data.id;
-    for (const item of items) {
-      await this.request('POST', `/api/onboardings/${onboardingId}/items`, {
+
+    // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+      const promises = batch.map(item => this.request('POST', `/api/onboardings/${onboardingId}/items`, {
         variant_id: item.variantId,
         quantity: item.quantity,
         unit_cost_cents: item.unitCostCents
-      });
+      }));
+      await Promise.all(promises);
     }
   }
 
@@ -592,6 +603,27 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   async updateUserRole(tenantId: string, userId: string, role: string): Promise<void> {
     await this.request('PATCH', `/api/users/${userId}/role`, { tenantId, role });
+  }
+
+  // RBAC
+  async getRoles(tenantId: string): Promise<Role[]> {
+    return this.request('GET', `/api/roles?tenantId=${tenantId}`);
+  }
+
+  async getPermissions(): Promise<Permission[]> {
+    return this.request('GET', `/api/roles/permissions`);
+  }
+
+  async createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role> {
+    return this.request('POST', `/api/roles`, { tenantId, name, description, permissionIds });
+  }
+
+  async updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
+    await this.request('PUT', `/api/roles/${roleId}/permissions`, { permissionIds });
+  }
+
+  async deleteRole(roleId: string): Promise<void> {
+    await this.request('DELETE', `/api/roles/${roleId}`);
   }
 
   async runAudit(tenantId: string): Promise<any> {
