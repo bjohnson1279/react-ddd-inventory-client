@@ -26,7 +26,3 @@
 **Vulnerability:** Found hardcoded test tokens (`Bearer test-token`) being used in API requests in `src/components/ApprovalWorkflowPanel.tsx` and `src/components/ApprovalInboxPanel.tsx`.
 **Learning:** Hardcoded secrets and tokens, even if intended for testing, can be easily leaked or merged into production, exposing the application to unauthorized access.
 **Prevention:** Always retrieve authentication tokens dynamically from secure storage (e.g., `localStorage.getItem("auth_token")`) instead of hardcoding them into the components.
-## 2026-08-25 - Insecure Target Attribute Fix
-**Vulnerability:** The application contained an anchor tag with `target="_blank"` but lacking `noopener` in its `rel` attribute, which could allow a newly opened tab to potentially execute malicious JavaScript against the originating page via `window.opener`.
-**Learning:** Always use `noopener` in combination with `noreferrer` when using `target="_blank"` to prevent tabnabbing attacks.
-**Prevention:** Ensure `rel="noopener noreferrer"` is added whenever `target="_blank"` is used in anchor tags.

@@ -6,6 +6,7 @@ export const RoleManagementPanel: React.FC = () => {
   // Using a fixed tenantId for the scope of this portal demo
   const tenantId = 'TENANT-1';
 
+  
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +18,7 @@ export const RoleManagementPanel: React.FC = () => {
   const [newRoleDesc, setNewRoleDesc] = useState('');
   const [selectedPerms, setSelectedPerms] = useState<string[]>([]);
 
+  
   // Edit permissions state
   const [editingRole, setEditingRole] = useState<Role | null>(null);
 
@@ -45,6 +47,7 @@ export const RoleManagementPanel: React.FC = () => {
     e.preventDefault();
     if (!newRoleName.trim()) return;
 
+    
     try {
       await client.createRole(tenantId, newRoleName, newRoleDesc, selectedPerms);
       setIsCreating(false);
@@ -82,6 +85,7 @@ export const RoleManagementPanel: React.FC = () => {
 
   const togglePermission = (permId: string) => {
     setSelectedPerms(prev =>
+    setSelectedPerms(prev => 
       prev.includes(permId) ? prev.filter(p => p !== permId) : [...prev, permId]
     );
   };
@@ -122,6 +126,7 @@ export const RoleManagementPanel: React.FC = () => {
         </div>
         {!isCreating && !editingRole && (
           <button
+          <button 
             onClick={() => { setIsCreating(true); setSelectedPerms([]); setNewRoleName(''); setNewRoleDesc(''); }}
             style={{ background: 'linear-gradient(90deg, #38bdf8, #3b82f6)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'transform 0.2s', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)' }}
             onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
@@ -144,6 +149,7 @@ export const RoleManagementPanel: React.FC = () => {
             {isCreating ? 'Create New Custom Role' : `Edit Permissions: ${editingRole?.name}`}
           </h3>
 
+          
           {isCreating && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
               <div>
@@ -151,6 +157,8 @@ export const RoleManagementPanel: React.FC = () => {
                 <input
                   id="roleName"
                   type="text"
+                <input 
+                  type="text" 
                   value={newRoleName}
                   onChange={e => setNewRoleName(e.target.value)}
                   placeholder="e.g. Forklift Operator"
@@ -163,6 +171,8 @@ export const RoleManagementPanel: React.FC = () => {
                 <input
                   id="roleDesc"
                   type="text"
+                <input 
+                  type="text" 
                   value={newRoleDesc}
                   onChange={e => setNewRoleDesc(e.target.value)}
                   placeholder="Brief description of the role's purpose"
@@ -200,6 +210,7 @@ export const RoleManagementPanel: React.FC = () => {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button
+            <button 
               type="button"
               onClick={() => { setIsCreating(false); setEditingRole(null); }}
               style={{ background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', transition: 'background 0.2s' }}
@@ -209,6 +220,7 @@ export const RoleManagementPanel: React.FC = () => {
               Cancel
             </button>
             <button
+            <button 
               type="submit"
               style={{ background: 'linear-gradient(90deg, #10b981, #059669)', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
             >
@@ -238,6 +250,9 @@ export const RoleManagementPanel: React.FC = () => {
                     <span style={{
                       padding: '4px 10px',
                       borderRadius: '20px',
+                    <span style={{ 
+                      padding: '4px 10px', 
+                      borderRadius: '20px', 
                       fontSize: '11px',
                       fontWeight: 'bold',
                       textTransform: 'uppercase',
@@ -264,6 +279,7 @@ export const RoleManagementPanel: React.FC = () => {
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
                     <button
+                    <button 
                       onClick={() => startEditing(role)}
                       aria-label={`Edit role ${role.name}`}
                       style={{ background: 'transparent', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', marginRight: '8px', fontSize: '13px', transition: 'all 0.2s' }}
@@ -274,6 +290,7 @@ export const RoleManagementPanel: React.FC = () => {
                     </button>
                     {role.isCustom && (
                       <button
+                      <button 
                         onClick={() => handleDeleteRole(role.id)}
                         aria-label={`Delete role ${role.name}`}
                         style={{ background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' }}
