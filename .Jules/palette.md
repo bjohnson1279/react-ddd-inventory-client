@@ -11,9 +11,3 @@
 ## 2024-08-09 - Ensure Temporary Files Are Not Committed
 **Learning:** Found that running scripts and package managers can leave artifacts that accidentally get added to commits. This clutters up pull requests and violates constraints (e.g. max lines).
 **Action:** Make sure to run `git rm -f` on any created scratch scripts or lockfiles that shouldn't be added.
-## 2026-08-17 - Adding aria-labels to buttons
-**Learning:** Found multiple instances where buttons had actions like "Delete" or "Copy cURL" but no specific `aria-label` to identify what item they applied to. This is especially important for repeated items in lists or tables, where a screen reader user might encounter multiple "Delete" buttons without knowing which item each deletes.
-**Action:** Always include an `aria-label` on repeated action buttons (like delete or edit) that includes a unique identifier or name for the item being acted upon (e.g., `aria-label="Delete warehouse location ${loc.id}"`).
-## 2024-05-15 - Missing ARIA Labels on Dismiss Buttons
-**Learning:** Found multiple instances where error alerts had functional elements but lacked accessible "Dismiss" actions. Icon-only buttons used to dismiss alerts must always carry descriptive `aria-label` attributes to ensure screen readers can announce their purpose clearly.
-**Action:** Always ensure that dynamically generated alerts feature a dismiss mechanism and that any icon-only actions within these alerts include explicit ARIA labels.

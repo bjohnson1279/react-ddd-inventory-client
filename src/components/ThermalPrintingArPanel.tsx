@@ -123,7 +123,7 @@ export const ThermalPrintingArPanel: React.FC<ThermalPrintingArPanelProps> = ({ 
               <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
 
-            <button onClick={handlePrintLabel} disabled={loading} aria-busy={loading} style={{ width: '100%', padding: '10px', background: '#10b981', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+            <button onClick={handlePrintLabel} disabled={loading} style={{ width: '100%', padding: '10px', background: '#10b981', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
               {loading ? 'Spooling ZPL Job...' : 'Send ZPL Print Command'}
             </button>
           </div>
