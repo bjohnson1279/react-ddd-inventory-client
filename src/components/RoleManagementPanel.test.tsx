@@ -23,7 +23,7 @@ vi.mock('../api/client', () => ({
 describe('RoleManagementPanel', () => {
   it('renders loading state initially, then shows data', async () => {
     render(<RoleManagementPanel />);
-    
+
     // Will show loading initially but might resolve too fast for queryBy depending on exact mock speed
     // Let's just wait for the component to render the mocked roles
     await waitFor(() => {

@@ -304,7 +304,7 @@ test.describe('Admin Portal Sub-Consoles', () => {
   test('should verify RBAC role management functionality', async ({ page }) => {
     // Depending on the UI, navigate to RBAC. Let's assume it's under Users & RBAC or a specific tab
     await page.click('text=Roles & Permissions');
-    
+
     // We expect the RoleManagementPanel to render "RBAC & Permission Engine"
     // Wait for the panel to load (if it's lazy or hidden, it might need navigation)
     // For now, let's assume it renders in this section. If not, it will fail and we can adjust.
@@ -312,12 +312,12 @@ test.describe('Admin Portal Sub-Consoles', () => {
     const rbacHeader = page.locator('h2', { hasText: 'RBAC & Permission Engine' });
     if (await rbacHeader.isVisible()) {
       await expect(page.locator('table')).toContainText('Admin');
-      
+
       // Create a role
       await page.click('button:has-text("+ Create Role")');
       await page.fill('input[placeholder="e.g. Forklift Operator"]', 'Forklift Operator');
       await page.click('button:has-text("Save New Role")');
-      
+
       // After POST, the mock resolves and reload happens
       // (Mock only returns Admin, but we can just check the UI didn't crash)
       await expect(rbacHeader).toBeVisible();
@@ -325,7 +325,7 @@ test.describe('Admin Portal Sub-Consoles', () => {
   });
 
   test('should verify Approval Workflow and Inbox functionality', async ({ page }) => {
-    // If there is an Approvals tab, click it. 
+    // If there is an Approvals tab, click it.
     // We'll just look for the text in case it's on the dashboard or we can navigate
     // Since we don't know the exact tab name, we might not be able to navigate to it directly
     // but if it's on the page:

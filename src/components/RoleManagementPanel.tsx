@@ -5,7 +5,7 @@ export const RoleManagementPanel: React.FC = () => {
   const { client } = useInventory();
   // Using a fixed tenantId for the scope of this portal demo
   const tenantId = 'TENANT-1';
-  
+
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +16,7 @@ export const RoleManagementPanel: React.FC = () => {
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleDesc, setNewRoleDesc] = useState('');
   const [selectedPerms, setSelectedPerms] = useState<string[]>([]);
-  
+
   // Edit permissions state
   const [editingRole, setEditingRole] = useState<Role | null>(null);
 
@@ -44,7 +44,7 @@ export const RoleManagementPanel: React.FC = () => {
   const handleCreateRole = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoleName.trim()) return;
-    
+
     try {
       await client.createRole(tenantId, newRoleName, newRoleDesc, selectedPerms);
       setIsCreating(false);
@@ -81,7 +81,7 @@ export const RoleManagementPanel: React.FC = () => {
   };
 
   const togglePermission = (permId: string) => {
-    setSelectedPerms(prev => 
+    setSelectedPerms(prev =>
       prev.includes(permId) ? prev.filter(p => p !== permId) : [...prev, permId]
     );
   };
@@ -121,7 +121,7 @@ export const RoleManagementPanel: React.FC = () => {
           </p>
         </div>
         {!isCreating && !editingRole && (
-          <button 
+          <button
             onClick={() => { setIsCreating(true); setSelectedPerms([]); setNewRoleName(''); setNewRoleDesc(''); }}
             style={{ background: 'linear-gradient(90deg, #38bdf8, #3b82f6)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'transform 0.2s', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)' }}
             onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
@@ -144,14 +144,14 @@ export const RoleManagementPanel: React.FC = () => {
           <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#e2e8f0', marginBottom: '20px' }}>
             {isCreating ? 'Create New Custom Role' : `Edit Permissions: ${editingRole?.name}`}
           </h3>
-          
+
           {isCreating && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
               <div>
                 <label htmlFor="roleName" style={{ display: 'block', fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>Role Name *</label>
-                <input 
+                <input
                   id="roleName"
-                  type="text" 
+                  type="text"
                   value={newRoleName}
                   onChange={e => setNewRoleName(e.target.value)}
                   placeholder="e.g. Forklift Operator"
@@ -161,9 +161,9 @@ export const RoleManagementPanel: React.FC = () => {
               </div>
               <div>
                 <label htmlFor="roleDesc" style={{ display: 'block', fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>Description</label>
-                <input 
+                <input
                   id="roleDesc"
-                  type="text" 
+                  type="text"
                   value={newRoleDesc}
                   onChange={e => setNewRoleDesc(e.target.value)}
                   placeholder="Brief description of the role's purpose"
@@ -200,7 +200,7 @@ export const RoleManagementPanel: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            <button 
+            <button
               type="button"
               onClick={() => { setIsCreating(false); setEditingRole(null); }}
               style={{ background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', transition: 'background 0.2s' }}
@@ -209,7 +209,7 @@ export const RoleManagementPanel: React.FC = () => {
             >
               Cancel
             </button>
-            <button 
+            <button
               type="submit"
               style={{ background: 'linear-gradient(90deg, #10b981, #059669)', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
             >
@@ -236,9 +236,9 @@ export const RoleManagementPanel: React.FC = () => {
                     {role.description && <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>{role.description}</div>}
                   </td>
                   <td style={{ padding: '16px' }}>
-                    <span style={{ 
-                      padding: '4px 10px', 
-                      borderRadius: '20px', 
+                    <span style={{
+                      padding: '4px 10px',
+                      borderRadius: '20px',
                       fontSize: '11px',
                       fontWeight: 'bold',
                       textTransform: 'uppercase',
@@ -264,7 +264,7 @@ export const RoleManagementPanel: React.FC = () => {
                     </div>
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
-                    <button 
+                    <button
                       onClick={() => startEditing(role)}
                       aria-label={`Edit role ${role.name}`}
                       style={{ background: 'transparent', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', marginRight: '8px', fontSize: '13px', transition: 'all 0.2s' }}
@@ -274,7 +274,7 @@ export const RoleManagementPanel: React.FC = () => {
                       Edit
                     </button>
                     {role.isCustom && (
-                      <button 
+                      <button
                         onClick={() => handleDeleteRole(role.id)}
                         aria-label={`Delete role ${role.name}`}
                         style={{ background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' }}

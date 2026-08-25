@@ -340,7 +340,7 @@ function App() {
       if (hasPermission('procurement', 'read') || role === 'warehouse_operator' || role === 'accountant') allowedTabs.push('procurement', 'forecasting', 'routing', 'rebalancing');
       if (hasPermission('ledger', 'read') || role === 'accountant') allowedTabs.push('ledger', 'onboarding', 'compliance');
       if (hasPermission('admin', 'read')) allowedTabs.push('admin');
-      
+
       if (role === 'viewer') allowedTabs.push('products', 'serials', 'forecasting', 'api-specs');
     }
     
