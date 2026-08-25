@@ -178,6 +178,22 @@ export interface PurchaseOrder {
 }
 
 // --- Admin Portal Feature Interfaces ---
+export interface Permission {
+  id: string;
+  resource: string;
+  action: string;
+  description?: string;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  isCustom: boolean;
+  tenantId?: string;
+  permissions: Permission[];
+}
+
 export interface User {
   id: string;
   email: string;
@@ -262,34 +278,6 @@ export interface RfidScanUpdate {
 export type BackendType = 'graphql' | 'express' | 'laravel';
 export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous' | 'conformance' | 'api-specs' | 'anomaly-detection' | 'rebalancing' | 'logistics-erp';
 
-export interface AnomalyAlert {
-  alertType: string;
-  severity: string;
-  confidence: number;
-  sku: string;
-  locationId: string;
-  actorId: string;
-  title: string;
-  description: string;
-  evidence?: string;
-  detectedAt: string;
-}
-
-export interface ActorRisk {
-  actorId: string;
-  riskScore: number;
-}
-
-export interface AnomalyAnalysis {
-  alerts: AnomalyAlert[];
-  totalCritical: number;
-  totalHigh: number;
-  totalMedium: number;
-  totalLow: number;
-  overallRiskScore: number;
-  actorRisks?: ActorRisk[];
-}
-
 // --- Abstract Client Interface ---
 export interface InventoryClient {
   login(tenantId: string, actorId: string, role?: string, password?: string): Promise<string>;
@@ -362,6 +350,13 @@ export interface InventoryClient {
   inviteUser(tenantId: string, email: string, role: string): Promise<{ userId: string; temporaryPassword?: string }>;
   updateUserRole(tenantId: string, userId: string, role: string): Promise<void>;
   
+  // RBAC
+  getRoles(tenantId: string): Promise<Role[]>;
+  getPermissions(): Promise<Permission[]>;
+  createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role>;
+  updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void>;
+  deleteRole(roleId: string): Promise<void>;
+
   runAudit(tenantId: string): Promise<any>;
   getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]>;
   resolveDiscrepancy(tenantId: string, id: string, notes: string): Promise<void>;
@@ -387,7 +382,7 @@ export interface InventoryClient {
   simulateRfidScan(tenantId: string, locationId: string, tags: string[]): Promise<void>;
   subscribeRfidScans(tenantId: string, onScan: (event: RfidScanUpdate) => void): () => void;
 
-  analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<AnomalyAnalysis>;
+  analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any>;
   getRebalanceMatrix(tenantId: string): Promise<any>;
 }
 
