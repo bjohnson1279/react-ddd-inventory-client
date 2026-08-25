@@ -357,6 +357,7 @@ export interface InventoryClient {
   updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void>;
   deleteRole(roleId: string): Promise<void>;
 
+  
   runAudit(tenantId: string): Promise<any>;
   getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]>;
   resolveDiscrepancy(tenantId: string, id: string, notes: string): Promise<void>;

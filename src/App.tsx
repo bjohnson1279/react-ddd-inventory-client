@@ -341,6 +341,7 @@ function App() {
       if (hasPermission('ledger', 'read') || role === 'accountant') allowedTabs.push('ledger', 'onboarding', 'compliance');
       if (hasPermission('admin', 'read')) allowedTabs.push('admin');
 
+      
       if (role === 'viewer') allowedTabs.push('products', 'serials', 'forecasting', 'api-specs');
     }
     
