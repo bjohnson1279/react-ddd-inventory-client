@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { InventoryClient } from '../api/client';
-import { Spinner } from './Panels';
+import React, { useState, useEffect } from "react";
+import { InventoryClient } from "../api/client";
+import { Spinner } from "./Panels";
 
 interface RebalancingMatrixPanelProps {
   api: InventoryClient;
 }
 
-export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({ api }) => {
+export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({
+  api,
+}) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,10 +17,10 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({ 
     setLoading(true);
     setError(null);
     try {
-      const result = await api.getRebalanceMatrix('default-tenant');
+      const result = await api.getRebalanceMatrix("default-tenant");
       setData(result);
     } catch (err: any) {
-      setError(err.message || 'Failed to calculate matrix');
+      setError(err.message || "Failed to calculate matrix");
     } finally {
       setLoading(false);
     }
@@ -39,35 +41,72 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({ 
           onClick={fetchData}
           disabled={loading}
         >
-          {loading ? 'Calculating...' : 'Calculate Matrix'}
+          {loading ? "Calculating..." : "Calculate Matrix"}
         </button>
       </div>
 
       {error && (
-        <div role="alert" aria-live="assertive" className="alert-box alert-error flex-between" style={{ marginBottom: '24px' }}>
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="alert-box alert-error flex-between"
+          style={{ marginBottom: "24px" }}
+        >
           <span>{error}</span>
-          <button className="btn btn-secondary" onClick={fetchData}>Retry</button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button className="btn btn-secondary" onClick={fetchData}>
+              Retry
+            </button>
+            <button
+              onClick={() => setError(null)}
+              aria-label="Dismiss error"
+              className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "1.2rem",
+                padding: "0 4px",
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
 
       {loading && !data && (
-        <div className="ai-skeleton" style={{ height: '400px', width: '100%' }}></div>
+        <div
+          className="ai-skeleton"
+          style={{ height: "400px", width: "100%" }}
+        ></div>
       )}
 
       {data && (
         <>
           <div className="warehouse-health-cards">
             {data.summary?.warehouses?.map((wh: any, idx: number) => {
-              const statusClass = wh.healthStatus === 'HEALTHY' ? 'healthy' : wh.healthStatus === 'ATTENTION' ? 'attention' : 'critical';
+              const statusClass =
+                wh.healthStatus === "HEALTHY"
+                  ? "healthy"
+                  : wh.healthStatus === "ATTENTION"
+                    ? "attention"
+                    : "critical";
               return (
                 <div className="warehouse-card" key={idx}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <div>
                       <div className="wh-name">{wh.warehouseId}</div>
-                      <div className="wh-region">{wh.region || 'Region'}</div>
+                      <div className="wh-region">{wh.region || "Region"}</div>
                     </div>
                     <div className={`status-ring ${statusClass}`}>
-                      {statusClass === 'healthy' ? '✓' : statusClass === 'attention' ? '!' : '×'}
+                      {statusClass === "healthy"
+                        ? "✓"
+                        : statusClass === "attention"
+                          ? "!"
+                          : "×"}
                     </div>
                   </div>
                   <div className="wh-stats">
@@ -81,11 +120,21 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({ 
                     </div>
                     <div className="wh-stat-item">
                       <div>Surplus SKUs</div>
-                      <div className="wh-stat-value" style={{ color: '#93c5fd' }}>{wh.surplusCount || 0}</div>
+                      <div
+                        className="wh-stat-value"
+                        style={{ color: "#93c5fd" }}
+                      >
+                        {wh.surplusCount || 0}
+                      </div>
                     </div>
                     <div className="wh-stat-item">
                       <div>Deficit SKUs</div>
-                      <div className="wh-stat-value" style={{ color: '#fca5a5' }}>{wh.deficitCount || 0}</div>
+                      <div
+                        className="wh-stat-value"
+                        style={{ color: "#fca5a5" }}
+                      >
+                        {wh.deficitCount || 0}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -93,36 +142,59 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({ 
             })}
           </div>
 
-          <div className="grid-cols-2" style={{ gap: '24px' }}>
+          <div className="grid-cols-2" style={{ gap: "24px" }}>
             <div>
               <div className="anomaly-section-title">
                 <span>📊</span> Cost-Benefit Summary
               </div>
               <div className="cost-benefit-grid">
                 <div className="cost-benefit-card">
-                  <div className="cost-benefit-value">{data.recommendations?.length || 0}</div>
+                  <div className="cost-benefit-value">
+                    {data.recommendations?.length || 0}
+                  </div>
                   <div className="cost-benefit-label">Total Transfers</div>
                 </div>
                 <div className="cost-benefit-card">
-                  <div className="cost-benefit-value">${data.summary?.totalEstimatedShippingCost || 0}</div>
+                  <div className="cost-benefit-value">
+                    ${data.summary?.totalEstimatedShippingCost || 0}
+                  </div>
                   <div className="cost-benefit-label">Est. Cost</div>
                 </div>
                 <div className="cost-benefit-card">
-                  <div className="cost-benefit-value">{data.summary?.skusImproved || 0}</div>
+                  <div className="cost-benefit-value">
+                    {data.summary?.skusImproved || 0}
+                  </div>
                   <div className="cost-benefit-label">SKUs Improved</div>
                 </div>
                 <div className="cost-benefit-card">
-                  <div className="cost-benefit-value">{data.summary?.avgDocImprovement || 0}d</div>
+                  <div className="cost-benefit-value">
+                    {data.summary?.avgDocImprovement || 0}d
+                  </div>
                   <div className="cost-benefit-label">Avg DOC Imp.</div>
                 </div>
               </div>
 
-              <div className="anomaly-section-title" style={{ marginTop: '24px' }}>
+              <div
+                className="anomaly-section-title"
+                style={{ marginTop: "24px" }}
+              >
                 <span>📦</span> Transfer Recommendations
               </div>
-              <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
+              <div
+                style={{
+                  maxHeight: "400px",
+                  overflowY: "auto",
+                  paddingRight: "8px",
+                }}
+              >
                 {data.recommendations?.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '20px', color: 'rgba(255,255,255,0.4)' }}>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "20px",
+                      color: "rgba(255,255,255,0.4)",
+                    }}
+                  >
                     No transfers recommended at this time.
                   </div>
                 ) : (
@@ -130,10 +202,18 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({ 
                     <div className="transfer-card" key={idx}>
                       <div>
                         <div className="transfer-flow">
-                          <span className="transfer-warehouse">{rec.sourceWarehouseId}</span>
+                          <span className="transfer-warehouse">
+                            {rec.sourceWarehouseId}
+                          </span>
                           <span className="transfer-arrow">→</span>
-                          <span className="transfer-warehouse">{rec.destWarehouseId}</span>
-                          <span className={`priority-badge ${rec.priority?.toLowerCase() || 'medium'}`}>{rec.priority || 'MEDIUM'}</span>
+                          <span className="transfer-warehouse">
+                            {rec.destWarehouseId}
+                          </span>
+                          <span
+                            className={`priority-badge ${rec.priority?.toLowerCase() || "medium"}`}
+                          >
+                            {rec.priority || "MEDIUM"}
+                          </span>
                         </div>
                         <div className="transfer-details">
                           <div className="transfer-detail-item">
@@ -146,16 +226,32 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({ 
                             Cost: <strong>${rec.estimatedShippingCost}</strong>
                           </div>
                         </div>
-                        <div className="transfer-details" style={{ marginTop: '8px' }}>
+                        <div
+                          className="transfer-details"
+                          style={{ marginTop: "8px" }}
+                        >
                           <div className="transfer-detail-item doc-improvement">
-                            DOC: <span>{rec.destCurrentDoc}d</span> <span className="improvement-arrow">→</span> <span>{rec.destProjectedDoc}d</span>
+                            DOC: <span>{rec.destCurrentDoc}d</span>{" "}
+                            <span className="improvement-arrow">→</span>{" "}
+                            <span>{rec.destProjectedDoc}d</span>
                           </div>
-                          <div className="transfer-detail-item" style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.6)' }}>
+                          <div
+                            className="transfer-detail-item"
+                            style={{
+                              fontStyle: "italic",
+                              color: "rgba(255,255,255,0.6)",
+                            }}
+                          >
                             {rec.urgencyReason}
                           </div>
                         </div>
                       </div>
-                      <button className="transfer-execute-btn" onClick={() => alert(`Executing transfer for ${rec.sku}`)}>
+                      <button
+                        className="transfer-execute-btn"
+                        onClick={() =>
+                          alert(`Executing transfer for ${rec.sku}`)
+                        }
+                      >
                         Execute Transfer
                       </button>
                     </div>
@@ -183,16 +279,20 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({ 
                       <tr key={i}>
                         <td className="matrix-sku-label">{row.sku}</td>
                         {row.cells?.map((cell: any, j: number) => {
-                          let cellClass = 'balanced';
-                          if (cell.doc < 7) cellClass = 'deficit';
-                          else if (cell.doc < 14) cellClass = 'low-deficit';
-                          else if (cell.doc > 42) cellClass = 'surplus';
+                          let cellClass = "balanced";
+                          if (cell.doc < 7) cellClass = "deficit";
+                          else if (cell.doc < 14) cellClass = "low-deficit";
+                          else if (cell.doc > 42) cellClass = "surplus";
 
                           return (
-                            <td className={`matrix-cell ${cellClass}`} key={j} title={`On Hand: ${cell.onHand} | Velocity: ${cell.velocity}`}>
+                            <td
+                              className={`matrix-cell ${cellClass}`}
+                              key={j}
+                              title={`On Hand: ${cell.onHand} | Velocity: ${cell.velocity}`}
+                            >
                               {cell.doc}d
                               <span className="cell-status-badge">
-                                {cellClass.replace('-', ' ')}
+                                {cellClass.replace("-", " ")}
                               </span>
                             </td>
                           );
