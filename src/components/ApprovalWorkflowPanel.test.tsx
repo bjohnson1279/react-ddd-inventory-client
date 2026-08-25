@@ -19,7 +19,6 @@ describe('ApprovalWorkflowPanel', () => {
 
     render(<ApprovalWorkflowPanel api={mockApi} />);
 
-    
     await waitFor(() => {
       expect(screen.getByText('Approval Workflow Configuration')).toBeInTheDocument();
       expect(screen.getByText('PO_CREATED')).toBeInTheDocument();
