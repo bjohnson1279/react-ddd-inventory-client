@@ -353,28 +353,6 @@ export class ExpressRESTAdapter implements InventoryClient {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
 
-    const posPromises = ids.map(async (id) => {
-      try {
-        const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
-        return po;
-      } catch (err) {
-        console.error(`Failed to fetch PO ${id}`, err);
-        return null;
-      }
-    });
-
-<<<<<<< HEAD
-    const results = await Promise.all(posPromises);
-    return results.filter((po) => po !== null) as PurchaseOrder[];
-=======
-<<<<<<< HEAD
-    // ⚡ Bolt: Batch GET request for Purchase Orders to resolve N+1 parallel fetching inefficiency
-    try {
-      const results = await this.request('GET', `/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
-      return Array.isArray(results) ? results : [];
-    } catch (err) {
-      console.error(`Failed to fetch POs for tenant ${tenantId}`, err);
-=======
     try {
       // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
       const response = await this.request('GET', `/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
@@ -385,10 +363,8 @@ export class ExpressRESTAdapter implements InventoryClient {
       return allPos.filter((po: any) => po && ids.includes(po.id));
     } catch (err) {
       console.error(`Failed to fetch POs in bulk`, err);
->>>>>>> origin/main
       return [];
     }
->>>>>>> origin/main
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
