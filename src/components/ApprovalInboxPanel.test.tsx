@@ -21,7 +21,6 @@ describe('ApprovalInboxPanel', () => {
 
     render(<ApprovalInboxPanel api={mockApi} />);
 
-    
     await waitFor(() => {
       expect(screen.getByText('Approval Inbox')).toBeInTheDocument();
       expect(screen.getByText('INVENTORY_WRITEOFF')).toBeInTheDocument();
