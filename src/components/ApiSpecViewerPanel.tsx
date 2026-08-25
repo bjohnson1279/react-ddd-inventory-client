@@ -55,18 +55,21 @@ export const ApiSpecViewerPanel: React.FC = () => {
         <button 
           className={`btn ${activeTab === 'openapi-express' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('openapi-express')}
+          aria-label="View Express REST API specifications"
         >
           Express REST
         </button>
         <button 
           className={`btn ${activeTab === 'openapi-php' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('openapi-php')}
+          aria-label="View PHP REST API specifications"
         >
           PHP REST
         </button>
         <button 
           className={`btn ${activeTab === 'graphql' ? 'btn-accent' : 'btn-secondary'}`}
           onClick={() => setActiveTab('graphql')}
+          aria-label="View GraphQL schema"
         >
           GraphQL SDL
         </button>
@@ -82,6 +85,7 @@ export const ApiSpecViewerPanel: React.FC = () => {
             <input 
               type="text" 
               placeholder="Search endpoints/types..." 
+              aria-label="Search endpoints and types"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ width: '250px', padding: '0.5rem 1rem' }}
@@ -97,7 +101,7 @@ export const ApiSpecViewerPanel: React.FC = () => {
                       <span className="method-badge" style={{ backgroundColor: getMethodColor(ep.method) }}>{ep.method}</span>
                       <code className="path-text">{ep.path}</code>
                     </div>
-                    <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={() => navigator.clipboard.writeText(`curl -X ${ep.method} http://localhost:5000${ep.path}`)}>
+                    <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={() => navigator.clipboard.writeText(`curl -X ${ep.method} http://localhost:5000${ep.path}`)} aria-label={`Copy cURL command for ${ep.method} ${ep.path}`}>
                       Copy cURL
                     </button>
                   </div>

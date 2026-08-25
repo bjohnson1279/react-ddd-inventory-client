@@ -178,6 +178,22 @@ export interface PurchaseOrder {
 }
 
 // --- Admin Portal Feature Interfaces ---
+export interface Permission {
+  id: string;
+  resource: string;
+  action: string;
+  description?: string;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  isCustom: boolean;
+  tenantId?: string;
+  permissions: Permission[];
+}
+
 export interface User {
   id: string;
   email: string;
@@ -334,6 +350,13 @@ export interface InventoryClient {
   inviteUser(tenantId: string, email: string, role: string): Promise<{ userId: string; temporaryPassword?: string }>;
   updateUserRole(tenantId: string, userId: string, role: string): Promise<void>;
   
+  // RBAC
+  getRoles(tenantId: string): Promise<Role[]>;
+  getPermissions(): Promise<Permission[]>;
+  createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role>;
+  updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void>;
+  deleteRole(roleId: string): Promise<void>;
+
   runAudit(tenantId: string): Promise<any>;
   getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]>;
   resolveDiscrepancy(tenantId: string, id: string, notes: string): Promise<void>;
