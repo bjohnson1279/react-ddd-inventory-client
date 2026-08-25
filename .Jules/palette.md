@@ -17,3 +17,6 @@
 ## 2024-05-15 - Missing ARIA Labels on Dismiss Buttons
 **Learning:** Found multiple instances where error alerts had functional elements but lacked accessible "Dismiss" actions. Icon-only buttons used to dismiss alerts must always carry descriptive `aria-label` attributes to ensure screen readers can announce their purpose clearly.
 **Action:** Always ensure that dynamically generated alerts feature a dismiss mechanism and that any icon-only actions within these alerts include explicit ARIA labels.
+## 2024-08-25 - Explicit Button Types in Forms
+**Learning:** Found that injecting generic `<button>` elements (such as dismiss icons in alert banners) inside or near form components defaults to `type="submit"`. Clicking them will accidentally submit the form and refresh the page, creating a confusing UX.
+**Action:** Always explicitly define `type="button"` on interactive `<button>` elements that are not intended to trigger form submissions.
