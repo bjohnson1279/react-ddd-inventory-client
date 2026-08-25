@@ -20,3 +20,6 @@
 ## 2024-05-19 - [Inline Array Traversals blocking render]
 **Learning:** Performing `Array.filter` and `Array.some` directly inside the render block blocks the main thread with O(N) operations during every component re-render. Since `App.tsx` contains heavy state that forces re-renders, operations such as filtering `wmsLocations` and `purchaseOrders` cause significant frame drops on larger datasets.
 **Action:** Extract nested/inline array filtering into `useMemo` hooks, allowing derived arrays (e.g. `sentPurchaseOrders`, `filteredWmsLocations`) to safely skip recalculation as long as their dependencies remain unchanged.
+## 2024-05-18 - Memoizing nested array reduction in render loop
+**Learning:** The warehouse map component computes bin capacities (O(Locations * Items)) on every single render inside the `wmsLocations.map` loop which severely hurts performance during any hover state update since they trigger full parent re-renders.
+**Action:** Always extract nested array searches and map/reduce capacity calculations into a `useMemo` block keyed by actual dependent state to avoid main thread blocking during frequent UI interactions.
