@@ -17,3 +17,7 @@
 **Vulnerability:** Sending auth tokens in URL query strings for SSE endpoints via `EventSource`.
 **Learning:** SSE natively doesn't support custom headers easily, so it's a common anti-pattern to send tokens in URL parameters where they are logged in access logs, proxies, and browser history.
 **Prevention:** Use a `fetch`-based stream reader with `Accept: text/event-stream` and an `Authorization` header to secure the token and read the event stream securely instead of using `EventSource`.
+## 2026-08-14 - [Weak PRNG Usage]
+ **Vulnerability:** [Use of Math.random() for ID generation which is cryptographically weak]
+ **Learning:** [Math.random() is predictable and shouldn't be used for IDs, especially those that might be exposed or used for security purposes.]
+ **Prevention:** [Always use crypto.randomUUID() or a strong random number generator for generating unique identifiers.]
