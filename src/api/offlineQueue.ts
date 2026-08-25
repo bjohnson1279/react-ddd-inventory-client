@@ -98,7 +98,7 @@ export async function syncOfflineQueue(client: InventoryClient): Promise<{ succe
   for (let i = 0; i < scans.length; i += BATCH_SIZE) {
     const batch = scans.slice(i, i + BATCH_SIZE);
     const promises = batch.map(async (scan) => {
-      if (!scan.id) return null;
+      if (scan.id === undefined) return null;
       try {
         await client.scanBarcode(
           scan.value,
@@ -118,19 +118,24 @@ export async function syncOfflineQueue(client: InventoryClient): Promise<{ succe
     const results = await Promise.all(promises);
 
     // ⚡ Bolt: Batch deleting successful scans to prevent sequential IndexedDB I/O overhead.
-    const successfulIds = results.filter(r => r?.success && r.id).map(r => r!.id as number);
-    if (successfulIds.length > 0) {
-      await deleteScans(successfulIds);
-    }
+    // ⚡ Bolt: Single pass traversal over results array for O(N) performance and eliminating intermediate allocations.
+    const successfulIds: number[] = [];
 
     for (const result of results) {
       if (!result) continue;
       if (result.success) {
         successCount++;
+        if (result.id !== undefined) {
+          successfulIds.push(result.id);
+        }
       } else {
         failedCount++;
         errors.push(`Scan ${result.value} failed: ${result.message}`);
       }
+    }
+
+    if (successfulIds.length > 0) {
+      await deleteScans(successfulIds);
     }
   }
 
