@@ -34,3 +34,7 @@
 ## 2024-08-21 - Extract nested map operations in render for heavy calculations
 **Learning:** Found a performance bottleneck where `itemsByLocation.get(loc.id)` and iterating over its items (`locInvItems.forEach`) was executed inside `wmsLocations.map` during the warehouse layout render. This creates an O(N * M) calculation directly inside the render loop where N is the number of locations and M is the average number of inventory items per location. This blocks the main thread on every re-render (e.g. from hover events).
 **Action:** Always extract complex, nested iterations in render loops (such as summing weights/volumes for grid locations) into a single `useMemo` block that maps IDs to the pre-calculated aggregate result. Then provide O(1) lookups using this Map inside the render phase.
+
+## 2024-10-25 - Zero-cost static data extraction over useMemo
+**Learning:** For completely static data (like hardcoded configuration arrays or constant metrics), wrapping derivations in `useMemo` is a micro-optimization anti-pattern because it still incurs the minor overhead of React's hook system for data that never changes.
+**Action:** Extract static constants and computations derived purely from those constants entirely outside of the React component body to avoid the React lifecycle entirely.
