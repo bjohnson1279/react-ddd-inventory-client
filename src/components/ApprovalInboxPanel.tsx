@@ -121,15 +121,21 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
 
       {error && (
         <div
+          role="alert"
+          aria-live="assertive"
           style={{
             background: "#7f1d1d",
             color: "#fca5a5",
             padding: "12px",
             borderRadius: "6px",
             marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
           }}
         >
-          {error}
+          <span>{error}</span>
+          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: '1.2rem', cursor: 'pointer', padding: '0 4px' }}>×</button>
         </div>
       )}
 
