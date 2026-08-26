@@ -1384,6 +1384,7 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
         </button>
       </form>
 
+      {/* ⚡ Bolt: Reused memoized sentPurchaseOrders to replace O(N) .some() check with O(1) length check */}
        {/* ⚡ Bolt: Reuse memoized sentPurchaseOrders length instead of re-evaluating O(N) .some() on every render. (O(N) -> O(1) lookups) */}
       {sentPurchaseOrders.length > 0 && (
         <div style={{ marginTop: '2.5rem' }}>
