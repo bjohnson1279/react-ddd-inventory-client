@@ -17,16 +17,7 @@
 **Vulnerability:** Sending auth tokens in URL query strings for SSE endpoints via `EventSource`.
 **Learning:** SSE natively doesn't support custom headers easily, so it's a common anti-pattern to send tokens in URL parameters where they are logged in access logs, proxies, and browser history.
 **Prevention:** Use a `fetch`-based stream reader with `Accept: text/event-stream` and an `Authorization` header to secure the token and read the event stream securely instead of using `EventSource`.
-
-## 2025-02-28 - Replaced Math.random() with crypto.randomUUID()
-**Vulnerability:** Weak random ID generation using `Math.random().toString(36).substring(7)` and `Math.floor(1000 + Math.random() * 9000)` in React components and ERP hooks.
-**Learning:** `Math.random()` is not cryptographically secure and predictable. Generating IDs or tracking tokens using `Math.random()` can lead to collisions or ID-guessing attacks, even in optimistic state updates.
-**Prevention:** Always use `crypto.randomUUID()` when generating unique identifiers or tokens on the client-side, avoiding `Math.random()`.
-## 2024-05-24 - Hardcoded Auth Tokens
-**Vulnerability:** Found hardcoded test tokens (`Bearer test-token`) being used in API requests in `src/components/ApprovalWorkflowPanel.tsx` and `src/components/ApprovalInboxPanel.tsx`.
-**Learning:** Hardcoded secrets and tokens, even if intended for testing, can be easily leaked or merged into production, exposing the application to unauthorized access.
-**Prevention:** Always retrieve authentication tokens dynamically from secure storage (e.g., `localStorage.getItem("auth_token")`) instead of hardcoding them into the components.
-## 2026-08-25 - Insecure Target Attribute Fix
-**Vulnerability:** The application contained an anchor tag with `target="_blank"` but lacking `noopener` in its `rel` attribute, which could allow a newly opened tab to potentially execute malicious JavaScript against the originating page via `window.opener`.
-**Learning:** Always use `noopener` in combination with `noreferrer` when using `target="_blank"` to prevent tabnabbing attacks.
-**Prevention:** Ensure `rel="noopener noreferrer"` is added whenever `target="_blank"` is used in anchor tags.
+## 2026-08-26 - Explicit Authentication Requirements
+**Vulnerability:** Missing password validation in GraphQL API adapter
+**Learning:** While the Express and Laravel adapters strictly checked for missing passwords in their login methods, the GraphQL adapter passed the optionally typed `password` parameter straight into the query without validation, risking unauthorized access attempts or malformed requests if the parameter was undefined.
+**Prevention:** Always enforce explicit parameter validation in API client wrappers before dispatching requests, ensuring uniformity across all protocol adapters (REST, GraphQL, etc.).

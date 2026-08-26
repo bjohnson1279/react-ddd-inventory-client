@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { addScanToQueue, getQueuedScans, deleteScans, syncOfflineQueue } from '../../src/api/offlineQueue';
+import { addScanToQueue, getQueuedScans, deleteScan, syncOfflineQueue } from '../../src/api/offlineQueue';
 
 describe('Offline Queue DB', () => {
   let mockStore: any;
@@ -17,13 +17,7 @@ describe('Offline Queue DB', () => {
     };
 
     mockDB = {
-      transaction: () => {
-        // Need to simulate oncomplete for transaction in deleteScans
-        setTimeout(() => {
-          if ((mockTransaction as any).oncomplete) (mockTransaction as any).oncomplete();
-        }, 0);
-        return mockTransaction;
-      },
+      transaction: () => mockTransaction,
       objectStoreNames: {
         contains: () => true,
       },
@@ -89,7 +83,7 @@ describe('Offline Queue DB', () => {
     expect(scans).toHaveLength(1);
     expect(scans[0].value).toBe('ABC');
 
-    await deleteScans([10]);
+    await deleteScan(10);
     expect(mockStore.delete).toHaveBeenCalledWith(10);
   });
 

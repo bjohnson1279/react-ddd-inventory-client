@@ -25,7 +25,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
   // ERP State
   const [erpProvider, setErpProvider] = useState('QUICKBOOKS');
-  const [referenceId, setReferenceId] = useState(`SO-${crypto.randomUUID().split('-')[0]}`);
+  const [referenceId, setReferenceId] = useState(`SO-${Math.floor(1000 + Math.random() * 9000)}`);
   const [memo, setMemo] = useState('Inventory dispatch revenue posting');
   const [accountCode, setAccountCode] = useState('1200');
   const [amountCents, setAmountCents] = useState('45000');
@@ -39,7 +39,6 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
   const handleCalculateRates = async () => {
     setLoading(true);
     setError(null);
-    const activeToken = localStorage.getItem('auth_token') || '';
     try {
       if (api && api.calculateShippingRates) {
         const res = await api.calculateShippingRates({
@@ -54,10 +53,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
         // Direct REST fallback call
         const response = await fetch('/api/shipping/quote', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             carrier,
             originPostalCode: originPostal,
@@ -80,7 +76,6 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
   const handleGenerateLabel = async () => {
     setLoading(true);
     setError(null);
-    const activeToken = localStorage.getItem('auth_token') || '';
     try {
       if (api && api.generateShippingLabel) {
         const res = await api.generateShippingLabel({
@@ -94,10 +89,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
       } else {
         const response = await fetch('/api/shipping/label', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             carrier: labelCarrier,
             recipientName,
@@ -120,7 +112,6 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
   const handleSyncErp = async () => {
     setLoading(true);
     setError(null);
-    const activeToken = localStorage.getItem('auth_token') || '';
     try {
       const payload = {
         provider: erpProvider,
@@ -143,10 +134,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
       } else {
         const response = await fetch('/api/erp/sync', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         const data = await response.json();
@@ -209,7 +197,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
       </div>
 
       {error && (
-        <div role="alert" aria-live="assertive" className="p-4 bg-red-950/60 border border-red-500/50 rounded-lg text-red-200 text-sm flex items-center justify-between">
+        <div role="alert" className="p-4 bg-red-950/60 border border-red-500/50 rounded-lg text-red-200 text-sm flex items-center justify-between">
           <span>⚠️ {error}</span>
           <button onClick={() => setError(null)} aria-label="Dismiss error" className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded">×</button>
         </div>
@@ -425,7 +413,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
                 {labelResult.bolUrl && (
                   <div className="p-2 bg-indigo-950/40 rounded border border-indigo-500/40 flex justify-between items-center">
                     <span className="text-indigo-300 font-sans">Bill of Lading (BOL):</span>
-                    <a href={labelResult.bolUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 underline font-sans">
+                    <a href={labelResult.bolUrl} target="_blank" rel="noreferrer" className="text-indigo-400 underline font-sans">
                       Download LTL BOL PDF
                     </a>
                   </div>

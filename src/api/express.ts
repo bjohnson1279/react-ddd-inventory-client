@@ -1,4 +1,4 @@
-import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
+import { InventoryClient, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
 
 const EXPRESS_BASE_URL = 'http://localhost:5000/api';
 const EXPRESS_WS_URL = 'ws://localhost:5000';
@@ -214,17 +214,12 @@ export class ExpressRESTAdapter implements InventoryClient {
   async createStockOnboarding(tenantId: string, locationId: string, asOfDate: string, items: Item[]): Promise<void> {
     const data = await this.request('POST', '/onboarding', { tenantId, locationId, asOfDate });
     const onboardingId = data.id;
-
-    // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < items.length; i += BATCH_SIZE) {
-      const batch = items.slice(i, i + BATCH_SIZE);
-      const promises = batch.map(item => this.request('POST', `/onboarding/${onboardingId}/items`, {
+    for (const item of items) {
+      await this.request('POST', `/onboarding/${onboardingId}/items`, {
         variantId: item.variantId,
         quantity: item.quantity,
         unitCostCents: item.unitCostCents
-      }));
-      await Promise.all(promises);
+      });
     }
   }
 
@@ -358,22 +353,18 @@ export class ExpressRESTAdapter implements InventoryClient {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
 
-    if (ids.length === 0) {
-      return [];
-    }
+    const posPromises = ids.map(async (id) => {
+      try {
+        const po = await this.request('GET', `/purchase-orders/${id}?tenantId=${tenantId}`);
+        return po;
+      } catch (err) {
+        console.error(`Failed to fetch PO ${id}`, err);
+        return null;
+      }
+    });
 
-    try {
-      // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
-      const response = await this.request('GET', `/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
-
-      const bulkData = (response?.data || response || []);
-      const allPos = Array.isArray(bulkData) ? bulkData : [];
-
-      return allPos.filter((po: any) => po && ids.includes(po.id));
-    } catch (err) {
-      console.error(`Failed to fetch POs in bulk`, err);
-      return [];
-    }
+    const results = await Promise.all(posPromises);
+    return results.filter((po) => po !== null) as PurchaseOrder[];
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
@@ -421,27 +412,6 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   async updateUserRole(tenantId: string, userId: string, role: string): Promise<void> {
     await this.request('PATCH', `/users/${userId}/role`, { tenantId, role });
-  }
-
-  // RBAC
-  async getRoles(tenantId: string): Promise<Role[]> {
-    return this.request('GET', `/roles?tenantId=${tenantId}`);
-  }
-
-  async getPermissions(): Promise<Permission[]> {
-    return this.request('GET', `/roles/permissions`);
-  }
-
-  async createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role> {
-    return this.request('POST', `/roles`, { tenantId, name, description, permissionIds });
-  }
-
-  async updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
-    await this.request('PUT', `/roles/${roleId}/permissions`, { permissionIds });
-  }
-
-  async deleteRole(roleId: string): Promise<void> {
-    await this.request('DELETE', `/roles/${roleId}`);
   }
 
   async runAudit(tenantId: string): Promise<any> {
@@ -539,37 +509,35 @@ export class ExpressRESTAdapter implements InventoryClient {
         skuQtyMap.set(item.sku, (skuQtyMap.get(item.sku) || 0) + item.quantity);
       }
 
-      // ⚡ Bolt: Resolving N+1 HTTP Requests with Promise.all for concurrent fetching
-      const promises: Promise<ValuationItem>[] = [];
-
+      const items: ValuationItem[] = [];
       for (const p of products) {
         for (const v of p.variants) {
-          const qty = skuQtyMap.get(v.sku) || 0;
-
-          if (qty > 0) {
-            promises.push(
-              this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`)
-                .then((val) => ({
-                  variantId: v.id,
-                  sku: v.sku,
-                  name: p.name + (v.attributes?.length ? ` (${v.attributes.map((a: any) => a.value).join(', ')})` : ''),
-                  costingMethod: val.methodUsed || method || 'FIFO',
-                  totalQuantity: qty,
-                  totalValueCents: val.totalCostCents || 0,
-                  unitCostCents: val.unitCostCents || 0
-                }))
-                .catch(() => ({
-                  variantId: v.id,
-                  sku: v.sku,
-                  name: p.name,
-                  costingMethod: method || 'FIFO',
-                  totalQuantity: 0,
-                  totalValueCents: 0,
-                  unitCostCents: 0
-                }))
-            );
-          } else {
-            promises.push(Promise.resolve({
+          try {
+            const qty = skuQtyMap.get(v.sku) || 0;
+            if (qty > 0) {
+              const val = await this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`);
+              items.push({
+                variantId: v.id,
+                sku: v.sku,
+                name: p.name + (v.attributes?.length ? ` (${v.attributes.map(a => a.value).join(', ')})` : ''),
+                costingMethod: val.methodUsed || method || 'FIFO',
+                totalQuantity: qty,
+                totalValueCents: val.totalCostCents || 0,
+                unitCostCents: val.unitCostCents || 0
+              });
+            } else {
+              items.push({
+                variantId: v.id,
+                sku: v.sku,
+                name: p.name,
+                costingMethod: method || 'FIFO',
+                totalQuantity: 0,
+                totalValueCents: 0,
+                unitCostCents: 0
+              });
+            }
+          } catch {
+            items.push({
               variantId: v.id,
               sku: v.sku,
               name: p.name,
@@ -577,12 +545,10 @@ export class ExpressRESTAdapter implements InventoryClient {
               totalQuantity: 0,
               totalValueCents: 0,
               unitCostCents: 0
-            }));
+            });
           }
         }
       }
-
-      const items = await Promise.all(promises);
       return items;
     } catch {
       return [];
