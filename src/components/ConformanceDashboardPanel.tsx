@@ -5,6 +5,24 @@ interface ConformanceDashboardPanelProps {
   tenantId: string;
 }
 
+const CONFORMANCE_RESULTS = [
+  { module: 'Inventory CRUD', graphql: { pass: 24, fail: 0, skip: 0 }, express: { pass: 24, fail: 0, skip: 0 }, php: { pass: 23, fail: 1, skip: 0 } },
+  { module: 'Accounting Ledger', graphql: { pass: 15, fail: 0, skip: 0 }, express: { pass: 15, fail: 0, skip: 0 }, php: { pass: 15, fail: 0, skip: 0 } },
+  { module: 'Compliance Rules', graphql: { pass: 10, fail: 0, skip: 0 }, express: { pass: 10, fail: 0, skip: 0 }, php: { pass: 9, fail: 0, skip: 1 } },
+];
+
+// ⚡ Bolt: Hoist the static totalStats calculation completely outside the component to guarantee it runs only once per module load, avoiding any per-instance render overhead.
+const TOTAL_STATS = CONFORMANCE_RESULTS.reduce(
+  (acc, cur) => {
+    acc.total += 3 * (cur.graphql.pass + cur.graphql.fail + cur.graphql.skip);
+    acc.pass += cur.graphql.pass + cur.express.pass + cur.php.pass;
+    acc.fail += cur.graphql.fail + cur.express.fail + cur.php.fail;
+    acc.skip += cur.graphql.skip + cur.express.skip + cur.php.skip;
+    return acc;
+  },
+  { total: 0, pass: 0, fail: 0, skip: 0 }
+);
+
 export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps> = ({ tenantId }) => {
   // --- Section A: Live Backend Health Monitor ---
   const [healthData, setHealthData] = useState([
@@ -57,24 +75,8 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
 
 
   // --- Section B: Conformance Test Results Viewer ---
-  const conformanceResults = [
-    { module: 'Inventory CRUD', graphql: { pass: 24, fail: 0, skip: 0 }, express: { pass: 24, fail: 0, skip: 0 }, php: { pass: 23, fail: 1, skip: 0 } },
-    { module: 'Accounting Ledger', graphql: { pass: 15, fail: 0, skip: 0 }, express: { pass: 15, fail: 0, skip: 0 }, php: { pass: 15, fail: 0, skip: 0 } },
-    { module: 'Compliance Rules', graphql: { pass: 10, fail: 0, skip: 0 }, express: { pass: 10, fail: 0, skip: 0 }, php: { pass: 9, fail: 0, skip: 1 } },
-  ];
 
-  const totalStats = conformanceResults.reduce(
-    (acc, cur) => {
-      acc.total += 3 * (cur.graphql.pass + cur.graphql.fail + cur.graphql.skip);
-      acc.pass += cur.graphql.pass + cur.express.pass + cur.php.pass;
-      acc.fail += cur.graphql.fail + cur.express.fail + cur.php.fail;
-      acc.skip += cur.graphql.skip + cur.express.skip + cur.php.skip;
-      return acc;
-    },
-    { total: 0, pass: 0, fail: 0, skip: 0 }
-  );
-
-  const parityPercentage = ((totalStats.pass / totalStats.total) * 100).toFixed(1);
+  const parityPercentage = ((TOTAL_STATS.pass / TOTAL_STATS.total) * 100).toFixed(1);
 
   // --- Section C: API Response Comparison Tool ---
   const [selectedOperation, setSelectedOperation] = useState('inventory');
@@ -182,10 +184,10 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
         <div className="flex-between">
           <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>Conformance Test Parity</h3>
           <div>
-            <span className="badge badge-info" style={{ marginRight: '0.5rem' }}>Total: {totalStats.total}</span>
-            <span className="badge badge-success" style={{ marginRight: '0.5rem' }}>Pass: {totalStats.pass}</span>
-            <span className="badge badge-error" style={{ marginRight: '0.5rem' }}>Fail: {totalStats.fail}</span>
-            <span className="badge badge-warning">Skip: {totalStats.skip}</span>
+            <span className="badge badge-info" style={{ marginRight: '0.5rem' }}>Total: {TOTAL_STATS.total}</span>
+            <span className="badge badge-success" style={{ marginRight: '0.5rem' }}>Pass: {TOTAL_STATS.pass}</span>
+            <span className="badge badge-error" style={{ marginRight: '0.5rem' }}>Fail: {TOTAL_STATS.fail}</span>
+            <span className="badge badge-warning">Skip: {TOTAL_STATS.skip}</span>
           </div>
         </div>
         <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', marginTop: '0.5rem' }}>
@@ -203,7 +205,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
               </tr>
             </thead>
             <tbody>
-              {conformanceResults.map((row, idx) => (
+              {CONFORMANCE_RESULTS.map((row, idx) => (
                 <tr key={idx}>
                   <td><strong>{row.module}</strong></td>
                   <td>

@@ -20,3 +20,6 @@
 ## 2024-05-19 - [Inline Array Traversals blocking render]
 **Learning:** Performing `Array.filter` and `Array.some` directly inside the render block blocks the main thread with O(N) operations during every component re-render. Since `App.tsx` contains heavy state that forces re-renders, operations such as filtering `wmsLocations` and `purchaseOrders` cause significant frame drops on larger datasets.
 **Action:** Extract nested/inline array filtering into `useMemo` hooks, allowing derived arrays (e.g. `sentPurchaseOrders`, `filteredWmsLocations`) to safely skip recalculation as long as their dependencies remain unchanged.
+## 2026-08-26 - Memoize array reduce operations in render loop
+**Learning:** Found multiple instances where array `.reduce()` was performed directly inside the render loop, recalculating values from large arrays like `scanEvents` every time the component re-renders. Also discovered that wrapping static arrays inside component bodies in `useMemo` does not prevent them from recreating a new reference every render, effectively defeating the memoization.
+**Action:** Extract inline array `.reduce()` calculations into `useMemo` blocks to cache derived metrics. For static data arrays like `conformanceResults`, always hoist them entirely outside of the component body to maintain a single memory reference.
