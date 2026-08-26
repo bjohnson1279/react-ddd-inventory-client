@@ -6,6 +6,8 @@ interface ConformanceDashboardPanelProps {
 }
 
 const CONFORMANCE_RESULTS = [
+
+const conformanceResults = [
   { module: 'Inventory CRUD', graphql: { pass: 24, fail: 0, skip: 0 }, express: { pass: 24, fail: 0, skip: 0 }, php: { pass: 23, fail: 1, skip: 0 } },
   { module: 'Accounting Ledger', graphql: { pass: 15, fail: 0, skip: 0 }, express: { pass: 15, fail: 0, skip: 0 }, php: { pass: 15, fail: 0, skip: 0 } },
   { module: 'Compliance Rules', graphql: { pass: 10, fail: 0, skip: 0 }, express: { pass: 10, fail: 0, skip: 0 }, php: { pass: 9, fail: 0, skip: 1 } },
@@ -13,6 +15,7 @@ const CONFORMANCE_RESULTS = [
 
 // ⚡ Bolt: Hoist the static totalStats calculation completely outside the component to guarantee it runs only once per module load, avoiding any per-instance render overhead.
 const TOTAL_STATS = CONFORMANCE_RESULTS.reduce(
+const totalStats = conformanceResults.reduce(
   (acc, cur) => {
     acc.total += 3 * (cur.graphql.pass + cur.graphql.fail + cur.graphql.skip);
     acc.pass += cur.graphql.pass + cur.express.pass + cur.php.pass;
@@ -77,6 +80,10 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
   // --- Section B: Conformance Test Results Viewer ---
 
   const parityPercentage = ((TOTAL_STATS.pass / TOTAL_STATS.total) * 100).toFixed(1);
+  // ⚡ Bolt: Use pre-calculated static totalStats outside of the render function to prevent reduction on every render
+
+
+  const parityPercentage = ((totalStats.pass / totalStats.total) * 100).toFixed(1);
 
   // --- Section C: API Response Comparison Tool ---
   const [selectedOperation, setSelectedOperation] = useState('inventory');
@@ -157,7 +164,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
               <option value="15">Every 15s</option>
               <option value="30">Every 30s</option>
             </select>
-            <button className="btn btn-secondary" onClick={checkHealth} disabled={isRefreshing}>
+            <button className="btn btn-secondary" onClick={checkHealth} disabled={isRefreshing} aria-busy={isRefreshing}>
               {isRefreshing ? <Spinner /> : 'Refresh'}
             </button>
           </div>
@@ -238,7 +245,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
             <option value="inventory">Get Inventory Items</option>
             <option value="compliance">Get Compliance Ledger</option>
           </select>
-          <button className="btn btn-primary" onClick={handleCompare} disabled={isComparing}>
+          <button className="btn btn-primary" onClick={handleCompare} disabled={isComparing} aria-busy={isComparing}>
             {isComparing ? <Spinner /> : 'Compare Across Backends'}
           </button>
         </div>

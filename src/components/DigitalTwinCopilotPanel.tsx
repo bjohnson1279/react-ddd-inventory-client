@@ -125,7 +125,7 @@ export const DigitalTwinCopilotPanel: React.FC<DigitalTwinCopilotPanelProps> = (
       </div>
 
       {error && (
-        <div role="alert" style={{ padding: '12px', background: '#7f1d1d', color: '#fecaca', borderRadius: '6px', marginBottom: '16px' }}>
+        <div role="alert" aria-live="assertive" style={{ padding: '12px', background: '#7f1d1d', color: '#fecaca', borderRadius: '6px', marginBottom: '16px' }}>
           {error}
         </div>
       )}
@@ -147,7 +147,7 @@ export const DigitalTwinCopilotPanel: React.FC<DigitalTwinCopilotPanelProps> = (
               <input type="number" value={activePickersCount} onChange={(e) => setActivePickersCount(parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
 
-            <button onClick={handleRunSimulation} disabled={loading} style={{ width: '100%', padding: '10px', background: '#0284c7', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+            <button onClick={handleRunSimulation} disabled={loading} aria-busy={loading} style={{ width: '100%', padding: '10px', background: '#0284c7', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
               {loading ? 'Running Simulation...' : 'Run Discrete-Event Simulation'}
             </button>
           </div>
@@ -212,7 +212,7 @@ export const DigitalTwinCopilotPanel: React.FC<DigitalTwinCopilotPanelProps> = (
               placeholder="Ask Copilot about stock levels, shrinkage, or OTIF scorecards..."
               style={{ flex: 1, padding: '10px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '6px' }}
             />
-            <button onClick={handleSendPrompt} disabled={loading} style={{ padding: '10px 20px', background: '#10b981', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+            <button onClick={handleSendPrompt} disabled={loading} aria-busy={loading} style={{ padding: '10px 20px', background: '#10b981', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
               {loading ? 'Thinking...' : 'Send'}
             </button>
           </div>
