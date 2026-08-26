@@ -1,0 +1,398 @@
+[
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T17:51:30Z",
+    "labels": [],
+    "number": 603,
+    "repository": {
+      "name": "gql-ddd-inventory",
+      "nameWithOwner": "bjohnson1279/gql-ddd-inventory"
+    },
+    "title": "\ud83d\udee1\ufe0f Sentinel: [MEDIUM] Fix missing input length limits on Shopify Webhook Endpoint",
+    "url": "https://github.com/bjohnson1279/gql-ddd-inventory/pull/603"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T17:41:54Z",
+    "labels": [],
+    "number": 139,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\ud83e\uddea [testing improvement] Add unit tests for AutonomousInventoryDashboard",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/139"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T17:32:15Z",
+    "labels": [],
+    "number": 138,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\u26a1 Bolt: Optimize offline queue sync traversal",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/138"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T17:14:09Z",
+    "labels": [],
+    "number": 683,
+    "repository": {
+      "name": "js-ddd-inventory",
+      "nameWithOwner": "bjohnson1279/js-ddd-inventory"
+    },
+    "title": "\u26a1 [performance] Fix N+1 query in GetDemandPlanningReport",
+    "url": "https://github.com/bjohnson1279/js-ddd-inventory/pull/683"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T16:25:51Z",
+    "labels": [],
+    "number": 682,
+    "repository": {
+      "name": "js-ddd-inventory",
+      "nameWithOwner": "bjohnson1279/js-ddd-inventory"
+    },
+    "title": "\u26a1 Optimize Outbox domain event persistence with Prisma createMany",
+    "url": "https://github.com/bjohnson1279/js-ddd-inventory/pull/682"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T16:16:48Z",
+    "labels": [],
+    "number": 137,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\u26a1 Bolt: Optimize syncOfflineQueue array traversal",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/137"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T16:14:11Z",
+    "labels": [],
+    "number": 544,
+    "repository": {
+      "name": "php-ddd-inventory",
+      "nameWithOwner": "bjohnson1279/php-ddd-inventory"
+    },
+    "title": "\ud83e\uddea Add missing tests for assemble in KitController",
+    "url": "https://github.com/bjohnson1279/php-ddd-inventory/pull/544"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T16:11:02Z",
+    "labels": [],
+    "number": 136,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\ud83e\uddf9 Code Health: Remove unused `deleteScan` function",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/136"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T16:09:31Z",
+    "labels": [],
+    "number": 135,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\ud83e\uddea [testing improvement] Add unit tests for EsgEmissionsPanel",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/135"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T16:08:16Z",
+    "labels": [],
+    "number": 543,
+    "repository": {
+      "name": "php-ddd-inventory",
+      "nameWithOwner": "bjohnson1279/php-ddd-inventory"
+    },
+    "title": "\ud83e\uddea Add unit tests for ReorderPolicyController get method",
+    "url": "https://github.com/bjohnson1279/php-ddd-inventory/pull/543"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:59:04Z",
+    "labels": [],
+    "number": 134,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\ud83d\udd12 Fix insecure target attribute in LogisticsErpPanel",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/134"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:57:01Z",
+    "labels": [],
+    "number": 542,
+    "repository": {
+      "name": "php-ddd-inventory",
+      "nameWithOwner": "bjohnson1279/php-ddd-inventory"
+    },
+    "title": "\ud83e\uddea Add tests for KitController sell method",
+    "url": "https://github.com/bjohnson1279/php-ddd-inventory/pull/542"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:56:28Z",
+    "labels": [],
+    "number": 133,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\ud83d\udd12 Fix weak PRNG usage in App.tsx",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/133"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:51:12Z",
+    "labels": [],
+    "number": 132,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\ud83e\uddea [Testing] Add unit tests for ReverseLogisticsSupplierPanel",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/132"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:41:54Z",
+    "labels": [],
+    "number": 131,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\ud83e\uddea [testing improvement] Add unit tests for AnomalyDetectionPanel",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/131"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:32:41Z",
+    "labels": [],
+    "number": 602,
+    "repository": {
+      "name": "gql-ddd-inventory",
+      "nameWithOwner": "bjohnson1279/gql-ddd-inventory"
+    },
+    "title": "\u26a1 Bolt: [performance improvement]",
+    "url": "https://github.com/bjohnson1279/gql-ddd-inventory/pull/602"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:25:27Z",
+    "labels": [],
+    "number": 130,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\u26a1 Bolt: Memoize conformance stats calculation",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/130"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:24:56Z",
+    "labels": [],
+    "number": 129,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\ud83c\udfa8 Palette: Add dismissible alerts with ARIA roles for errors",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/129"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:21:55Z",
+    "labels": [],
+    "number": 681,
+    "repository": {
+      "name": "js-ddd-inventory",
+      "nameWithOwner": "bjohnson1279/js-ddd-inventory"
+    },
+    "title": "\u26a1 Bolt: Optimize PrismaInventoryRepository bulk insertions with createMany",
+    "url": "https://github.com/bjohnson1279/js-ddd-inventory/pull/681"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:18:21Z",
+    "labels": [],
+    "number": 541,
+    "repository": {
+      "name": "php-ddd-inventory",
+      "nameWithOwner": "bjohnson1279/php-ddd-inventory"
+    },
+    "title": "\ud83d\udee1\ufe0f Sentinel: [CRITICAL] Fix Timing Attack in Signature Verification",
+    "url": "https://github.com/bjohnson1279/php-ddd-inventory/pull/541"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:17:30Z",
+    "labels": [],
+    "number": 601,
+    "repository": {
+      "name": "gql-ddd-inventory",
+      "nameWithOwner": "bjohnson1279/gql-ddd-inventory"
+    },
+    "title": "\u26a1 Bolt: [performance improvement]",
+    "url": "https://github.com/bjohnson1279/gql-ddd-inventory/pull/601"
+  },
+  {
+    "author": {
+      "id": "BOT_kgDOCZ5PDw",
+      "is_bot": false,
+      "login": "google-labs-jules[bot]",
+      "type": "Bot",
+      "url": "https://github.com/apps/google-labs-jules"
+    },
+    "createdAt": "2026-08-25T15:16:54Z",
+    "labels": [],
+    "number": 128,
+    "repository": {
+      "name": "react-ddd-inventory-client",
+      "nameWithOwner": "bjohnson1279/react-ddd-inventory-client"
+    },
+    "title": "\u26a1 Bolt: Extract static conformance arrays out of render loop",
+    "url": "https://github.com/bjohnson1279/react-ddd-inventory-client/pull/128"
+  }
+]
