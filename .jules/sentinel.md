@@ -17,3 +17,7 @@
 **Vulnerability:** Sending auth tokens in URL query strings for SSE endpoints via `EventSource`.
 **Learning:** SSE natively doesn't support custom headers easily, so it's a common anti-pattern to send tokens in URL parameters where they are logged in access logs, proxies, and browser history.
 **Prevention:** Use a `fetch`-based stream reader with `Accept: text/event-stream` and an `Authorization` header to secure the token and read the event stream securely instead of using `EventSource`.
+## 2026-08-26 - Explicit Authentication Requirements
+**Vulnerability:** Missing password validation in GraphQL API adapter
+**Learning:** While the Express and Laravel adapters strictly checked for missing passwords in their login methods, the GraphQL adapter passed the optionally typed `password` parameter straight into the query without validation, risking unauthorized access attempts or malformed requests if the parameter was undefined.
+**Prevention:** Always enforce explicit parameter validation in API client wrappers before dispatching requests, ensuring uniformity across all protocol adapters (REST, GraphQL, etc.).
