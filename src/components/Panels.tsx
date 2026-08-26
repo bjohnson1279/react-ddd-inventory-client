@@ -61,7 +61,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
         <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>
           Real-time Stock Levels
         </h3>
-        <button className="btn btn-secondary" onClick={loadDashboardData} disabled={loading} aria-busy={loading}>
+        <button className="btn btn-secondary" onClick={loadDashboardData} disabled={loading}>
           {loading ? <Spinner /> : 'Refresh Stock'}
         </button>
       </div>
@@ -138,18 +138,18 @@ export const ShopifyPanel: React.FC<ShopifyPanelProps> = ({
       <h3 className="form-section-title">Configure Shopify Connection</h3>
       <form onSubmit={handleConnectShopify}>
         <div className="form-group">
-          <label htmlFor="panel-shopify-connection-id">Connection Name / ID</label>
-          <input id="panel-shopify-connection-id" type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
+          <label>Connection Name / ID</label>
+          <input type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
         </div>
         <div className="form-group">
-          <label htmlFor="panel-shopify-store-domain">Store Domain</label>
-          <input id="panel-shopify-store-domain" type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
+          <label>Store Domain</label>
+          <input type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
         </div>
         <div className="form-group">
-          <label htmlFor="panel-shopify-access-token">Shopify API Access Token</label>
-          <input id="panel-shopify-access-token" type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
+          <label>Shopify API Access Token</label>
+          <input type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <Spinner /> : 'Connect Store'}
         </button>
       </form>
@@ -268,7 +268,7 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
           <label>Display Name</label>
           <input type="text" value={newProdName} onChange={(e) => setNewProdName(e.target.value)} required placeholder="e.g. Wireless Charger" />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <Spinner /> : 'Register Product'}
         </button>
       </form>
@@ -293,7 +293,7 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
               <label>Attributes Configuration (JSON Array)</label>
               <input type="text" value={newVarAttrJSON} onChange={(e) => setNewVarAttrJSON(e.target.value)} placeholder='[{"name":"color","value":"black"}]' />
             </div>
-            <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
+            <button type="submit" className="btn btn-accent" disabled={loading}>
               {loading ? <Spinner /> : 'Add Product Variant'}
             </button>
           </form>
@@ -395,7 +395,7 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
               Set as primary barcode for scanning resolution
             </label>
           </div>
-          <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
             Assign Barcode Value
           </button>
         </form>
@@ -463,7 +463,7 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
       {offlineQueueCount > 0 && isOnline && (
         <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
           <span><strong>Buffered Scans:</strong> You have {offlineQueueCount} scan(s) waiting in IndexedDB queue.</span>
-          <button className="btn btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', marginLeft: '1rem' }} onClick={handleSyncQueue} disabled={loading} aria-busy={loading}>
+          <button className="btn btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', marginLeft: '1rem' }} onClick={handleSyncQueue} disabled={loading}>
             Sync Queue Now
           </button>
         </div>
@@ -490,7 +490,7 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
           <label>Actual Store Count (Audit Context Only)</label>
           <input type="number" value={scanActualQty || ''} onChange={(e) => setScanActualQty(Number(e.target.value))} />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           {isOnline ? 'Dispatch Barcode Scan' : 'Buffer Barcode Offline'}
         </button>
       </form>
@@ -563,7 +563,7 @@ export const OnboardingPanel: React.FC<OnboardingPanelProps> = ({
     <div className="glass-panel">
       <div className="flex-between">
         <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>Stock Onboarding Sheets</h3>
-        <button className="btn btn-primary" onClick={handleCreateOnboarding} disabled={loading} aria-busy={loading}>
+        <button className="btn btn-primary" onClick={handleCreateOnboarding} disabled={loading}>
           + Create Draft Sheet
         </button>
       </div>
@@ -743,7 +743,7 @@ export const LedgerPanel: React.FC<LedgerPanelProps> = ({
           </button>
         </div>
 
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <Spinner /> : 'Post General Ledger Entry'}
         </button>
       </form>
@@ -817,7 +817,7 @@ export const SerialsPanel: React.FC<SerialsPanelProps> = ({
           <label>Item Serial Number</label>
           <input type="text" value={traceSerialNum} onChange={(e) => setTraceSerialNum(e.target.value)} required placeholder="Enter unique serial number..." />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           Trace Serial History
         </button>
       </form>
@@ -975,7 +975,7 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
             <label>Economic Order Quantity (EOQ)</label>
             <input type="number" value={policyEoq} onChange={(e) => setPolicyEoq(Number(e.target.value))} required />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
             Save Policy
           </button>
         </form>
@@ -984,7 +984,7 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
       <div className="glass-panel">
         <div className="flex-between">
           <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>Active Reorder Policies</h3>
-          <button className="btn btn-accent" onClick={handleEvaluateReorderPolicies} disabled={loading} aria-busy={loading}>
+          <button className="btn btn-accent" onClick={handleEvaluateReorderPolicies} disabled={loading}>
             Evaluate Policies
           </button>
         </div>
@@ -1033,7 +1033,7 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
             <label>Fulfillment Quantity</label>
             <input type="number" value={fefoQty} onChange={(e) => setFefoQty(Number(e.target.value))} required />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
             Get Expiring Stock Layers
           </button>
         </form>
@@ -1072,7 +1072,7 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
             <label>Target Lot Number</label>
             <input type="text" value={recallLotNum} onChange={(e) => setRecallLotNum(e.target.value)} required placeholder="e.g. LOT-A-1" />
           </div>
-          <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
+          <button type="submit" className="btn btn-accent" disabled={loading}>
             Compile Recall Report
           </button>
         </form>
@@ -1114,7 +1114,7 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
         <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>
           Demand Planning & ROP Safety Stock Recommendations
         </h3>
-        <button className="btn btn-secondary" onClick={loadForecastingReport} disabled={loading} aria-busy={loading}>
+        <button className="btn btn-secondary" onClick={loadForecastingReport} disabled={loading}>
           {loading ? <Spinner /> : 'Recalculate ROP'}
         </button>
       </div>
@@ -1228,7 +1228,7 @@ export const RoutingPanel: React.FC<RoutingPanelProps> = ({
             <option value="MINIMIZE_DISTANCE">Minimize Distance (Nearest origin warehouse)</option>
           </select>
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <Spinner /> : 'Compute Optimal Routing Plan'}
         </button>
       </form>
@@ -1379,14 +1379,12 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
           </button>
         </div>
         
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <Spinner /> : 'Draft Purchase Order'}
         </button>
       </form>
 
-      {/* ⚡ Bolt: Reused memoized sentPurchaseOrders to replace O(N) .some() check with O(1) length check */}
-       {/* ⚡ Bolt: Reuse memoized sentPurchaseOrders length instead of re-evaluating O(N) .some() on every render. (O(N) -> O(1) lookups) */}
-      {sentPurchaseOrders.length > 0 && (
+      {purchaseOrders.some(po => po.status === 'sent') && (
         <div style={{ marginTop: '2.5rem' }}>
           <h3 className="form-section-title">Receive Purchase Order Inventory</h3>
           <form onSubmit={handleReceivePO}>
@@ -1432,7 +1430,7 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
               </div>
             )}
 
-            <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
+            <button type="submit" className="btn btn-accent" disabled={loading}>
               Fulfill PO & Receive Stock
             </button>
           </form>
@@ -1583,7 +1581,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
           <label>Max Volume Capacity (Cubic Meters)</label>
           <input type="number" step="0.01" value={wmsMaxVolume} onChange={(e) => setWmsMaxVolume(Number(e.target.value))} required />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           Configure Location
         </button>
       </form>
@@ -1599,7 +1597,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
             <label>Incoming Quantity</label>
             <input type="number" value={putawayQty} onChange={(e) => setPutawayQty(Number(e.target.value))} required />
           </div>
-          <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
+          <button type="submit" className="btn btn-accent" disabled={loading}>
             Suggest Bin Location
           </button>
         </form>
@@ -1640,7 +1638,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
                   <td>{loc.maxWeightGrams}g</td>
                   <td>{loc.maxVolumeCubicMeters}m³</td>
                   <td>
-                    <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)} aria-label={`Delete warehouse location ${loc.id}`}>
+                    <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)}>
                       Delete
                     </button>
                   </td>
@@ -1658,7 +1656,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
             <label>List of SKUs to Pick (Comma separated)</label>
             <input type="text" value={pickSkusInput} onChange={(e) => setPickSkusInput(e.target.value)} required placeholder="ROUTE-SKU, CHARGER-WRLS-BLK" />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
             Generate Optimal Pick Sequence
           </button>
         </form>
@@ -1732,7 +1730,7 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
             ))}
           </div>
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           Create Webhook Subscription
         </button>
       </form>
@@ -1767,7 +1765,7 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
                       ))}
                     </td>
                     <td>
-                      <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)} aria-label={`Delete webhook for ${w.url}`}>
+                      <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)}>
                         Delete
                       </button>
                     </td>
@@ -1934,12 +1932,6 @@ export const RfidPanel: React.FC<{
       scanned += evt.totalCount;
     }
     return { totalMatched: matched, totalScanned: scanned };
-  // ⚡ Bolt: Memoize combined reduce to prevent O(N) array traversals on every render pass
-    return scanEvents.reduce((acc, curr) => {
-      acc.totalMatched += curr.matchedCount;
-      acc.totalScanned += curr.totalCount;
-      return acc;
-    }, { totalMatched: 0, totalScanned: 0 });
   }, [scanEvents]);
   const averageMatchRate = totalScanned > 0 ? ((totalMatched / totalScanned) * 100).toFixed(1) : '100.0';
 
@@ -1967,7 +1959,7 @@ export const RfidPanel: React.FC<{
               <label>Serial Number</label>
               <input type="text" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} required placeholder="SN-10002931" />
             </div>
-            <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
               Register Mapping
             </button>
           </form>
@@ -2022,7 +2014,7 @@ export const RfidPanel: React.FC<{
               />
             </div>
 
-            <button type="submit" className="btn btn-secondary" disabled={loading || locations.length === 0} aria-busy={loading}>
+            <button type="submit" className="btn btn-secondary" disabled={loading || locations.length === 0}>
               Simulate Scan Ingest
             </button>
           </form>
