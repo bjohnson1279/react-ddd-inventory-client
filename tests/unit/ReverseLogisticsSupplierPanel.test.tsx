@@ -134,7 +134,7 @@ describe('ReverseLogisticsSupplierPanel', () => {
     fireEvent.click(fetchBtn);
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/supplier/otif-scorecard?supplierId=SUP-101');
+      expect(global.fetch).toHaveBeenCalledWith('/api/supplier/otif-scorecard?supplierId=SUP-101', expect.anything());
     });
 
     expect(await screen.findByText('95%')).toBeInTheDocument();

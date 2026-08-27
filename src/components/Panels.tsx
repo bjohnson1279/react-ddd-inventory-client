@@ -2123,14 +2123,21 @@ export const LotManagementPanel = () => {
     setStatusMsg(`Processing ${action}...`);
     try {
       if (action === 'trace') {
-        const res = await fetch(`/api/lots/${encodeURIComponent(lotNumber)}/traceability?variantId=${variantId}`);
+        const activeToken = localStorage.getItem('auth_token') || '';
+        const res = await fetch(`/api/lots/${encodeURIComponent(lotNumber)}/traceability?variantId=${variantId}`, {
+          headers: activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {}
+        });
         const data = await res.json();
         setTraceReport(data);
         setStatusMsg('Traceability report generated.');
       } else {
+        const activeToken = localStorage.getItem('auth_token') || '';
         const res = await fetch(`/api/lots/${action}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+          },
           body: JSON.stringify({ lotNumber, variantId, reason })
         });
         const data = await res.json();
@@ -2143,9 +2150,13 @@ export const LotManagementPanel = () => {
 
   const handleCrossDock = async () => {
     try {
+      const activeToken = localStorage.getItem('auth_token') || '';
       const res = await fetch('/api/cross-dock/evaluate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+        },
         body: JSON.stringify({
           purchaseOrderId: poId,
           inboundItems: JSON.parse(inboundJson || '[]'),

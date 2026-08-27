@@ -31,9 +31,13 @@ export const ThermalPrintingArPanel: React.FC<ThermalPrintingArPanelProps> = ({ 
         const res = await api.printZplThermalLabel({ printerName, labelType, barcodeValue, subtitle });
         setPrintResult(res);
       } else {
+        const activeToken = localStorage.getItem('auth_token') || '';
         const response = await fetch('/api/hardware/print-thermal', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+          },
           body: JSON.stringify({ printerName, labelType, barcodeValue, subtitle })
         });
         const data = await response.json();
