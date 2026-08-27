@@ -23,3 +23,6 @@
 ## 2024-08-07 - Memoize O(N) reductions on continuous data streams
 **Learning:** Found continuous event streams (like RFID scanning) triggering O(N) recalculations on every render using unmemoized `reduce()`.
 **Action:** Always memoize derived statistics (counts, averages) derived from growing event streams with `useMemo` to prevent render blocking as the stream grows.
+## 2024-05-20 - Replace inline `.some` with `length` check when memoized array exists
+**Learning:** Found an O(N) array iteration `purchaseOrders.some(po => po.status === 'sent')` happening on every render inside `src/components/Panels.tsx`, despite a memoized array `sentPurchaseOrders` (which filters by the exact same condition) already existing in the component.
+**Action:** Replace inline boolean checks like `.some()` that re-evaluate derived state on every render with O(1) checks (e.g. `memoizedArray.length > 0`) when a pre-memoized version of that exact filtered data is available.
