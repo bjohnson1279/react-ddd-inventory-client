@@ -808,4 +808,21 @@ export class GraphQLAdapter implements InventoryClient {
     const data = await this.fetchGraphql(query, { tenantId });
     return data.rebalanceMatrix;
   }
+
+  // Approvals
+  async getApprovalWorkflows(): Promise<any[]> {
+    throw new Error('Not implemented for GraphQL');
+  }
+
+  async toggleApprovalWorkflow(id: string): Promise<any> {
+    throw new Error('Not implemented for GraphQL');
+  }
+
+  async getPendingApprovals(): Promise<any[]> {
+    throw new Error('Not implemented for GraphQL');
+  }
+
+  async submitApprovalDecision(id: string, decision: string, notes: string): Promise<any> {
+    throw new Error('Not implemented for GraphQL');
+  }
 }

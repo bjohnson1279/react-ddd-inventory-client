@@ -871,4 +871,21 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getRebalanceMatrix(tenantId: string): Promise<any> {
     return await this.request('GET', `/api/rebalance/matrix?tenantId=${tenantId}`);
   }
+
+  // Approvals
+  async getApprovalWorkflows(): Promise<any[]> {
+    throw new Error('Not implemented for Laravel');
+  }
+
+  async toggleApprovalWorkflow(id: string): Promise<any> {
+    throw new Error('Not implemented for Laravel');
+  }
+
+  async getPendingApprovals(): Promise<any[]> {
+    throw new Error('Not implemented for Laravel');
+  }
+
+  async submitApprovalDecision(id: string, decision: string, notes: string): Promise<any> {
+    throw new Error('Not implemented for Laravel');
+  }
 }
