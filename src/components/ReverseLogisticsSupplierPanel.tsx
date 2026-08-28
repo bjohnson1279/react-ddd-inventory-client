@@ -201,7 +201,7 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
 
             <button
               onClick={handleInspectRMA}
-              disabled={loading}
+              disabled={loading} aria-busy={loading}
               style={{ width: '100%', padding: '10px', background: '#10b981', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
             >
               {loading ? 'Processing Disposition...' : 'Complete RMA Inspection'}

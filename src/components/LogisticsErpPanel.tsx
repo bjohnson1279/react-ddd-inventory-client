@@ -280,7 +280,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
             <button
               onClick={handleCalculateRates}
-              disabled={loading}
+              disabled={loading} aria-busy={loading}
               className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-lg shadow-md transition-all disabled:opacity-50"
             >
               {loading ? 'Calculating Rate...' : 'Calculate Shipping Rate'}
@@ -385,7 +385,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
             <button
               onClick={handleGenerateLabel}
-              disabled={loading}
+              disabled={loading} aria-busy={loading}
               className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium rounded-lg shadow-md transition-all disabled:opacity-50"
             >
               {loading ? 'Generating Label...' : 'Generate Thermal / PDF Label'}
@@ -516,7 +516,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
             <button
               onClick={handleSyncErp}
-              disabled={loading}
+              disabled={loading} aria-busy={loading}
               className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-lg shadow-md transition-all disabled:opacity-50"
             >
               {loading ? 'Posting Journal Entry...' : 'Post Journal Entry to ERP'}
