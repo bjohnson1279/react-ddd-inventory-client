@@ -17,6 +17,8 @@ import { ThermalPrintingArPanel } from './components/ThermalPrintingArPanel';
 import { DigitalTwinCopilotPanel } from './components/DigitalTwinCopilotPanel';
 import { EsgEmissionsPanel } from './components/EsgEmissionsPanel';
 import { RoleManagementPanel } from './components/RoleManagementPanel';
+import { ApprovalInboxPanel } from './components/ApprovalInboxPanel';
+import { ApprovalWorkflowPanel } from './components/ApprovalWorkflowPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -334,12 +336,12 @@ function App() {
   useEffect(() => {
     const allowedTabs = ['dashboard'];
     if (role === 'admin' || hasPermission('*', '*')) {
-      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid', 'anomaly-detection', 'rebalancing', 'conformance', 'api-specs', 'logistics-erp', 'reverse-logistics', 'thermal-ar', 'digital-twin', 'esg');
+      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid', 'anomaly-detection', 'rebalancing', 'conformance', 'api-specs', 'logistics-erp', 'reverse-logistics', 'thermal-ar', 'digital-twin', 'esg', 'approvals');
     } else {
       if (hasPermission('inventory', 'read') || role === 'warehouse_operator') allowedTabs.push('products', 'scanning', 'serials', 'warehouse', 'autonomous', 'rfid', 'lots');
       if (hasPermission('procurement', 'read') || role === 'warehouse_operator' || role === 'accountant') allowedTabs.push('procurement', 'forecasting', 'routing', 'rebalancing');
       if (hasPermission('ledger', 'read') || role === 'accountant') allowedTabs.push('ledger', 'onboarding', 'compliance');
-      if (hasPermission('admin', 'read')) allowedTabs.push('admin');
+      if (hasPermission('admin', 'read') || hasPermission('approval', 'read')) allowedTabs.push('admin', 'approvals');
 
       if (role === 'viewer') allowedTabs.push('products', 'serials', 'forecasting', 'api-specs');
     }
@@ -1641,6 +1643,11 @@ function App() {
             {role === 'admin' && (
               <div className={`nav-link ${activeTab === 'webhooks' ? 'active' : ''}`} onClick={() => setActiveTab('webhooks')}>
                 🔗 Webhook Logs
+              </div>
+            )}
+            {role === 'admin' && (
+              <div className={`nav-link ${activeTab === 'approvals' ? 'active' : ''}`} onClick={() => setActiveTab('approvals')}>
+                ✅ Approvals
               </div>
             )}
             {role === 'admin' && (
@@ -3222,6 +3229,13 @@ function App() {
 
         {(activeTab as string) === 'lots' && (
           <LotManagementPanel />
+        )}
+
+        {activeTab === 'approvals' && (
+          <div className="grid-cols-2">
+            <ApprovalInboxPanel api={client} />
+            <ApprovalWorkflowPanel api={client} />
+          </div>
         )}
 
         {activeTab === 'webhooks' && (

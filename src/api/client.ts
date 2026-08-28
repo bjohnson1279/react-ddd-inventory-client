@@ -276,7 +276,7 @@ export interface RfidScanUpdate {
 }
 
 export type BackendType = 'graphql' | 'express' | 'laravel';
-export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous' | 'conformance' | 'api-specs' | 'anomaly-detection' | 'rebalancing' | 'logistics-erp';
+export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous' | 'conformance' | 'api-specs' | 'anomaly-detection' | 'rebalancing' | 'logistics-erp' | 'approvals';
 
 // --- Abstract Client Interface ---
 export interface InventoryClient {
@@ -356,6 +356,12 @@ export interface InventoryClient {
   createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role>;
   updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void>;
   deleteRole(roleId: string): Promise<void>;
+
+  // Approvals
+  getApprovalWorkflows(): Promise<any[]>;
+  toggleApprovalWorkflow(id: string): Promise<any>;
+  getPendingApprovals(): Promise<any[]>;
+  submitApprovalDecision(id: string, decision: string, notes: string): Promise<any>;
 
   runAudit(tenantId: string): Promise<any>;
   getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]>;
