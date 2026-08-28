@@ -34,9 +34,13 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
         const res = await api.inspectRMAItem({ rmaNumber, sku, disposition, notes: inspectionNotes });
         setRmaResult(res);
       } else {
+        const activeToken = localStorage.getItem('auth_token') || '';
         const response = await fetch('/api/rma/inspect', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+          },
           body: JSON.stringify({ rmaNumber, sku, disposition, notes: inspectionNotes })
         });
         const data = await response.json();
@@ -58,9 +62,13 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
         const res = await api.submitSupplierASN({ asnNumber, supplierId, expectedDelivery, lineItemsJson });
         setAsnResult(res);
       } else {
+        const activeToken = localStorage.getItem('auth_token') || '';
         const response = await fetch('/api/supplier/asn', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+          },
           body: JSON.stringify({ asnNumber, supplierId, expectedDelivery, lineItemsJson })
         });
         const data = await response.json();
@@ -81,7 +89,10 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
         const res = await api.getSupplierOTIFScorecard({ supplierId: otifSupplierId });
         setScorecard(res);
       } else {
-        const response = await fetch(`/api/supplier/otif-scorecard?supplierId=${otifSupplierId}`);
+        const activeToken = localStorage.getItem('auth_token') || '';
+        const response = await fetch(`/api/supplier/otif-scorecard?supplierId=${otifSupplierId}`, {
+          headers: activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {}
+        });
         const data = await response.json();
         setScorecard(data);
       }

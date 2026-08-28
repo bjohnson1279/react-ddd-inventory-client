@@ -18,7 +18,10 @@ export const EsgEmissionsPanel: React.FC<EsgEmissionsPanelProps> = ({ api }) => 
         const res = await api.getEsgEmissionsReport({ tenantId });
         setReport(res);
       } else {
-        const response = await fetch(`/api/sustainability/emissions-report?tenantId=${tenantId}`);
+        const activeToken = localStorage.getItem('auth_token') || '';
+        const response = await fetch(`/api/sustainability/emissions-report?tenantId=${tenantId}`, {
+          headers: activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {}
+        });
         const data = await response.json();
         setReport(data);
       }

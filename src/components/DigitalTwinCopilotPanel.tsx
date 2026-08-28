@@ -33,9 +33,13 @@ export const DigitalTwinCopilotPanel: React.FC<DigitalTwinCopilotPanelProps> = (
         const res = await api.runDigitalTwinSimulation({ warehouseId, orderWaveCount, activePickersCount });
         setSimResult(res);
       } else {
+        const activeToken = localStorage.getItem('auth_token') || '';
         const response = await fetch('/api/digital-twin/simulate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+          },
           body: JSON.stringify({ warehouseId, orderWaveCount, activePickersCount })
         });
         const data = await response.json();
@@ -59,9 +63,13 @@ export const DigitalTwinCopilotPanel: React.FC<DigitalTwinCopilotPanelProps> = (
       if (api && api.queryCopilot) {
         resultData = await api.queryCopilot({ query: userMsg });
       } else {
+        const activeToken = localStorage.getItem('auth_token') || '';
         const response = await fetch('/api/copilot/query', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+          },
           body: JSON.stringify({ query: userMsg })
         });
         resultData = await response.json();
