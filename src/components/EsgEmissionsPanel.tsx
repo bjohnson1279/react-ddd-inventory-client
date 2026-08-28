@@ -49,7 +49,7 @@ export const EsgEmissionsPanel: React.FC<EsgEmissionsPanelProps> = ({ api }) => 
         </div>
         <button
           onClick={fetchEmissionsReport}
-          disabled={loading}
+          disabled={loading} aria-busy={loading}
           style={{ padding: '8px 16px', background: '#10b981', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
         >
           {loading ? 'Refreshing...' : 'Refresh ESG Metrics'}

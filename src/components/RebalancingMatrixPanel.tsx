@@ -39,7 +39,7 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({
         <button
           className="ai-panel-action-btn"
           onClick={fetchData}
-          disabled={loading}
+          disabled={loading} aria-busy={loading}
         >
           {loading ? "Calculating..." : "Calculate Matrix"}
         </button>
