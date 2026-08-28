@@ -675,4 +675,21 @@ export class ExpressRESTAdapter implements InventoryClient {
   async getRebalanceMatrix(tenantId: string): Promise<any> {
     return await this.request('GET', `/rebalance/matrix?tenantId=${tenantId}`);
   }
+
+  // Approvals
+  async getApprovalWorkflows(): Promise<any[]> {
+    return await this.request('GET', '/approvals/workflows');
+  }
+
+  async toggleApprovalWorkflow(id: string): Promise<any> {
+    return await this.request('POST', `/approvals/workflows/${id}/toggle`);
+  }
+
+  async getPendingApprovals(): Promise<any[]> {
+    return await this.request('GET', '/approvals/pending');
+  }
+
+  async submitApprovalDecision(id: string, decision: string, notes: string): Promise<any> {
+    return await this.request('POST', `/approvals/${id}/decide`, { decision, notes });
+  }
 }
