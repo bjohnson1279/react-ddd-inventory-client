@@ -20,6 +20,7 @@ import { RoleManagementPanel } from './components/RoleManagementPanel';
 import { ApprovalInboxPanel } from './components/ApprovalInboxPanel';
 import { ApprovalWorkflowPanel } from './components/ApprovalWorkflowPanel';
 import { ReportingDashboardPanel } from './components/ReportingDashboardPanel';
+import { OmnichannelIntegrationPanel } from './components/OmnichannelIntegrationPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1574,7 +1575,7 @@ function App() {
             </div>
             {role === 'admin' && (
               <div className={`nav-link ${activeTab === 'shopify' ? 'active' : ''}`} onClick={() => setActiveTab('shopify')}>
-                🔌 Shopify Platform
+                🌐 Integrations (Omnichannel)
               </div>
             )}
             {(role === 'admin' || role === 'warehouse_operator' || role === 'viewer') && (
@@ -1829,66 +1830,7 @@ function App() {
         )}
 
         {activeTab === 'shopify' && (
-          <div className="grid-cols-2">
-            <div className="glass-panel">
-              <h3 className="form-section-title">Configure Shopify Connection</h3>
-              <form onSubmit={handleConnectShopify}>
-                <div className="form-group">
-                  <label htmlFor="shopify-connection-id">Connection Name / ID</label>
-                  <input id="shopify-connection-id" type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="shopify-store-domain">Store Domain</label>
-                  <input id="shopify-store-domain" type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="shopify-access-token">Shopify API Access Token</label>
-                  <input id="shopify-access-token" type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
-                </div>
-                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-                  {loading ? <Spinner /> : 'Connect Store'}
-                </button>
-              </form>
-            </div>
-            
-            <div className="glass-panel">
-              <h3 className="form-section-title">Connected Storefronts</h3>
-              <div className="table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Store Domain</th>
-                      <th>Platform</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shopifyConns.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                          No active store connections.
-                        </td>
-                      </tr>
-                    ) : (
-                      shopifyConns.map(conn => (
-                        <tr key={conn.id}>
-                          <td><code>{conn.storeDomain}</code></td>
-                          <td>{conn.platform.toUpperCase()}</td>
-                          <td>
-                            {conn.isActive ? (
-                              <span className="badge badge-success">Connected</span>
-                            ) : (
-                              <span className="badge badge-error">Inactive</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <OmnichannelIntegrationPanel tenantId={tenantId} />
         )}
 
         {activeTab === 'products' && (

@@ -128,6 +128,10 @@ export class ExpressRESTAdapter implements InventoryClient {
     }
   }
 
+  async getConnections(tenantId: string): Promise<any> {
+    return this.request('GET', `/integrations/connections?tenantId=${tenantId}`);
+  }
+
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
     // In Express, shopify connections are stored in databases, but the API may not expose a list connection route.
     // Fall back to returning a default list.
@@ -195,6 +199,14 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   async connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void> {
     await this.request('POST', '/shopify/connect', { tenantId, storeDomain, accessToken });
+  }
+
+  async connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void> {
+    await this.request('POST', '/integrations/amazon/connect', { tenantId, sellerId, mwsAuthToken, marketplaceId });
+  }
+
+  async connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void> {
+    await this.request('POST', '/integrations/woocommerce/connect', { tenantId, storeUrl, consumerKey, consumerSecret });
   }
 
   async createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void> {

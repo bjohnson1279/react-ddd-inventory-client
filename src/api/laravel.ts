@@ -168,13 +168,11 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
-    return [{
-      id: 'conn-1',
-      tenantId,
-      platform: 'shopify',
-      storeDomain: 'mock-store.myshopify.com',
-      isActive: true
-    }];
+    return this.request('GET', `/api/shopify/connections?tenantId=${tenantId}`);
+  }
+
+  async getConnections(tenantId: string): Promise<any> {
+    return this.request('GET', `/api/integrations/connections`);
   }
 
   async getJournalEntries(tenantId: string): Promise<JournalEntry[]> {
@@ -284,8 +282,15 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void> {
-    // Connect to shopify platform settings
     await this.request('POST', '/api/shopify/connect', { tenantId, storeDomain, accessToken });
+  }
+
+  async connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void> {
+    await this.request('POST', `/api/integrations/amazon/connect`, { sellerId, mwsAuthToken, marketplaceId });
+  }
+
+  async connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void> {
+    await this.request('POST', `/api/integrations/woocommerce/connect`, { storeUrl, consumerKey, consumerSecret });
   }
 
   async createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void> {

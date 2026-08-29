@@ -75,10 +75,37 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
-    const data = await this.fetchGraphql(`query GetShopify($tenant: ID!) {
-      shopifyConnections(tenantId: $tenant) { id tenantId platform storeDomain isActive }
-    }`, { tenant: tenantId });
+    const query = `
+      query GetShopifyConnections {
+        shopifyConnections {
+          id
+          tenantId
+          platform
+          storeDomain
+          isActive
+        }
+      }
+    `;
+    const data = await this.fetchGraphql(query);
     return data.shopifyConnections || [];
+  }
+
+  async getConnections(tenantId: string): Promise<any> {
+    const query = `
+      query GetConnections {
+        amazonConnections {
+          id
+          sellerId
+          marketplaceId
+        }
+        wooCommerceConnections {
+          id
+          storeUrl
+        }
+      }
+    `;
+    const data = await this.fetchGraphql(query);
+    return data;
   }
 
   async getJournalEntries(tenantId: string): Promise<JournalEntry[]> {
@@ -157,9 +184,36 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void> {
-    await this.fetchGraphql(`mutation ConnShopify($tenant: ID!, $store: String!, $token: String!) {
-      connectShopify(tenantId: $tenant, storeDomain: $store, accessToken: $token)
-    }`, { tenant: tenantId, store: storeDomain, token: accessToken });
+    const mutation = `
+      mutation ConnectShopify($storeDomain: String!, $accessToken: String!) {
+        connectShopifyStore(storeDomain: $storeDomain, accessToken: $accessToken) {
+          id
+        }
+      }
+    `;
+    await this.fetchGraphql(mutation, { storeDomain, accessToken });
+  }
+
+  async connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void> {
+    const mutation = `
+      mutation ConnectAmazon($input: ConnectAmazonInput!) {
+        connectAmazonStore(input: $input) {
+          id
+        }
+      }
+    `;
+    await this.fetchGraphql(mutation, { input: { sellerId, mwsAuthToken, marketplaceId } });
+  }
+
+  async connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void> {
+    const mutation = `
+      mutation ConnectWooCommerce($input: ConnectWooCommerceInput!) {
+        connectWooCommerceStore(input: $input) {
+          id
+        }
+      }
+    `;
+    await this.fetchGraphql(mutation, { input: { storeUrl, consumerKey, consumerSecret } });
   }
 
   async createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void> {

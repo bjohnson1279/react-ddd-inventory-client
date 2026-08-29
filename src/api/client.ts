@@ -320,6 +320,7 @@ export interface InventoryClient {
   getInventoryItems(): Promise<InventoryItem[]>;
   getProducts(): Promise<Product[]>;
   getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]>;
+  getConnections(tenantId: string): Promise<any>;
   getJournalEntries(tenantId: string): Promise<JournalEntry[]>;
   getStockOnboardings(tenantId: string): Promise<StockOnboarding[]>;
   createProduct(id: string, name: string): Promise<void>;
@@ -329,6 +330,8 @@ export interface InventoryClient {
   scanBarcode(value: string, context: string, amount: number, actualQuantity: number, tenantId: string, locationId: string, actorId: string): Promise<any>;
   traceSerialHistory(serialNumber: string): Promise<SerializedItem>;
   connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void>;
+  connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void>;
+  connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void>;
   createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void>;
   createStockOnboarding(tenantId: string, locationId: string, asOfDate: string, items: Item[]): Promise<void>;
   submitStockOnboarding(onboardingId: string): Promise<void>;
