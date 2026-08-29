@@ -252,8 +252,44 @@ export interface ValuationItem {
   name: string;
   costingMethod: string;
   totalQuantity: number;
-  totalValueCents: number;
   unitCostCents: number;
+  totalValueCents: number;
+}
+
+// --- Reporting & Analytics ---
+export interface ReportDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  filters: any;
+  grouping: any;
+}
+
+export interface ReportSchedule {
+  id: string;
+  reportDefinitionId: string;
+  cronExpression: string;
+  deliveryMethod: string;
+  nextRunAt: string;
+}
+
+export interface ReportExecution {
+  id: string;
+  reportDefinitionId: string;
+  status: string;
+  format: string;
+  fileUrl?: string;
+}
+
+export interface DashboardWidget {
+  id: string;
+  type: string;
+  config: any;
+  layoutX: number;
+  layoutY: number;
+  width: number;
+  height: number;
 }
 
 export interface RfidTag {
@@ -390,6 +426,14 @@ export interface InventoryClient {
 
   analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any>;
   getRebalanceMatrix(tenantId: string): Promise<any>;
+
+  // Reporting & Analytics
+  getReportDefinitions(tenantId: string): Promise<ReportDefinition[]>;
+  createReportDefinition(tenantId: string, payload: Partial<ReportDefinition>): Promise<{ id: string }>;
+  scheduleReport(tenantId: string, reportId: string, cronExpression: string, deliveryMethod: string): Promise<{ scheduleId: string }>;
+  executeReport(tenantId: string, reportId: string, format: string): Promise<{ executionId: string }>;
+  getDashboardWidgets(tenantId: string): Promise<DashboardWidget[]>;
+  saveDashboardWidget(tenantId: string, widget: Partial<DashboardWidget>): Promise<{ id: string }>;
 }
 
 // --- React Context Infrastructure ---

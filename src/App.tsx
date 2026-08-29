@@ -19,6 +19,7 @@ import { EsgEmissionsPanel } from './components/EsgEmissionsPanel';
 import { RoleManagementPanel } from './components/RoleManagementPanel';
 import { ApprovalInboxPanel } from './components/ApprovalInboxPanel';
 import { ApprovalWorkflowPanel } from './components/ApprovalWorkflowPanel';
+import { ReportingDashboardPanel } from './components/ReportingDashboardPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1608,6 +1609,9 @@ function App() {
             )}
             <div className={`nav-link ${activeTab === 'forecasting' ? 'active' : ''}`} onClick={() => setActiveTab('forecasting')}>
               📊 Demand Forecasting
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'reporting' ? 'active' : ''}`} onClick={() => setActiveTab('reporting' as any)}>
+              📈 Reporting & Dashboards
             </div>
             {role === 'admin' && (
               <div className={`nav-link ${activeTab === 'routing' ? 'active' : ''}`} onClick={() => setActiveTab('routing')}>
@@ -4119,6 +4123,7 @@ function App() {
         {(activeTab as string) === 'thermal-ar' && <ThermalPrintingArPanel api={client} />}
         {(activeTab as string) === 'digital-twin' && <DigitalTwinCopilotPanel api={client} />}
         {(activeTab as string) === 'esg' && <EsgEmissionsPanel api={client} />}
+        {(activeTab as string) === 'reporting' && <ReportingDashboardPanel client={client} tenantId={tenantId} />}
       </div>
     </div>
   );

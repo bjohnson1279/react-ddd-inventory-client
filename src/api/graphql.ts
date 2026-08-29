@@ -825,4 +825,49 @@ export class GraphQLAdapter implements InventoryClient {
   async submitApprovalDecision(id: string, decision: string, notes: string): Promise<any> {
     throw new Error('Not implemented for GraphQL');
   }
+
+  // Reporting & Analytics
+  async getReportDefinitions(tenantId: string): Promise<any[]> {
+    const query = `query GetReports($tenantId: String!) { reportDefinitions(tenantId: $tenantId) { id name type filters } }`;
+    const data = await this.fetchGraphql(query, { tenantId });
+    return data.reportDefinitions || [];
+  }
+
+  async createReportDefinition(tenantId: string, payload: any): Promise<any> {
+    const mutation = `mutation CreateReport($tenantId: String!, $name: String!, $type: String!, $filters: JSON, $grouping: JSON) {
+      createReportDefinition(tenantId: $tenantId, name: $name, type: $type, filters: $filters, grouping: $grouping) { id }
+    }`;
+    const data = await this.fetchGraphql(mutation, { tenantId, name: payload.name, type: payload.type, filters: payload.filters, grouping: payload.grouping });
+    return data.createReportDefinition;
+  }
+
+  async scheduleReport(tenantId: string, reportId: string, cronExpression: string, deliveryMethod: string): Promise<any> {
+    const mutation = `mutation ScheduleReport($tenantId: String!, $reportId: String!, $cronExpression: String!, $deliveryMethod: String!) {
+      scheduleReport(tenantId: $tenantId, reportId: $reportId, cronExpression: $cronExpression, deliveryMethod: $deliveryMethod) { id }
+    }`;
+    const data = await this.fetchGraphql(mutation, { tenantId, reportId, cronExpression, deliveryMethod });
+    return data.scheduleReport;
+  }
+
+  async executeReport(tenantId: string, reportId: string, format: string): Promise<any> {
+    const mutation = `mutation ExecuteReport($tenantId: String!, $reportId: String!, $format: String!) {
+      executeReport(tenantId: $tenantId, reportId: $reportId, format: $format) { id }
+    }`;
+    const data = await this.fetchGraphql(mutation, { tenantId, reportId, format });
+    return data.executeReport;
+  }
+
+  async getDashboardWidgets(tenantId: string): Promise<any[]> {
+    const query = `query GetWidgets($tenantId: String!) { dashboardWidgets(tenantId: $tenantId) { id type config layoutX layoutY width height } }`;
+    const data = await this.fetchGraphql(query, { tenantId });
+    return data.dashboardWidgets || [];
+  }
+
+  async saveDashboardWidget(tenantId: string, widget: any): Promise<any> {
+    const mutation = `mutation SaveWidget($tenantId: String!, $type: String!, $config: JSON, $layoutX: Int!, $layoutY: Int!, $width: Int!, $height: Int!) {
+      saveDashboardWidget(tenantId: $tenantId, type: $type, config: $config, layoutX: $layoutX, layoutY: $layoutY, width: $width, height: $height) { id }
+    }`;
+    const data = await this.fetchGraphql(mutation, { tenantId, type: widget.type, config: widget.config, layoutX: widget.layoutX, layoutY: widget.layoutY, width: widget.width, height: widget.height });
+    return data.saveDashboardWidget;
+  }
 }

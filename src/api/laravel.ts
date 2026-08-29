@@ -888,4 +888,29 @@ export class LaravelRESTAdapter implements InventoryClient {
   async submitApprovalDecision(id: string, decision: string, notes: string): Promise<any> {
     throw new Error('Not implemented for Laravel');
   }
+
+  // Reporting & Analytics
+  async getReportDefinitions(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/api/reports?tenantId=${tenantId}`);
+  }
+
+  async createReportDefinition(tenantId: string, payload: any): Promise<any> {
+    return await this.request('POST', `/api/reports`, { ...payload, tenantId });
+  }
+
+  async scheduleReport(tenantId: string, reportId: string, cronExpression: string, deliveryMethod: string): Promise<any> {
+    return await this.request('POST', `/api/reports/${reportId}/schedule`, { tenantId, cronExpression, deliveryMethod });
+  }
+
+  async executeReport(tenantId: string, reportId: string, format: string): Promise<any> {
+    return await this.request('POST', `/api/reports/${reportId}/execute`, { tenantId, format });
+  }
+
+  async getDashboardWidgets(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/api/widgets?tenantId=${tenantId}`);
+  }
+
+  async saveDashboardWidget(tenantId: string, widget: any): Promise<any> {
+    return await this.request('POST', `/api/widgets`, { ...widget, tenantId });
+  }
 }
