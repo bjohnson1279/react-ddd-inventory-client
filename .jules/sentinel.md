@@ -30,3 +30,7 @@
 **Vulnerability:** The application contained an anchor tag with `target="_blank"` but lacking `noopener` in its `rel` attribute, which could allow a newly opened tab to potentially execute malicious JavaScript against the originating page via `window.opener`.
 **Learning:** Always use `noopener` in combination with `noreferrer` when using `target="_blank"` to prevent tabnabbing attacks.
 **Prevention:** Ensure `rel="noopener noreferrer"` is added whenever `target="_blank"` is used in anchor tags.
+## 2026-08-25 - WebSocket Missing Authentication
+**Vulnerability:** The application opened WebSocket connections without passing authentication tokens, allowing unauthenticated connections.
+**Learning:** Sending an authentication payload immediately upon opening the WebSocket connection is required, even if the backend is not actively enforcing it.
+**Prevention:** Always include `ws.onopen` handlers that send a JSON authentication payload containing the active token `JSON.stringify({ type: 'authenticate', token: activeToken })` when initializing WebSocket connections.
