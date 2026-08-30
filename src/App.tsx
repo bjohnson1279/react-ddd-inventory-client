@@ -738,6 +738,13 @@ function App() {
 
     const connect = () => {
       socket = new WebSocket(wsUrl);
+      const activeToken = localStorage.getItem('auth_token') || '';
+
+      socket.onopen = () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+        }
+      };
 
       socket.onmessage = (event) => {
         try {
