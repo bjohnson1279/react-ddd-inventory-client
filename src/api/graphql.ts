@@ -924,4 +924,63 @@ export class GraphQLAdapter implements InventoryClient {
     const data = await this.fetchGraphql(mutation, { tenantId, type: widget.type, config: widget.config, layoutX: widget.layoutX, layoutY: widget.layoutY, width: widget.width, height: widget.height });
     return data.saveDashboardWidget;
   }
+
+  // --- Item 15: Operational Depth ---
+  async startCycleCount(tenantId: string, name: string, isBlindCount: boolean, abcClass?: string, zone?: string): Promise<any> {
+    const mutation = `mutation StartCycleCount($tenantId: ID!, $name: String!, $isBlindCount: Boolean, $abcClass: String, $zone: String) {
+      startCycleCount(tenantId: $tenantId, name: $name, isBlindCount: $isBlindCount, abcClass: $abcClass, zone: $zone) { id status }
+    }`;
+    const data = await this.fetchGraphql(mutation, { tenantId, name, isBlindCount, abcClass, zone });
+    return data.startCycleCount;
+  }
+  async submitCycleCount(id: string, countedLines: any): Promise<void> {
+    const mutation = `mutation SubmitCycleCount($id: ID!, $countedLines: JSON!) {
+      submitCycleCount(id: $id, countedLines: $countedLines)
+    }`;
+    await this.fetchGraphql(mutation, { id, countedLines });
+  }
+  async getCycleCounts(tenantId: string): Promise<any[]> {
+    const query = `query GetCycleCounts($tenantId: ID!) {
+      getCycleCounts(tenantId: $tenantId) { id name status createdAt }
+    }`;
+    const data = await this.fetchGraphql(query, { tenantId });
+    return data.getCycleCounts;
+  }
+  
+  async submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any> {
+    const mutation = `mutation SubmitASN($tenantId: ID!, $poId: ID!, $supplierId: ID!, $expectedArrivalDate: String!, $lines: [ASNLineInput!]!) {
+      submitASN(tenantId: $tenantId, poId: $poId, supplierId: $supplierId, expectedArrivalDate: $expectedArrivalDate, lines: $lines) { id status }
+    }`;
+    const data = await this.fetchGraphql(mutation, { tenantId, poId, supplierId, expectedArrivalDate, lines });
+    return data.submitASN;
+  }
+  async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
+    const query = `query GetSupplierASNs($tenantId: ID!, $supplierId: ID!) {
+      getSupplierASNs(tenantId: $tenantId, supplierId: $supplierId) { id poId expectedArrivalDate status }
+    }`;
+    const data = await this.fetchGraphql(query, { tenantId, supplierId });
+    return data.getSupplierASNs;
+  }
+  
+  async getNotifications(tenantId: string, userId: string): Promise<any[]> {
+    const query = `query GetNotifications($tenantId: ID!, $userId: ID!) {
+      getNotifications(tenantId: $tenantId, userId: $userId) { id message isRead createdAt }
+    }`;
+    const data = await this.fetchGraphql(query, { tenantId, userId });
+    return data.getNotifications;
+  }
+  async markNotificationRead(id: string): Promise<void> {
+    const mutation = `mutation MarkNotificationRead($id: ID!) {
+      markNotificationRead(id: $id)
+    }`;
+    await this.fetchGraphql(mutation, { id });
+  }
+  
+  async generateAgingReport(tenantId: string): Promise<any> {
+    const query = `query GenerateAgingReport($tenantId: ID!) {
+      generateAgingReport(tenantId: $tenantId) { generatedAt buckets { bucket sku quantity value } }
+    }`;
+    const data = await this.fetchGraphql(query, { tenantId });
+    return data.generateAgingReport;
+  }
 }

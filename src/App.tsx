@@ -21,6 +21,10 @@ import { ApprovalInboxPanel } from './components/ApprovalInboxPanel';
 import { ApprovalWorkflowPanel } from './components/ApprovalWorkflowPanel';
 import { ReportingDashboardPanel } from './components/ReportingDashboardPanel';
 import { OmnichannelIntegrationPanel } from './components/OmnichannelIntegrationPanel';
+import { CycleCountDashboardPanel } from './components/CycleCountDashboardPanel';
+import { SupplierCollaborationPortal } from './components/SupplierCollaborationPortal';
+import { NotificationInboxPanel } from './components/NotificationInboxPanel';
+import { InventoryAgingPanel } from './components/InventoryAgingPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -32,7 +36,7 @@ const Spinner = () => (
 function App() {
   const { client, backendType, setBackendType } = useInventory();
   
-  const [activeTab, setActiveTab] = useState<Tab | 'forecasting'>('dashboard');
+  const [activeTab, setActiveTab] = useState<Tab | 'forecasting' | 'op-depth'>('dashboard');
   const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [loginTenant, setLoginTenant] = useState('tenant-1');
   const [loginActor, setLoginActor] = useState('admin-user');
@@ -1573,6 +1577,9 @@ function App() {
             <div className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
               🏠 Operations Dashboard
             </div>
+            <div className={`nav-link ${activeTab === 'op-depth' ? 'active' : ''}`} onClick={() => setActiveTab('op-depth')}>
+              📊 Operational Depth
+            </div>
             {role === 'admin' && (
               <div className={`nav-link ${activeTab === 'shopify' ? 'active' : ''}`} onClick={() => setActiveTab('shopify')}>
                 🌐 Integrations (Omnichannel)
@@ -1827,6 +1834,19 @@ function App() {
               </div>
             </div>
           </>
+        )}
+
+        {activeTab === 'op-depth' && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
+            <CycleCountDashboardPanel tenantId={tenantId} />
+            <SupplierCollaborationPortal tenantId={tenantId} />
+            <div className="xl:col-span-2 mt-6">
+              <InventoryAgingPanel tenantId={tenantId} />
+            </div>
+            <div className="xl:col-span-2 mt-6">
+              <NotificationInboxPanel tenantId={tenantId} />
+            </div>
+          </div>
         )}
 
         {activeTab === 'shopify' && (

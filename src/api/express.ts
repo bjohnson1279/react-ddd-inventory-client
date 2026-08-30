@@ -729,4 +729,33 @@ export class ExpressRESTAdapter implements InventoryClient {
   async saveDashboardWidget(tenantId: string, widget: any): Promise<any> {
     return await this.request('POST', `/widgets`, { ...widget, tenantId });
   }
+
+  // --- Item 15: Operational Depth ---
+  async startCycleCount(tenantId: string, name: string, isBlindCount: boolean, abcClass?: string, zone?: string): Promise<any> {
+    return await this.request('POST', '/cycle-count/start', { tenantId, name, isBlindCount, abcClass, zone });
+  }
+  async submitCycleCount(id: string, countedLines: any): Promise<void> {
+    await this.request('POST', `/cycle-count/${id}/submit`, { countedLines });
+  }
+  async getCycleCounts(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/cycle-count?tenantId=${tenantId}`);
+  }
+  
+  async submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any> {
+    return await this.request('POST', '/supplier/asn', { tenantId, poId, supplierId, expectedArrivalDate, lines });
+  }
+  async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
+    return await this.request('GET', `/supplier/asn?tenantId=${tenantId}&supplierId=${supplierId}`);
+  }
+  
+  async getNotifications(tenantId: string, userId: string): Promise<any[]> {
+    return await this.request('GET', `/notifications?tenantId=${tenantId}&userId=${userId}`);
+  }
+  async markNotificationRead(id: string): Promise<void> {
+    await this.request('POST', `/notifications/${id}/read`);
+  }
+  
+  async generateAgingReport(tenantId: string): Promise<any> {
+    return await this.request('GET', `/aging/report?tenantId=${tenantId}`);
+  }
 }

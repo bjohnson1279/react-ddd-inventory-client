@@ -437,6 +437,19 @@ export interface InventoryClient {
   executeReport(tenantId: string, reportId: string, format: string): Promise<{ executionId: string }>;
   getDashboardWidgets(tenantId: string): Promise<DashboardWidget[]>;
   saveDashboardWidget(tenantId: string, widget: Partial<DashboardWidget>): Promise<{ id: string }>;
+
+  // --- Item 15: Operational Depth ---
+  startCycleCount(tenantId: string, name: string, isBlindCount: boolean, abcClass?: string, zone?: string): Promise<any>;
+  submitCycleCount(id: string, countedLines: any): Promise<void>;
+  getCycleCounts(tenantId: string): Promise<any[]>;
+  
+  submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any>;
+  getASNs(tenantId: string, supplierId: string): Promise<any[]>;
+  
+  getNotifications(tenantId: string, userId: string): Promise<any[]>;
+  markNotificationRead(id: string): Promise<void>;
+  
+  generateAgingReport(tenantId: string): Promise<any>;
 }
 
 // --- React Context Infrastructure ---
