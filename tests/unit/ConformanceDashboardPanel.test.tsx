@@ -111,10 +111,7 @@ describe('ConformanceDashboardPanel', () => {
 
     // Advance 5 seconds (5000ms) to trigger the first interval execution
     await act(async () => {
-      vi.advanceTimersByTime(5000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(5000);
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(3);

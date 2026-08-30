@@ -745,6 +745,11 @@ function App() {
     const connect = () => {
       socket = new WebSocket(wsUrl);
 
+      socket.onopen = () => {
+        const activeToken = localStorage.getItem('auth_token') || '';
+        socket?.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+      };
+
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
