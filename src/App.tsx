@@ -738,6 +738,7 @@ function App() {
   useEffect(() => {
     if (!token || backendType !== 'express') return;
 
+    const activeToken = localStorage.getItem('auth_token') || '';
     const wsUrl = `ws://localhost:5000?tenantId=${tenantId}`;
     let socket: WebSocket | null = null;
     let reconnectTimeout: any = null;
@@ -750,6 +751,12 @@ function App() {
         if (socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
         }
+      };
+
+      socket.onopen = () => {
+        // Authenticate WebSocket connection securely after opening,
+        // preventing token leakage in the URL query string
+        socket?.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
       };
 
       socket.onmessage = (event) => {
