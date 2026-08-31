@@ -7,12 +7,16 @@ interface Workflow {
   steps: { roleId: string; minApprovals: number; timeoutHours: number }[];
 }
 
+import { InventoryClient } from '../api/client';
+
 interface ApprovalWorkflowPanelProps {
-  api?: any;
+  api: InventoryClient;
+  tenantId: string;
 }
 
 export const ApprovalWorkflowPanel: React.FC<ApprovalWorkflowPanelProps> = ({
   api,
+  tenantId,
 }) => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,20 +28,9 @@ export const ApprovalWorkflowPanel: React.FC<ApprovalWorkflowPanelProps> = ({
 
   const fetchWorkflows = async () => {
     setLoading(true);
-    const activeToken = localStorage.getItem("auth_token") || "";
     try {
-      if (api && api.getApprovalWorkflows) {
-        const data = await api.getApprovalWorkflows();
-        setWorkflows(data);
-      } else {
-        const response = await fetch("/api/approval/workflows", {
-          headers: {
-            ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
-          },
-        });
-        const data = await response.json();
-        setWorkflows(data.data || []);
-      }
+      const data = await api.getApprovalWorkflows();
+      setWorkflows(data);
     } catch (err: any) {
       setError(err.message || "Failed to fetch workflows");
     } finally {
@@ -46,18 +39,8 @@ export const ApprovalWorkflowPanel: React.FC<ApprovalWorkflowPanelProps> = ({
   };
 
   const handleToggle = async (id: string) => {
-    const activeToken = localStorage.getItem("auth_token") || "";
     try {
-      if (api && api.toggleApprovalWorkflow) {
-        await api.toggleApprovalWorkflow(id);
-      } else {
-        await fetch(`/api/approval/workflows/${id}/toggle`, {
-          method: "POST",
-          headers: {
-            ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
-          },
-        });
-      }
+      await api.toggleApprovalWorkflow(id);
       fetchWorkflows();
     } catch (err: any) {
       setError(err.message || "Failed to toggle workflow");
