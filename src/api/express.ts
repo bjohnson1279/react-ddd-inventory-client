@@ -1,4 +1,4 @@
-import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
+import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidScanUpdate } from './client';
 
 const EXPRESS_BASE_URL = 'http://localhost:5000/api';
 const EXPRESS_WS_URL = 'ws://localhost:5000';
@@ -263,16 +263,11 @@ export class ExpressRESTAdapter implements InventoryClient {
   subscribeBarcodeScans(tenantId: string, onScan: (scan: any) => void): () => void {
     const activeToken = localStorage.getItem('auth_token') || '';
     const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
-    const activeToken = localStorage.getItem('auth_token') || '';
 
     ws.onopen = () => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
       }
-    };
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
     };
 
     ws.onmessage = (event) => {
@@ -661,16 +656,11 @@ export class ExpressRESTAdapter implements InventoryClient {
   subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
     const activeToken = localStorage.getItem('auth_token') || '';
     const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
-    const activeToken = localStorage.getItem('auth_token') || '';
 
     ws.onopen = () => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
       }
-    };
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
     };
 
     ws.onmessage = (event) => {
