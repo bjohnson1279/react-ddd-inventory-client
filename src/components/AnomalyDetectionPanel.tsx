@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { InventoryClient } from "../api/client";
-import { Spinner } from "./Panels";
 
 interface AnomalyDetectionPanelProps {
   api: InventoryClient;
