@@ -169,7 +169,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
             </div>
             <button
               type="submit"
-              disabled={loading} aria-busy={loading}
+              disabled={loading}
               aria-busy={loading}
               className="w-full bg-blue-600 text-white rounded p-2 text-sm hover:bg-blue-700"
             >
@@ -233,7 +233,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
             </div>
             <button
               type="submit"
-              disabled={loading} aria-busy={loading}
+              disabled={loading}
               aria-busy={loading}
               className="w-full bg-purple-600 text-white rounded p-2 text-sm hover:bg-purple-700"
             >
@@ -281,7 +281,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
             </div>
             <button
               type="submit"
-              disabled={loading} aria-busy={loading}
+              disabled={loading}
               aria-busy={loading}
               className="w-full bg-green-600 text-white rounded p-2 text-sm hover:bg-green-700"
             >
