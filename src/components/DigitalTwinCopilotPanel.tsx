@@ -212,7 +212,10 @@ export const DigitalTwinCopilotPanel: React.FC<DigitalTwinCopilotPanelProps> = (
           </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>
+            <label htmlFor="copilotPrompt" className="sr-only" style={{ display: 'none' }}>Ask Copilot</label>
             <input
+              id="copilotPrompt"
+              aria-label="Ask Copilot"
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
