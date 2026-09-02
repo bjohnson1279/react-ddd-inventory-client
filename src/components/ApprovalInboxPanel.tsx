@@ -9,16 +9,12 @@ interface ApprovalRequest {
   payload: any;
 }
 
-import { InventoryClient } from '../api/client';
-
 interface ApprovalInboxPanelProps {
-  api: InventoryClient;
-  tenantId: string;
+  api?: any;
 }
 
 export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
   api,
-  tenantId,
 }) => {
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,8 +53,8 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
   ) => {
     const activeToken = localStorage.getItem("auth_token") || "";
     try {
-      if (api && api.submitApprovalDecision) {
-        await api.submitApprovalDecision(id, decision, "Reviewed via UI");
+      if (api && api.submitDecision) {
+        await api.submitDecision(id, decision, "Reviewed via UI");
       } else {
         await fetch(`/api/approval/requests/${id}/decision`, {
           method: "POST",

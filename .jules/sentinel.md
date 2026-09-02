@@ -34,7 +34,3 @@
 **Vulnerability:** Sending auth tokens in URL query strings for native WebSocket endpoints or leaving WebSocket connections entirely unauthenticated.
 **Learning:** Native `WebSocket` API does not support custom headers, making it tempting to pass tokens via query parameters (which leaks them in logs and history) or via the `protocols` array (which fails if the server doesn't negotiate it).
 **Prevention:** To securely authenticate native WebSockets in this project, send a JSON message containing the token (e.g., `JSON.stringify({ type: 'authenticate', token: activeToken })`) immediately within the WebSocket's `onopen` event handler, avoiding token leakage in URL query strings.
-## 2026-08-31 - Password Validation Missing in API Adapters
-**Vulnerability:** Missing explicit password validation in API adapters (like GraphQL) could allow authentication bypass via missing or empty passwords.
-**Learning:** API adapters must explicitly validate and demand authentication secrets, rather than passing them optionally or failing silently, especially in dynamic environments where parameter omission might occur.
-**Prevention:** Always use an explicit guard clause (e.g., `if (!password) throw new Error(...)`) at the beginning of authentication adapter functions to strictly enforce credential requirements.

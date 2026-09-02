@@ -3213,7 +3213,7 @@ function App() {
 
         {activeTab === 'approvals' && (
           <div className="grid-cols-2">
-            <ApprovalInboxPanel api={client} tenantId={tenantId} />
+            <ApprovalInboxPanel api={client} />
             <ApprovalWorkflowPanel api={client} />
           </div>
         )}
