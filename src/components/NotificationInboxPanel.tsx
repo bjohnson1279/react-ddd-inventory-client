@@ -10,6 +10,9 @@ export const NotificationInboxPanel: React.FC<{ tenantId: string }> = ({ tenantI
     client.getNotifications(tenantId, 'user-123').then(setNotifications).catch(console.error);
   }, [client, tenantId]);
 
+  // ⚡ Bolt: Memoize unread count to prevent O(N) filtering on every render
+  const unreadCount = React.useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="px-6 py-5 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
@@ -17,7 +20,7 @@ export const NotificationInboxPanel: React.FC<{ tenantId: string }> = ({ tenantI
           <Bell size={20} className="text-indigo-500" /> Notifications
         </h3>
         <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-          {notifications.filter(n => !n.isRead).length} New
+          {unreadCount} New
         </span>
       </div>
       <div className="p-0">
