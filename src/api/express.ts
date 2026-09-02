@@ -261,8 +261,15 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   subscribeBarcodeScans(tenantId: string, onScan: (scan: any) => void): () => void {
-    const activeToken = localStorage.getItem('auth_token') || '';
     const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
+<<<<<<< HEAD
+
+    ws.onopen = () => {
+      const activeToken = localStorage.getItem('auth_token') || '';
+      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+    };
+
+=======
 
     ws.onopen = () => {
       if (ws.readyState === WebSocket.OPEN) {
@@ -270,6 +277,7 @@ export class ExpressRESTAdapter implements InventoryClient {
       }
     };
 
+>>>>>>> origin/main
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -654,8 +662,15 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
-    const activeToken = localStorage.getItem('auth_token') || '';
     const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
+<<<<<<< HEAD
+
+    ws.onopen = () => {
+      const activeToken = localStorage.getItem('auth_token') || '';
+      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+    };
+
+=======
 
     ws.onopen = () => {
       if (ws.readyState === WebSocket.OPEN) {
@@ -663,6 +678,7 @@ export class ExpressRESTAdapter implements InventoryClient {
       }
     };
 
+>>>>>>> origin/main
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
