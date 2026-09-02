@@ -270,10 +270,6 @@ export class ExpressRESTAdapter implements InventoryClient {
       }
     };
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
-    };
-
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -665,10 +661,6 @@ export class ExpressRESTAdapter implements InventoryClient {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
       }
-    };
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
     };
 
     ws.onmessage = (event) => {
