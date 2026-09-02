@@ -24,3 +24,9 @@
 ## 2024-08-27 - Loading Buttons without aria-busy
 **Learning:** Found multiple instances where buttons that trigger async operations (like form submissions or data fetching) had `disabled={loading}` but lacked `aria-busy={loading}`. Screen readers rely on `aria-busy` to announce that the system is processing something, which is a critical piece of feedback for accessibility.
 **Action:** Always ensure that buttons triggering async actions have both `disabled={loading}` and `aria-busy={loading}` attributes applied to provide clear feedback to assistive technologies.
+## 2026-09-01 - Accessible Inputs
+**Learning:** Found inputs lacking an associated label or `aria-label` making it difficult for screen readers to interpret context. Added an `aria-label` for a visually hidden label, and associated it.
+**Action:** Always verify inputs have a valid `id` and `label` or `aria-label`.
+## 2024-05-16 - Dynamic ARIA Labels in Lists
+**Learning:** Found that generic `aria-label="Mark as read"` on repeated list items leaves screen reader users without context about which specific item they are acting upon.
+**Action:** Always use template literals to inject unique item identifiers (e.g., IDs or names) into `aria-label` attributes for repeated action buttons in lists.
