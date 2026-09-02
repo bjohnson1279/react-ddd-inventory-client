@@ -143,16 +143,16 @@ export const DigitalTwinCopilotPanel: React.FC<DigitalTwinCopilotPanelProps> = (
           <div style={{ background: '#1e293b', padding: '20px', borderRadius: '8px' }}>
             <h3 style={{ marginTop: 0, color: '#f1f5f9', fontSize: '18px' }}>Fulfillment Stress Test Parameters</h3>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Warehouse Facility ID</label>
-              <input type="text" value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+              <label htmlFor="warehouseId" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Warehouse Facility ID</label>
+              <input id="warehouseId" type="text" value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Simulated Order Waves (Count)</label>
-              <input type="number" value={orderWaveCount} onChange={(e) => setOrderWaveCount(parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+              <label htmlFor="orderWaveCount" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Simulated Order Waves (Count)</label>
+              <input id="orderWaveCount" type="number" value={orderWaveCount} onChange={(e) => setOrderWaveCount(parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Active Picker Concurrency</label>
-              <input type="number" value={activePickersCount} onChange={(e) => setActivePickersCount(parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+              <label htmlFor="activePickersCount" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Active Picker Concurrency</label>
+              <input id="activePickersCount" type="number" value={activePickersCount} onChange={(e) => setActivePickersCount(parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
 
             <button onClick={handleRunSimulation} disabled={loading} aria-busy={loading} style={{ width: '100%', padding: '10px', background: '#0284c7', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
