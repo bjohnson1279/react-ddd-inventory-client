@@ -26,3 +26,6 @@
 ## 2024-05-20 - Replace inline `.some` with `length` check when memoized array exists
 **Learning:** Found an O(N) array iteration `purchaseOrders.some(po => po.status === 'sent')` happening on every render inside `src/components/Panels.tsx`, despite a memoized array `sentPurchaseOrders` (which filters by the exact same condition) already existing in the component.
 **Action:** Replace inline boolean checks like `.some()` that re-evaluate derived state on every render with O(1) checks (e.g. `memoizedArray.length > 0`) when a pre-memoized version of that exact filtered data is available.
+## 2024-05-21 - Extract static arrays used in useMemo dependencies
+**Learning:** Found static arrays defined inside a React component (`ApiSpecViewerPanel`) that were being passed into `useMemo` dependency arrays. Defining static arrays inside a component body causes them to be re-instantiated on every render (creating a new reference), which guarantees the shallow equality check (`old !== new`) in `useMemo` will always fail, causing the expensive calculations to run continuously anyway.
+**Action:** Always hoist static arrays, objects, and objects that don't depend on component state or props outside the component definition to maintain referential stability.

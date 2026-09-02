@@ -19,6 +19,12 @@ import { EsgEmissionsPanel } from './components/EsgEmissionsPanel';
 import { RoleManagementPanel } from './components/RoleManagementPanel';
 import { ApprovalInboxPanel } from './components/ApprovalInboxPanel';
 import { ApprovalWorkflowPanel } from './components/ApprovalWorkflowPanel';
+import { ReportingDashboardPanel } from './components/ReportingDashboardPanel';
+import { OmnichannelIntegrationPanel } from './components/OmnichannelIntegrationPanel';
+import { CycleCountDashboardPanel } from './components/CycleCountDashboardPanel';
+import { SupplierCollaborationPortal } from './components/SupplierCollaborationPortal';
+import { NotificationInboxPanel } from './components/NotificationInboxPanel';
+import { InventoryAgingPanel } from './components/InventoryAgingPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -30,7 +36,7 @@ const Spinner = () => (
 function App() {
   const { client, backendType, setBackendType } = useInventory();
   
-  const [activeTab, setActiveTab] = useState<Tab | 'forecasting'>('dashboard');
+  const [activeTab, setActiveTab] = useState<Tab | 'forecasting' | 'op-depth'>('dashboard');
   const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [loginTenant, setLoginTenant] = useState('tenant-1');
   const [loginActor, setLoginActor] = useState('admin-user');
@@ -732,12 +738,26 @@ function App() {
   useEffect(() => {
     if (!token || backendType !== 'express') return;
 
+    const activeToken = localStorage.getItem('auth_token') || '';
     const wsUrl = `ws://localhost:5000?tenantId=${tenantId}`;
     let socket: WebSocket | null = null;
     let reconnectTimeout: any = null;
 
     const connect = () => {
       socket = new WebSocket(wsUrl);
+      const activeToken = localStorage.getItem('auth_token') || '';
+
+      socket.onopen = () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+        }
+      };
+
+      socket.onopen = () => {
+        // Authenticate WebSocket connection securely after opening,
+        // preventing token leakage in the URL query string
+        socket?.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+      };
 
       socket.onmessage = (event) => {
         try {
@@ -1571,9 +1591,12 @@ function App() {
             <div className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
               🏠 Operations Dashboard
             </div>
+            <div className={`nav-link ${activeTab === 'op-depth' ? 'active' : ''}`} onClick={() => setActiveTab('op-depth')}>
+              📊 Operational Depth
+            </div>
             {role === 'admin' && (
               <div className={`nav-link ${activeTab === 'shopify' ? 'active' : ''}`} onClick={() => setActiveTab('shopify')}>
-                🔌 Shopify Platform
+                🌐 Integrations (Omnichannel)
               </div>
             )}
             {(role === 'admin' || role === 'warehouse_operator' || role === 'viewer') && (
@@ -1608,6 +1631,9 @@ function App() {
             )}
             <div className={`nav-link ${activeTab === 'forecasting' ? 'active' : ''}`} onClick={() => setActiveTab('forecasting')}>
               📊 Demand Forecasting
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'reporting' ? 'active' : ''}`} onClick={() => setActiveTab('reporting' as any)}>
+              📈 Reporting & Dashboards
             </div>
             {role === 'admin' && (
               <div className={`nav-link ${activeTab === 'routing' ? 'active' : ''}`} onClick={() => setActiveTab('routing')}>
@@ -1824,67 +1850,21 @@ function App() {
           </>
         )}
 
-        {activeTab === 'shopify' && (
-          <div className="grid-cols-2">
-            <div className="glass-panel">
-              <h3 className="form-section-title">Configure Shopify Connection</h3>
-              <form onSubmit={handleConnectShopify}>
-                <div className="form-group">
-                  <label htmlFor="shopify-connection-id">Connection Name / ID</label>
-                  <input id="shopify-connection-id" type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="shopify-store-domain">Store Domain</label>
-                  <input id="shopify-store-domain" type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="shopify-access-token">Shopify API Access Token</label>
-                  <input id="shopify-access-token" type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
-                </div>
-                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-                  {loading ? <Spinner /> : 'Connect Store'}
-                </button>
-              </form>
+        {activeTab === 'op-depth' && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
+            <CycleCountDashboardPanel tenantId={tenantId} />
+            <SupplierCollaborationPortal tenantId={tenantId} />
+            <div className="xl:col-span-2 mt-6">
+              <InventoryAgingPanel tenantId={tenantId} />
             </div>
-            
-            <div className="glass-panel">
-              <h3 className="form-section-title">Connected Storefronts</h3>
-              <div className="table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Store Domain</th>
-                      <th>Platform</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shopifyConns.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                          No active store connections.
-                        </td>
-                      </tr>
-                    ) : (
-                      shopifyConns.map(conn => (
-                        <tr key={conn.id}>
-                          <td><code>{conn.storeDomain}</code></td>
-                          <td>{conn.platform.toUpperCase()}</td>
-                          <td>
-                            {conn.isActive ? (
-                              <span className="badge badge-success">Connected</span>
-                            ) : (
-                              <span className="badge badge-error">Inactive</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            <div className="xl:col-span-2 mt-6">
+              <NotificationInboxPanel tenantId={tenantId} />
             </div>
           </div>
+        )}
+
+        {activeTab === 'shopify' && (
+          <OmnichannelIntegrationPanel tenantId={tenantId} />
         )}
 
         {activeTab === 'products' && (
@@ -3233,7 +3213,7 @@ function App() {
 
         {activeTab === 'approvals' && (
           <div className="grid-cols-2">
-            <ApprovalInboxPanel api={client} />
+            <ApprovalInboxPanel api={client} tenantId={tenantId} />
             <ApprovalWorkflowPanel api={client} />
           </div>
         )}
@@ -4119,6 +4099,7 @@ function App() {
         {(activeTab as string) === 'thermal-ar' && <ThermalPrintingArPanel api={client} />}
         {(activeTab as string) === 'digital-twin' && <DigitalTwinCopilotPanel api={client} />}
         {(activeTab as string) === 'esg' && <EsgEmissionsPanel api={client} />}
+        {(activeTab as string) === 'reporting' && <ReportingDashboardPanel client={client} tenantId={tenantId} />}
       </div>
     </div>
   );

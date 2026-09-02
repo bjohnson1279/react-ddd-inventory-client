@@ -1,4 +1,4 @@
-import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
+import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidScanUpdate } from './client';
 
 const LARAVEL_BASE_URL = 'http://localhost:8000';
 
@@ -168,13 +168,11 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
-    return [{
-      id: 'conn-1',
-      tenantId,
-      platform: 'shopify',
-      storeDomain: 'mock-store.myshopify.com',
-      isActive: true
-    }];
+    return this.request('GET', `/api/shopify/connections?tenantId=${tenantId}`);
+  }
+
+  async getConnections(tenantId: string): Promise<any> {
+    return this.request('GET', `/api/integrations/connections`);
   }
 
   async getJournalEntries(tenantId: string): Promise<JournalEntry[]> {
@@ -284,8 +282,15 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void> {
-    // Connect to shopify platform settings
     await this.request('POST', '/api/shopify/connect', { tenantId, storeDomain, accessToken });
+  }
+
+  async connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void> {
+    await this.request('POST', `/api/integrations/amazon/connect`, { sellerId, mwsAuthToken, marketplaceId });
+  }
+
+  async connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void> {
+    await this.request('POST', `/api/integrations/woocommerce/connect`, { storeUrl, consumerKey, consumerSecret });
   }
 
   async createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void> {
@@ -887,5 +892,59 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   async submitApprovalDecision(id: string, decision: string, notes: string): Promise<any> {
     throw new Error('Not implemented for Laravel');
+  }
+
+  // Reporting & Analytics
+  async getReportDefinitions(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/api/reports?tenantId=${tenantId}`);
+  }
+
+  async createReportDefinition(tenantId: string, payload: any): Promise<any> {
+    return await this.request('POST', `/api/reports`, { ...payload, tenantId });
+  }
+
+  async scheduleReport(tenantId: string, reportId: string, cronExpression: string, deliveryMethod: string): Promise<any> {
+    return await this.request('POST', `/api/reports/${reportId}/schedule`, { tenantId, cronExpression, deliveryMethod });
+  }
+
+  async executeReport(tenantId: string, reportId: string, format: string): Promise<any> {
+    return await this.request('POST', `/api/reports/${reportId}/execute`, { tenantId, format });
+  }
+
+  async getDashboardWidgets(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/api/widgets?tenantId=${tenantId}`);
+  }
+
+  async saveDashboardWidget(tenantId: string, widget: any): Promise<any> {
+    return await this.request('POST', `/api/widgets`, { ...widget, tenantId });
+  }
+
+  // --- Item 15: Operational Depth ---
+  async startCycleCount(tenantId: string, name: string, isBlindCount: boolean, abcClass?: string, zone?: string): Promise<any> {
+    return await this.request('POST', '/api/cycle-count/start', { tenantId, name, isBlindCount, abcClass, zone });
+  }
+  async submitCycleCount(id: string, countedLines: any): Promise<void> {
+    await this.request('POST', `/api/cycle-count/${id}/submit`, { countedLines });
+  }
+  async getCycleCounts(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/api/cycle-count?tenantId=${tenantId}`);
+  }
+  
+  async submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any> {
+    return await this.request('POST', '/api/supplier/asn', { tenantId, poId, supplierId, expectedArrivalDate, lines });
+  }
+  async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
+    return await this.request('GET', `/api/supplier/asn?tenantId=${tenantId}&supplierId=${supplierId}`);
+  }
+  
+  async getNotifications(tenantId: string, userId: string): Promise<any[]> {
+    return await this.request('GET', `/api/notifications?tenantId=${tenantId}&userId=${userId}`);
+  }
+  async markNotificationRead(id: string): Promise<void> {
+    await this.request('POST', `/api/notifications/${id}/read`);
+  }
+  
+  async generateAgingReport(tenantId: string): Promise<any> {
+    return await this.request('GET', `/api/aging/report?tenantId=${tenantId}`);
   }
 }

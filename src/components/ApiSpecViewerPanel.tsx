@@ -1,26 +1,27 @@
 import React, { useState } from 'react';
 
+// ⚡ Bolt: Extracted static mock data outside the component to prevent re-instantiation on every render, which breaks useMemo dependency checks.
+// Mock OpenAPI Data
+const openApiEndpoints = [
+  { method: 'GET', path: '/api/inventory', summary: 'List inventory items' },
+  { method: 'POST', path: '/api/inventory', summary: 'Create or update inventory' },
+  { method: 'GET', path: '/api/compliance/ledger', summary: 'Get compliance events' },
+  { method: 'DELETE', path: '/api/products/{id}', summary: 'Remove a product' }
+];
+
+// Mock GraphQL Data
+const graphqlTypes = [
+  { name: 'InventoryItem', fields: 'id: ID!\nsku: String!\nquantity: Int!\nlocationId: String' },
+  { name: 'Product', fields: 'id: ID!\nname: String!\nvariants: [ProductVariant]' },
+];
+const graphqlQueries = [
+  { name: 'inventoryItems', returns: '[InventoryItem!]!' },
+  { name: 'complianceLedger', returns: '[ComplianceEvent!]!' }
+];
+
 export const ApiSpecViewerPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'openapi-express' | 'openapi-php' | 'graphql'>('openapi-express');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Mock OpenAPI Data
-  const openApiEndpoints = [
-    { method: 'GET', path: '/api/inventory', summary: 'List inventory items' },
-    { method: 'POST', path: '/api/inventory', summary: 'Create or update inventory' },
-    { method: 'GET', path: '/api/compliance/ledger', summary: 'Get compliance events' },
-    { method: 'DELETE', path: '/api/products/{id}', summary: 'Remove a product' }
-  ];
-
-  // Mock GraphQL Data
-  const graphqlTypes = [
-    { name: 'InventoryItem', fields: 'id: ID!\nsku: String!\nquantity: Int!\nlocationId: String' },
-    { name: 'Product', fields: 'id: ID!\nname: String!\nvariants: [ProductVariant]' },
-  ];
-  const graphqlQueries = [
-    { name: 'inventoryItems', returns: '[InventoryItem!]!' },
-    { name: 'complianceLedger', returns: '[ComplianceEvent!]!' }
-  ];
 
   const getMethodColor = (method: string) => {
     switch (method) {
