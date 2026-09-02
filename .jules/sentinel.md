@@ -38,3 +38,8 @@
 **Vulnerability:** Missing explicit password validation in API adapters (like GraphQL) could allow authentication bypass via missing or empty passwords.
 **Learning:** API adapters must explicitly validate and demand authentication secrets, rather than passing them optionally or failing silently, especially in dynamic environments where parameter omission might occur.
 **Prevention:** Always use an explicit guard clause (e.g., `if (!password) throw new Error(...)`) at the beginning of authentication adapter functions to strictly enforce credential requirements.
+
+## 2026-08-31 - Secret Validation Missing in API Integrations
+**Vulnerability:** Missing explicit secret validation in API integration adapters (like `connectShopify`, `connectAmazon`, `connectWooCommerce`) could allow downstream connections to proceed with missing or empty secrets (e.g., `accessToken`, `mwsAuthToken`, `consumerSecret`).
+**Learning:** API adapters must explicitly validate and demand all authentication parameters and integration secrets, throwing errors immediately on the client side if missing, rather than relying on optional parameters or failing silently later in the pipeline.
+**Prevention:** Always use an explicit guard clause (e.g., `if (!accessToken) throw new Error(...)`) at the beginning of integration adapter functions to strictly enforce credential requirements.

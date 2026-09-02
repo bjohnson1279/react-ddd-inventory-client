@@ -187,6 +187,9 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void> {
+    if (!accessToken) {
+      throw new Error('Authentication failed: Missing required accessToken parameter.');
+    }
     const mutation = `
       mutation ConnectShopify($storeDomain: String!, $accessToken: String!) {
         connectShopifyStore(storeDomain: $storeDomain, accessToken: $accessToken) {
@@ -198,6 +201,9 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void> {
+    if (!mwsAuthToken) {
+      throw new Error('Authentication failed: Missing required mwsAuthToken parameter.');
+    }
     const mutation = `
       mutation ConnectAmazon($input: ConnectAmazonInput!) {
         connectAmazonStore(input: $input) {
@@ -209,6 +215,9 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void> {
+    if (!consumerSecret) {
+      throw new Error('Authentication failed: Missing required consumerSecret parameter.');
+    }
     const mutation = `
       mutation ConnectWooCommerce($input: ConnectWooCommerceInput!) {
         connectWooCommerceStore(input: $input) {

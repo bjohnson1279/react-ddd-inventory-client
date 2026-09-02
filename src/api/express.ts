@@ -198,14 +198,23 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void> {
+    if (!accessToken) {
+      throw new Error('Authentication failed: Missing required accessToken parameter.');
+    }
     await this.request('POST', '/shopify/connect', { tenantId, storeDomain, accessToken });
   }
 
   async connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void> {
+    if (!mwsAuthToken) {
+      throw new Error('Authentication failed: Missing required mwsAuthToken parameter.');
+    }
     await this.request('POST', '/integrations/amazon/connect', { tenantId, sellerId, mwsAuthToken, marketplaceId });
   }
 
   async connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void> {
+    if (!consumerSecret) {
+      throw new Error('Authentication failed: Missing required consumerSecret parameter.');
+    }
     await this.request('POST', '/integrations/woocommerce/connect', { tenantId, storeUrl, consumerKey, consumerSecret });
   }
 
