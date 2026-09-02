@@ -276,10 +276,6 @@ export class ExpressRESTAdapter implements InventoryClient {
     };
 
 
-    ws.onopen = () => {
-      const activeToken = localStorage.getItem('auth_token') || '';
-      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
-    };
 
 
     ws.onopen = () => {
@@ -687,10 +683,6 @@ export class ExpressRESTAdapter implements InventoryClient {
     };
 
 
-    ws.onopen = () => {
-      const activeToken = localStorage.getItem('auth_token') || '';
-      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
-    };
 
 
     ws.onopen = () => {
