@@ -265,6 +265,8 @@ export class ExpressRESTAdapter implements InventoryClient {
 <<<<<<< HEAD
 =======
 <<<<<<< HEAD
+=======
+<<<<<<< HEAD
 
     ws.onopen = () => {
       const activeToken = localStorage.getItem('auth_token') || '';
@@ -272,6 +274,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     };
 
 =======
+>>>>>>> origin/main
 >>>>>>> origin/main
 
     ws.onopen = () => {
@@ -282,6 +285,9 @@ export class ExpressRESTAdapter implements InventoryClient {
 
 <<<<<<< HEAD
 =======
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
 >>>>>>> origin/main
 >>>>>>> origin/main
     ws.onmessage = (event) => {
@@ -672,6 +678,8 @@ export class ExpressRESTAdapter implements InventoryClient {
 <<<<<<< HEAD
 =======
 <<<<<<< HEAD
+=======
+<<<<<<< HEAD
 
     ws.onopen = () => {
       const activeToken = localStorage.getItem('auth_token') || '';
@@ -679,6 +687,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     };
 
 =======
+>>>>>>> origin/main
 >>>>>>> origin/main
 
     ws.onopen = () => {
@@ -689,6 +698,9 @@ export class ExpressRESTAdapter implements InventoryClient {
 
 <<<<<<< HEAD
 =======
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
 >>>>>>> origin/main
 >>>>>>> origin/main
     ws.onmessage = (event) => {
