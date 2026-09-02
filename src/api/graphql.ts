@@ -33,6 +33,9 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async login(tenantId: string, actorId: string, role?: string, password?: string): Promise<string> {
+    if (!password) {
+      throw new Error('Authentication failed: Missing required password parameter.');
+    }
     const data = await this.fetchGraphql(`mutation Login($tenant: ID!, $actor: ID!, $role: String, $password: String) {
       login(tenantId: $tenant, actorId: $actor, role: $role, password: $password)
     }`, { tenant: tenantId, actor: actorId, role, password }, 'NONE');
