@@ -38,9 +38,11 @@ export const NotificationInboxPanel: React.FC<{ tenantId: string }> = ({ tenantI
                 </div>
                 {!n.isRead && (
                   <button 
+                    type="button"
                     onClick={() => client.markNotificationRead(n.id)}
                     className="text-slate-400 hover:text-indigo-600 p-1"
                     title="Mark as read"
+                    aria-label={`Mark notification ${n.id} as read`}
                   >
                     <Check size={16} />
                   </button>
