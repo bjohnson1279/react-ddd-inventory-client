@@ -265,6 +265,12 @@ export class ExpressRESTAdapter implements InventoryClient {
     const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
 
     ws.onopen = () => {
+      const activeToken = localStorage.getItem('auth_token') || '';
+      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+    };
+
+
+    ws.onopen = () => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
       }
@@ -660,6 +666,12 @@ export class ExpressRESTAdapter implements InventoryClient {
   subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
     const activeToken = localStorage.getItem('auth_token') || '';
     const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
+
+    ws.onopen = () => {
+      const activeToken = localStorage.getItem('auth_token') || '';
+      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+    };
+
 
     ws.onopen = () => {
       if (ws.readyState === WebSocket.OPEN) {
