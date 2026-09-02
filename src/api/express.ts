@@ -1,4 +1,4 @@
-import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidTag, RfidScanUpdate } from './client';
+import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, BarcodeAssignment, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidScanUpdate } from './client';
 
 const EXPRESS_BASE_URL = 'http://localhost:5000/api';
 const EXPRESS_WS_URL = 'ws://localhost:5000';
@@ -128,6 +128,10 @@ export class ExpressRESTAdapter implements InventoryClient {
     }
   }
 
+  async getConnections(tenantId: string): Promise<any> {
+    return this.request('GET', `/integrations/connections?tenantId=${tenantId}`);
+  }
+
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
     // In Express, shopify connections are stored in databases, but the API may not expose a list connection route.
     // Fall back to returning a default list.
@@ -197,6 +201,14 @@ export class ExpressRESTAdapter implements InventoryClient {
     await this.request('POST', '/shopify/connect', { tenantId, storeDomain, accessToken });
   }
 
+  async connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void> {
+    await this.request('POST', '/integrations/amazon/connect', { tenantId, sellerId, mwsAuthToken, marketplaceId });
+  }
+
+  async connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void> {
+    await this.request('POST', '/integrations/woocommerce/connect', { tenantId, storeUrl, consumerKey, consumerSecret });
+  }
+
   async createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void> {
     // Express records journals based on specific workflows (received/sold)
     // Map to the appropriate REST payload
@@ -250,7 +262,34 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   subscribeBarcodeScans(tenantId: string, onScan: (scan: any) => void): () => void {
     const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
 
+    ws.onopen = () => {
+      const activeToken = localStorage.getItem('auth_token') || '';
+      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+    };
+
+=======
+>>>>>>> origin/main
+>>>>>>> origin/main
+
+    ws.onopen = () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+      }
+    };
+
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
+>>>>>>> origin/main
+>>>>>>> origin/main
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -636,7 +675,34 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
     const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
 
+    ws.onopen = () => {
+      const activeToken = localStorage.getItem('auth_token') || '';
+      ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+    };
+
+=======
+>>>>>>> origin/main
+>>>>>>> origin/main
+
+    ws.onopen = () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+      }
+    };
+
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
+>>>>>>> origin/main
+>>>>>>> origin/main
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -691,5 +757,59 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   async submitApprovalDecision(id: string, decision: string, notes: string): Promise<any> {
     return await this.request('POST', `/approvals/${id}/decide`, { decision, notes });
+  }
+
+  // Reporting & Analytics
+  async getReportDefinitions(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/reports?tenantId=${tenantId}`);
+  }
+
+  async createReportDefinition(tenantId: string, payload: any): Promise<any> {
+    return await this.request('POST', `/reports`, { ...payload, tenantId });
+  }
+
+  async scheduleReport(tenantId: string, reportId: string, cronExpression: string, deliveryMethod: string): Promise<any> {
+    return await this.request('POST', `/reports/${reportId}/schedule`, { tenantId, cronExpression, deliveryMethod });
+  }
+
+  async executeReport(tenantId: string, reportId: string, format: string): Promise<any> {
+    return await this.request('POST', `/reports/${reportId}/execute`, { tenantId, format });
+  }
+
+  async getDashboardWidgets(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/widgets?tenantId=${tenantId}`);
+  }
+
+  async saveDashboardWidget(tenantId: string, widget: any): Promise<any> {
+    return await this.request('POST', `/widgets`, { ...widget, tenantId });
+  }
+
+  // --- Item 15: Operational Depth ---
+  async startCycleCount(tenantId: string, name: string, isBlindCount: boolean, abcClass?: string, zone?: string): Promise<any> {
+    return await this.request('POST', '/cycle-count/start', { tenantId, name, isBlindCount, abcClass, zone });
+  }
+  async submitCycleCount(id: string, countedLines: any): Promise<void> {
+    await this.request('POST', `/cycle-count/${id}/submit`, { countedLines });
+  }
+  async getCycleCounts(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/cycle-count?tenantId=${tenantId}`);
+  }
+  
+  async submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any> {
+    return await this.request('POST', '/supplier/asn', { tenantId, poId, supplierId, expectedArrivalDate, lines });
+  }
+  async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
+    return await this.request('GET', `/supplier/asn?tenantId=${tenantId}&supplierId=${supplierId}`);
+  }
+  
+  async getNotifications(tenantId: string, userId: string): Promise<any[]> {
+    return await this.request('GET', `/notifications?tenantId=${tenantId}&userId=${userId}`);
+  }
+  async markNotificationRead(id: string): Promise<void> {
+    await this.request('POST', `/notifications/${id}/read`);
+  }
+  
+  async generateAgingReport(tenantId: string): Promise<any> {
+    return await this.request('GET', `/aging/report?tenantId=${tenantId}`);
   }
 }

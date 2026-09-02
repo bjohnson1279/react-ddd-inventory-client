@@ -252,8 +252,44 @@ export interface ValuationItem {
   name: string;
   costingMethod: string;
   totalQuantity: number;
-  totalValueCents: number;
   unitCostCents: number;
+  totalValueCents: number;
+}
+
+// --- Reporting & Analytics ---
+export interface ReportDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  filters: any;
+  grouping: any;
+}
+
+export interface ReportSchedule {
+  id: string;
+  reportDefinitionId: string;
+  cronExpression: string;
+  deliveryMethod: string;
+  nextRunAt: string;
+}
+
+export interface ReportExecution {
+  id: string;
+  reportDefinitionId: string;
+  status: string;
+  format: string;
+  fileUrl?: string;
+}
+
+export interface DashboardWidget {
+  id: string;
+  type: string;
+  config: any;
+  layoutX: number;
+  layoutY: number;
+  width: number;
+  height: number;
 }
 
 export interface RfidTag {
@@ -284,6 +320,7 @@ export interface InventoryClient {
   getInventoryItems(): Promise<InventoryItem[]>;
   getProducts(): Promise<Product[]>;
   getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]>;
+  getConnections(tenantId: string): Promise<any>;
   getJournalEntries(tenantId: string): Promise<JournalEntry[]>;
   getStockOnboardings(tenantId: string): Promise<StockOnboarding[]>;
   createProduct(id: string, name: string): Promise<void>;
@@ -293,6 +330,8 @@ export interface InventoryClient {
   scanBarcode(value: string, context: string, amount: number, actualQuantity: number, tenantId: string, locationId: string, actorId: string): Promise<any>;
   traceSerialHistory(serialNumber: string): Promise<SerializedItem>;
   connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void>;
+  connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void>;
+  connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void>;
   createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void>;
   createStockOnboarding(tenantId: string, locationId: string, asOfDate: string, items: Item[]): Promise<void>;
   submitStockOnboarding(onboardingId: string): Promise<void>;
@@ -390,6 +429,27 @@ export interface InventoryClient {
 
   analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any>;
   getRebalanceMatrix(tenantId: string): Promise<any>;
+
+  // Reporting & Analytics
+  getReportDefinitions(tenantId: string): Promise<ReportDefinition[]>;
+  createReportDefinition(tenantId: string, payload: Partial<ReportDefinition>): Promise<{ id: string }>;
+  scheduleReport(tenantId: string, reportId: string, cronExpression: string, deliveryMethod: string): Promise<{ scheduleId: string }>;
+  executeReport(tenantId: string, reportId: string, format: string): Promise<{ executionId: string }>;
+  getDashboardWidgets(tenantId: string): Promise<DashboardWidget[]>;
+  saveDashboardWidget(tenantId: string, widget: Partial<DashboardWidget>): Promise<{ id: string }>;
+
+  // --- Item 15: Operational Depth ---
+  startCycleCount(tenantId: string, name: string, isBlindCount: boolean, abcClass?: string, zone?: string): Promise<any>;
+  submitCycleCount(id: string, countedLines: any): Promise<void>;
+  getCycleCounts(tenantId: string): Promise<any[]>;
+  
+  submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any>;
+  getASNs(tenantId: string, supplierId: string): Promise<any[]>;
+  
+  getNotifications(tenantId: string, userId: string): Promise<any[]>;
+  markNotificationRead(id: string): Promise<void>;
+  
+  generateAgingReport(tenantId: string): Promise<any>;
 }
 
 // --- React Context Infrastructure ---
