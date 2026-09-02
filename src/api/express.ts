@@ -263,6 +263,10 @@ export class ExpressRESTAdapter implements InventoryClient {
   subscribeBarcodeScans(tenantId: string, onScan: (scan: any) => void): () => void {
     const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
 <<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
 
     ws.onopen = () => {
       const activeToken = localStorage.getItem('auth_token') || '';
@@ -270,6 +274,8 @@ export class ExpressRESTAdapter implements InventoryClient {
     };
 
 =======
+>>>>>>> origin/main
+>>>>>>> origin/main
 
     ws.onopen = () => {
       if (ws.readyState === WebSocket.OPEN) {
@@ -277,6 +283,12 @@ export class ExpressRESTAdapter implements InventoryClient {
       }
     };
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
+>>>>>>> origin/main
 >>>>>>> origin/main
     ws.onmessage = (event) => {
       try {
@@ -664,6 +676,10 @@ export class ExpressRESTAdapter implements InventoryClient {
   subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
     const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
 <<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
 
     ws.onopen = () => {
       const activeToken = localStorage.getItem('auth_token') || '';
@@ -671,6 +687,8 @@ export class ExpressRESTAdapter implements InventoryClient {
     };
 
 =======
+>>>>>>> origin/main
+>>>>>>> origin/main
 
     ws.onopen = () => {
       if (ws.readyState === WebSocket.OPEN) {
@@ -678,6 +696,12 @@ export class ExpressRESTAdapter implements InventoryClient {
       }
     };
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
+>>>>>>> origin/main
 >>>>>>> origin/main
     ws.onmessage = (event) => {
       try {
