@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Item, JournalLine, RfidTag, RfidScanUpdate } from '../api/client';
+import { Item, JournalLine, Tab, RfidTag, RfidScanUpdate } from '../api/client';
 
 export const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
