@@ -799,8 +799,8 @@ function App() {
         reconnectTimeout = setTimeout(connect, 3000);
       };
 
-      socket.onerror = (err) => {
-        console.error('[WebSocket] Sync error:', err);
+      socket.onerror = () => {
+        // Connection errors are handled by onclose reconnections
       };
     };
 
