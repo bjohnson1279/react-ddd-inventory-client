@@ -38,3 +38,7 @@
 **Vulnerability:** Missing explicit password validation in API adapters (like GraphQL) could allow authentication bypass via missing or empty passwords.
 **Learning:** API adapters must explicitly validate and demand authentication secrets, rather than passing them optionally or failing silently, especially in dynamic environments where parameter omission might occur.
 **Prevention:** Always use an explicit guard clause (e.g., `if (!password) throw new Error(...)`) at the beginning of authentication adapter functions to strictly enforce credential requirements.
+## 2026-08-31 - Redundant WebSocket Token Payload Initialization
+**Vulnerability:** Hardcoded tokens or overwritten authentication assignment callbacks missing validation (`readyState === WebSocket.OPEN`) when dealing with `onopen`.
+**Learning:** Duplicate assignments to the same event handler property (`ws.onopen`) overwrite previous logic, potentially overriding important authentication closures, bypassing explicit checks or falling back to undesired behavior. Sending tokens before the socket is explicitly verified as OPEN can fail silently.
+**Prevention:** Always combine multiple setup logic pieces into a single explicit assignment for standard DOM handlers (e.g., `onopen`), and defensively check `readyState` before emitting messages over the socket to prevent unexpected unready state errors.
