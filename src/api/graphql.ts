@@ -59,21 +59,44 @@ export class GraphQLAdapter implements InventoryClient {
     }`);
     const rawProducts = prodData.products || [];
     
-    // Resolve barcodes for variants to complete product models
-    return Promise.all(rawProducts.map(async (p: Product) => {
-      const variants = await Promise.all(p.variants.map(async (v) => {
-        try {
-          const bcData = await this.fetchGraphql(`query GetBarcodes($sku: String!) {
-            barcodeSet(sku: $sku) {
-              assignments { id sku barcode { value symbology } source isPrimary assignedAt }
-            }
-          }`, { sku: v.sku });
-          return { ...v, barcodes: bcData.barcodeSet?.assignments || [] };
-        } catch {
-          return { ...v, barcodes: [] };
+    // ⚡ Bolt: Optimized N+1 query by batching barcode requests using GraphQL aliases and variables
+    const allSkus = Array.from(new Set(rawProducts.flatMap((p: Product) => p.variants.map(v => v.sku))));
+    const barcodeMap = new Map<string, any[]>();
+
+    const chunkSize = 50;
+    for (let i = 0; i < allSkus.length; i += chunkSize) {
+      const chunk = allSkus.slice(i, i + chunkSize);
+
+      const queryParams = chunk.map((_, idx) => `$sku${idx}: String!`).join(', ');
+      const queryBody = chunk.map((_, idx) => `
+        bc_${idx}: barcodeSet(sku: $sku${idx}) {
+          assignments { id sku barcode { value symbology } source isPrimary assignedAt }
         }
-      }));
-      return { ...p, variants };
+      `).join('');
+
+      const variables = chunk.reduce((acc: Record<string, string>, sku: unknown, idx: number) => {
+        acc[`sku${idx}`] = sku as string;
+        return acc;
+      }, {} as Record<string, string>);
+
+      try {
+        const bcData = await this.fetchGraphql(`query GetBatchedBarcodes(${queryParams}) { ${queryBody} }`, variables);
+        if (bcData) {
+          chunk.forEach((sku: unknown, idx: number) => {
+            barcodeMap.set(sku as string, bcData[`bc_${idx}`]?.assignments || []);
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch batched barcodes', err);
+      }
+    }
+
+    return rawProducts.map((p: Product) => ({
+      ...p,
+      variants: p.variants.map((v) => ({
+        ...v,
+        barcodes: barcodeMap.get(v.sku) || []
+      }))
     }));
   }
 
