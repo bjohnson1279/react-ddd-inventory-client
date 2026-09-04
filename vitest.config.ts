@@ -9,6 +9,6 @@ export default defineConfig({
     setupFiles: './tests/unit/setup.ts',
     exclude: ['**/node_modules/**', '**/dist/**', '**/tests/e2e/**'],
     pool: 'threads',
-    pool: 'forks', },
+    poolOptions: { threads: { singleThread: true } },
   },
 });

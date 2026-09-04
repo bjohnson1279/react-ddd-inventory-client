@@ -8,7 +8,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     pool: 'threads',
-    pool: 'forks',
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
     },
   },
 })
