@@ -95,7 +95,6 @@ describe('ThermalPrintingArPanel', () => {
       }));
     });
 
-    await waitFor(() => expect(screen.getByText('FETCH_JOB_456')).toBeInTheDocument());
     await waitFor(() => {
       expect(screen.getByText('FETCH_JOB_456')).toBeInTheDocument();
     });
