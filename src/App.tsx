@@ -316,11 +316,17 @@ function App() {
   const [permissions, setPermissions] = useState<string[]>([]);
 
   useEffect(() => {
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setPermissions(payload.permissions || []);
-      } catch (e) {
+    if (typeof token === 'string') {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        try {
+          const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          const payload = JSON.parse(atob(base64));
+          setPermissions(Array.isArray(payload.permissions) ? payload.permissions : []);
+        } catch (e) {
+          setPermissions([]);
+        }
+      } else {
         setPermissions([]);
       }
     } else {
