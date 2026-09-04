@@ -5,7 +5,7 @@ import { useInventory } from './api/client';
 import '@testing-library/jest-dom';
 
 vi.mock('./api/client', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import('./api/client')>();
   return {
     ...actual,
     useInventory: vi.fn(),
