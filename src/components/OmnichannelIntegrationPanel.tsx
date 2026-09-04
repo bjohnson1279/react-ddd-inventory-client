@@ -106,11 +106,15 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
       </h2>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
+        <div role="alert" aria-live="assertive" className="mb-4 p-3 bg-red-100 text-red-700 rounded flex items-center justify-between">
+          <span>{error}</span>
+          <button type="button" onClick={() => setError("")} aria-label="Dismiss error" className="text-red-700 hover:text-red-900 font-bold ml-2">×</button>
+        </div>
       )}
       {success && (
-        <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
-          {success}
+        <div role="alert" aria-live="polite" className="mb-4 p-3 bg-green-100 text-green-700 rounded flex items-center justify-between">
+          <span>{success}</span>
+          <button type="button" onClick={() => setSuccess("")} aria-label="Dismiss success message" className="text-green-700 hover:text-green-900 font-bold ml-2">×</button>
         </div>
       )}
 

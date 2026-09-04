@@ -133,8 +133,9 @@ export const DigitalTwinCopilotPanel: React.FC<DigitalTwinCopilotPanelProps> = (
       </div>
 
       {error && (
-        <div role="alert" aria-live="assertive" style={{ padding: '12px', background: '#7f1d1d', color: '#fecaca', borderRadius: '6px', marginBottom: '16px' }}>
-          {error}
+        <div role="alert" aria-live="assertive" style={{ padding: '12px', background: '#7f1d1d', color: '#fecaca', borderRadius: '6px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{error}</span>
+          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: '1.2rem', cursor: 'pointer', padding: '0 4px', marginLeft: '8px' }}>×</button>
         </div>
       )}
 
