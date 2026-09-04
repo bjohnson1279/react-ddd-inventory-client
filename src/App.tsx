@@ -660,7 +660,6 @@ function App() {
         setValuationItems(v);
       }
     } catch (err: any) {
-      console.error('Failed to load admin data:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to load administrative data.' });
     } finally {
       setLoading(false);
