@@ -587,7 +587,7 @@ function App() {
       const stats = await client.getCacheStats();
       setCacheStats(stats);
     } catch (err: any) {
-      console.warn('Failed to fetch cache stats:', err);
+      // Ignore non-critical background fetch error
     }
   };
 
