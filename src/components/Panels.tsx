@@ -1317,17 +1317,8 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
   handleSendPO,
   loading
 }) => {
-// ⚡ Bolt: Memoize filtered array to prevent O(n) filtering on every render
+  // ⚡ Bolt: Memoize filtered array to prevent O(n) filtering on every render
   const sentPurchaseOrders = React.useMemo(() => purchaseOrders.filter(po => po.status === 'sent'), [purchaseOrders]);
-
-  // ⚡ Bolt: Memoize purchase orders into a dictionary to make lookups O(1) in onChange
-  const purchaseOrdersById = React.useMemo(() => {
-    const map = new Map<string, any>();
-    for (const po of purchaseOrders) {
-      map.set(po.id, po);
-    }
-    return map;
-  }, [purchaseOrders]);
 
   return (
   <div className="grid-cols-2">
@@ -1405,7 +1396,7 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                 onChange={(e) => {
                   const id = e.target.value;
                   setReceivePoId(id);
-                  const po = purchaseOrdersById.get(id);
+                  const po = purchaseOrders.find(p => p.id === id);
                   if (po) {
                     setReceivePoLines(po.items.map((i: any) => ({ sku: i.sku, quantity: i.quantity })));
                   }
