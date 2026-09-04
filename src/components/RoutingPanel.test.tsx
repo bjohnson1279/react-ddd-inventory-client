@@ -1,133 +1,97 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { describe, it, expect, vi } from 'vitest';
 import { RoutingPanel } from './Panels';
 
+// The Spinner is mocked in the setup but since Vitest hoists it, let's just assert on its structure (svg with class spinner)
+// or we can test by label texts
+
 describe('RoutingPanel', () => {
-  it('renders form and empty state correctly', () => {
-    render(
-      <RoutingPanel
-        routingSku=""
-        setRoutingSku={vi.fn()}
-        routingQuantity={1}
-        setRoutingQuantity={vi.fn()}
-        routingAddress=""
-        setRoutingAddress={vi.fn()}
-        routingStrategy="MINIMIZE_COST"
-        setRoutingStrategy={vi.fn()}
-        routingPlan={null}
-        handleComputeRoute={vi.fn()}
-        loading={false}
-      />
-    );
+  const defaultProps = {
+    routingSku: '',
+    setRoutingSku: vi.fn(),
+    routingQuantity: 0,
+    setRoutingQuantity: vi.fn(),
+    routingAddress: '',
+    setRoutingAddress: vi.fn(),
+    routingStrategy: 'MINIMIZE_COST',
+    setRoutingStrategy: vi.fn(),
+    routingPlan: null,
+    handleComputeRoute: vi.fn((e) => e.preventDefault()),
+    loading: false
+  };
+
+  it('renders initial empty state correctly', () => {
+    render(<RoutingPanel {...defaultProps} />);
+
     expect(screen.getByText('Intelligent Order Routing Optimizer')).toBeInTheDocument();
     expect(screen.getByText('Submit parameters on the left to resolve origin allocations.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Compute Optimal Routing Plan/i })).toBeInTheDocument();
   });
 
-  it('renders correctly with a routing plan', () => {
+  it('calls setter functions on input changes', async () => {
+    const user = userEvent.setup();
+    render(<RoutingPanel {...defaultProps} />);
+
+    const skuInput = screen.getAllByRole('textbox')[0];
+    await user.type(skuInput, 'TEST-SKU');
+    expect(defaultProps.setRoutingSku).toHaveBeenCalled();
+
+    const qtyInput = screen.getByRole('spinbutton');
+    await user.type(qtyInput, '5');
+    expect(defaultProps.setRoutingQuantity).toHaveBeenCalled();
+
+    const addressInput = screen.getAllByRole('textbox')[1];
+    await user.type(addressInput, '123 Test St');
+    expect(defaultProps.setRoutingAddress).toHaveBeenCalled();
+
+    const strategySelect = screen.getByRole('combobox');
+    await user.selectOptions(strategySelect, 'MINIMIZE_SPLITS');
+    expect(defaultProps.setRoutingStrategy).toHaveBeenCalledWith('MINIMIZE_SPLITS');
+  });
+
+  it('calls handleComputeRoute on form submit', async () => {
+    const user = userEvent.setup();
+    render(<RoutingPanel {...defaultProps} routingSku="A" routingQuantity={1} routingAddress="B" />);
+
+    const submitButton = screen.getByRole('button', { name: /Compute Optimal Routing Plan/i });
+    await user.click(submitButton);
+
+    expect(defaultProps.handleComputeRoute).toHaveBeenCalled();
+  });
+
+  it('disables submit button and shows loading state', () => {
+    render(<RoutingPanel {...defaultProps} loading={true} />);
+
+    const submitButton = screen.getByRole('button');
+    expect(submitButton).toBeDisabled();
+    expect(submitButton).toHaveAttribute('aria-busy', 'true');
+    // SVG spinner is rendered inside the button
+    expect(document.querySelector('.spinner')).toBeInTheDocument();
+  });
+
+  it('renders optimal fulfillment plan when provided', () => {
     const mockRoutingPlan = {
-      totalCost: 1500, // $15.00
-      totalDistance: 120.5,
-      splitCount: 1,
+      totalCost: 1550, // $15.50
+      totalDistance: 125.5,
+      splitCount: 2,
       allocations: [
-        { locationId: 'WH-1', quantity: 10 },
-        { locationId: 'WH-2', quantity: 5 }
+        { locationId: 'WH-1', quantity: 3 },
+        { locationId: 'WH-2', quantity: 2 }
       ]
     };
-    render(
-      <RoutingPanel
-        routingSku="SKU-1"
-        setRoutingSku={vi.fn()}
-        routingQuantity={15}
-        setRoutingQuantity={vi.fn()}
-        routingAddress="123 Main St"
-        setRoutingAddress={vi.fn()}
-        routingStrategy="MINIMIZE_COST"
-        setRoutingStrategy={vi.fn()}
-        routingPlan={mockRoutingPlan}
-        handleComputeRoute={vi.fn()}
-        loading={false}
-      />
-    );
-    expect(screen.getByText('$15.00')).toBeInTheDocument();
-    expect(screen.getByText('120.5 km')).toBeInTheDocument();
-    expect(screen.getByText('1 splits')).toBeInTheDocument();
+
+    render(<RoutingPanel {...defaultProps} routingPlan={mockRoutingPlan} />);
+
+    expect(screen.getByText('Optimal Fulfillment Plan')).toBeInTheDocument();
+    expect(screen.getByText('$15.50')).toBeInTheDocument();
+    expect(screen.getByText('125.5 km')).toBeInTheDocument();
+    expect(screen.getByText('2 splits')).toBeInTheDocument();
+
     expect(screen.getByText('WH-1')).toBeInTheDocument();
-    expect(screen.getByText('10 units')).toBeInTheDocument();
+    expect(screen.getByText('3 units')).toBeInTheDocument();
     expect(screen.getByText('WH-2')).toBeInTheDocument();
-    expect(screen.getByText('5 units')).toBeInTheDocument();
-  });
-
-  it('calls set methods when form values change', async () => {
-    const setRoutingSku = vi.fn();
-    const setRoutingQuantity = vi.fn();
-    const setRoutingAddress = vi.fn();
-    const setRoutingStrategy = vi.fn();
-    const handleComputeRoute = vi.fn((e) => e.preventDefault());
-
-    const { container } = render(
-      <RoutingPanel
-        routingSku="SKU"
-        setRoutingSku={setRoutingSku}
-        routingQuantity={1}
-        setRoutingQuantity={setRoutingQuantity}
-        routingAddress="ADDR"
-        setRoutingAddress={setRoutingAddress}
-        routingStrategy="MINIMIZE_COST"
-        setRoutingStrategy={setRoutingStrategy}
-        routingPlan={null}
-        handleComputeRoute={handleComputeRoute}
-        loading={false}
-      />
-    );
-
-    // Using querySelector instead of getByLabelText since labels are missing htmlFor
-    const skuInput = container.querySelector('input[type="text"]') as HTMLInputElement;
-    await userEvent.type(skuInput, 'TEST-SKU');
-    expect(setRoutingSku).toHaveBeenCalled();
-
-    const quantityInput = container.querySelector('input[type="number"]') as HTMLInputElement;
-    await userEvent.clear(quantityInput);
-    await userEvent.type(quantityInput, '5');
-    expect(setRoutingQuantity).toHaveBeenCalled();
-
-    const addressInputs = container.querySelectorAll('input[type="text"]');
-    const addressInput = addressInputs[1] as HTMLInputElement;
-    await userEvent.type(addressInput, 'New York');
-    expect(setRoutingAddress).toHaveBeenCalled();
-
-    const strategySelect = container.querySelector('select') as HTMLSelectElement;
-    await userEvent.selectOptions(strategySelect, 'MINIMIZE_SPLITS');
-    expect(setRoutingStrategy).toHaveBeenCalledWith('MINIMIZE_SPLITS');
-
-    // Test form submission. With jsdom, fireEvent.submit or form.submit might be needed, or clicking a button.
-    const form = container.querySelector('form');
-    // we bypass HTML5 validation in JSDOM sometimes but clicking submit when required fields are filled is best.
-    const submitBtn = screen.getByRole('button', { name: /Compute Optimal Routing Plan/i });
-    await userEvent.click(submitBtn);
-    expect(handleComputeRoute).toHaveBeenCalled();
-  });
-
-  it('displays loading state correctly', () => {
-    render(
-      <RoutingPanel
-        routingSku=""
-        setRoutingSku={vi.fn()}
-        routingQuantity={1}
-        setRoutingQuantity={vi.fn()}
-        routingAddress=""
-        setRoutingAddress={vi.fn()}
-        routingStrategy="MINIMIZE_COST"
-        setRoutingStrategy={vi.fn()}
-        routingPlan={null}
-        handleComputeRoute={vi.fn()}
-        loading={true}
-      />
-    );
-    const submitBtn = screen.getByRole('button');
-    expect(submitBtn).toBeDisabled();
-    expect(submitBtn).toHaveAttribute('aria-busy', 'true');
-    expect(screen.queryByText('Compute Optimal Routing Plan')).not.toBeInTheDocument();
+    expect(screen.getByText('2 units')).toBeInTheDocument();
   });
 });
