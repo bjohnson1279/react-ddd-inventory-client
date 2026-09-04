@@ -397,7 +397,7 @@ function App() {
         const queued = await getQueuedScans();
         setOfflineQueueCount(queued.length);
       } catch (err) {
-        console.error('Failed to read IndexedDB offline queue:', err);
+        // Silent fail on background queue check
       }
     };
     checkQueue();
