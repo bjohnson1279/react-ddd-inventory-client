@@ -422,7 +422,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
                   </div>
                 )}
 
-                {labelResult.bolUrl && (
+                {labelResult.bolUrl && (labelResult.bolUrl.startsWith('http://') || labelResult.bolUrl.startsWith('https://')) && (
                   <div className="p-2 bg-indigo-950/40 rounded border border-indigo-500/40 flex justify-between items-center">
                     <span className="text-indigo-300 font-sans">Bill of Lading (BOL):</span>
                     <a href={labelResult.bolUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 underline font-sans">
