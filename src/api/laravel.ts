@@ -125,15 +125,27 @@ export class LaravelRESTAdapter implements InventoryClient {
     const prodData = await this.request('GET', '/api/catalog/products');
     const rawProducts = prodData.products || [];
 
-    // Resolve barcodes for each variant to complete model structure
-    return Promise.all(rawProducts.map(async (p: any) => {
-      const variants = await Promise.all((p.variants || []).map(async (v: any) => {
-        try {
-          const bcData = await this.request('GET', `/api/barcodes/variants/${v.id}`);
-          // Format assignments to match UI expectations
-          const assignments = (bcData.assignments || []).map((a: any) => ({
+    // ⚡ Bolt: Fix N+1 Query by extracting variant IDs and fetching all barcodes in a single batch request
+    const variantIds: string[] = [];
+    rawProducts.forEach((p: any) => {
+      (p.variants || []).forEach((v: any) => {
+        if (v.id) variantIds.push(v.id);
+      });
+    });
+
+    const groupedBarcodes: Record<string, any[]> = {};
+    if (variantIds.length > 0) {
+      try {
+        // Use the batch endpoint to get all barcode assignments in one network call
+        const bcData = await this.request('GET', `/api/barcodes?variantIds=${variantIds.join(',')}`);
+        (bcData.assignments || []).forEach((a: any) => {
+          const vid = a.variant_id || a.variantId;
+          if (!groupedBarcodes[vid]) {
+            groupedBarcodes[vid] = [];
+          }
+          groupedBarcodes[vid].push({
             id: a.id,
-            sku: v.sku,
+            // SKU will be injected below
             barcode: {
               value: a.barcode_value || a.value,
               symbology: a.symbology
@@ -141,30 +153,31 @@ export class LaravelRESTAdapter implements InventoryClient {
             source: a.source,
             isPrimary: a.is_primary || a.isPrimary,
             assignedAt: a.assigned_at || a.assignedAt
-          }));
-          return {
-            id: v.id,
-            sku: v.sku,
-            trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
-            attributes: v.attributes || [],
-            barcodes: assignments
-          };
-        } catch {
-          return {
-            id: v.id,
-            sku: v.sku,
-            trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
-            attributes: v.attributes || [],
-            barcodes: []
-          };
-        }
-      }));
+          });
+        });
+      } catch (err) {
+        // Proceed with empty barcodes on failure
+      }
+    }
+
+    return rawProducts.map((p: any) => {
+      const variants = (p.variants || []).map((v: any) => {
+        const assignments = groupedBarcodes[v.id] || [];
+        const finalAssignments = assignments.map(a => ({ ...a, sku: v.sku }));
+        return {
+          id: v.id,
+          sku: v.sku,
+          trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
+          attributes: v.attributes || [],
+          barcodes: finalAssignments
+        };
+      });
       return {
         id: p.id,
         name: p.name,
         variants
       };
-    }));
+    });
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
@@ -220,12 +233,15 @@ export class LaravelRESTAdapter implements InventoryClient {
     // Lookup variantId first since Laravel assign endpoint requires it
     const products = await this.getProducts();
     let variantId = '';
+    // ⚡ Bolt: Removed O(N) array.find inside O(N) loop to reduce worst-case time complexity
     for (const p of products) {
-      const found = p.variants.find(v => v.sku === sku);
-      if (found) {
-        variantId = found.id;
-        break;
+      for (const v of p.variants) {
+        if (v.sku === sku) {
+          variantId = v.id;
+          break;
+        }
       }
+      if (variantId) break;
     }
 
     if (!variantId) {
