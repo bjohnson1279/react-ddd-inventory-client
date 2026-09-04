@@ -888,7 +888,7 @@ function App() {
       }
     }).catch(err => {
       if (err.name !== 'AbortError') {
-        console.error('[Laravel SSE] Collaborative connection error:', err);
+        // Ignore non-abort background connection errors to prevent console spam
       }
     });
 
