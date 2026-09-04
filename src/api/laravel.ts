@@ -220,12 +220,15 @@ export class LaravelRESTAdapter implements InventoryClient {
     // Lookup variantId first since Laravel assign endpoint requires it
     const products = await this.getProducts();
     let variantId = '';
+    // ⚡ Bolt: Removed O(N) array.find inside O(N) loop to reduce worst-case time complexity
     for (const p of products) {
-      const found = p.variants.find(v => v.sku === sku);
-      if (found) {
-        variantId = found.id;
-        break;
+      for (const v of p.variants) {
+        if (v.sku === sku) {
+          variantId = v.id;
+          break;
+        }
       }
+      if (variantId) break;
     }
 
     if (!variantId) {
