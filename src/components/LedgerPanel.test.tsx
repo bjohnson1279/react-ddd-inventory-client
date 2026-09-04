@@ -48,7 +48,7 @@ describe('LedgerPanel', () => {
   it('handles form inputs and submission', async () => {
     const user = userEvent.setup();
     const Wrapper = () => {
-      const mockHandle = (e) => { e.preventDefault(); defaultProps.handlePostJournal(e); };
+      const mockHandle = (e: React.FormEvent) => { e.preventDefault(); defaultProps.handlePostJournal(e); };
       const [desc, setDesc] = React.useState('Initial Desc');
       return <LedgerPanel {...defaultProps} newJournalDesc={desc} setNewJournalDesc={(v) => { setDesc(v); defaultProps.setNewJournalDesc(v); }} handlePostJournal={mockHandle} />;
     };
