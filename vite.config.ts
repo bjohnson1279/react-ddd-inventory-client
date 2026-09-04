@@ -10,3 +10,6 @@ export default defineConfig({
     pool: 'threads'
   }
 });
+    pool: 'forks',
+  },
+})
