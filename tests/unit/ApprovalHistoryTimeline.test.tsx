@@ -16,7 +16,7 @@ describe('ApprovalHistoryTimeline', () => {
       { id: '2', stepIndex: 1, deciderId: 'User 2', decision: 'REJECTED' as const, decidedAt: '2023-01-01T11:00:00Z' }
     ];
     render(<ApprovalHistoryTimeline decisions={decisions} />);
-    
+
     expect(screen.getByText('Step 1')).toBeInTheDocument();
     expect(screen.getByText('Step 2')).toBeInTheDocument();
     expect(screen.getByText('User 1')).toBeInTheDocument();
@@ -29,10 +29,10 @@ describe('ApprovalHistoryTimeline', () => {
       { id: '2', stepIndex: 1, deciderId: 'User 2', decision: 'REJECTED' as const, decidedAt: '2023-01-01T11:00:00Z' }
     ];
     render(<ApprovalHistoryTimeline decisions={decisions} />);
-    
+
     const approvedText = screen.getByText('APPROVED');
     expect(approvedText).toHaveStyle({ color: '#10b981' });
-    
+
     const rejectedText = screen.getByText('REJECTED');
     expect(rejectedText).toHaveStyle({ color: '#ef4444' });
   });

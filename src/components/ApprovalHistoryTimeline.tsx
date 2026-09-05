@@ -68,12 +68,12 @@ export const ApprovalHistoryTimeline: React.FC<ApprovalHistoryTimelineProps> = (
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ 
-                      background: '#0f172a', 
-                      padding: '2px 6px', 
-                      borderRadius: '4px', 
-                      fontSize: '12px', 
-                      color: '#cbd5e1' 
+                    <span style={{
+                      background: '#0f172a',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      color: '#cbd5e1'
                     }}>
                       Step {dec.stepIndex + 1}
                     </span>
@@ -81,22 +81,22 @@ export const ApprovalHistoryTimeline: React.FC<ApprovalHistoryTimelineProps> = (
                       {dec.deciderId}
                     </span>
                   </div>
-                  <span style={{ 
-                    color: dotColor, 
-                    fontWeight: 600, 
+                  <span style={{
+                    color: dotColor,
+                    fontWeight: 600,
                     fontSize: '12px',
                     letterSpacing: '0.05em'
                   }}>
                     {dec.decision}
                   </span>
                 </div>
-                
+
                 {dec.notes && (
                   <p style={{ margin: '0 0 8px 0', color: '#cbd5e1', fontSize: '14px', fontStyle: 'italic' }}>
                     "{dec.notes}"
                   </p>
                 )}
-                
+
                 <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>
                   {new Date(dec.decidedAt).toLocaleString()}
                 </p>
