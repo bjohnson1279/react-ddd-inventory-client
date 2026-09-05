@@ -8,6 +8,7 @@ export default defineConfig({
     globals: true,
     setupFiles: './tests/unit/setup.ts',
     exclude: ['**/node_modules/**', '**/dist/**', '**/tests/e2e/**'],
-    pool: 'forks',
+    pool: 'threads',
+    poolOptions: { threads: { singleThread: true } },
   },
 });

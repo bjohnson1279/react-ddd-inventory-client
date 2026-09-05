@@ -65,7 +65,12 @@ export const ReportingDashboardPanel: React.FC<Props> = ({ client, tenantId }) =
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h2 className="text-xl font-semibold mb-4 text-gray-800">Reporting & Dashboarding (Item 13)</h2>
-      {error && <div className="bg-red-50 text-red-700 p-4 rounded mb-4">{error}</div>}
+      {error && (
+        <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-4 rounded mb-4 flex items-center justify-between">
+          <span>{error}</span>
+          <button type="button" onClick={() => setError("")} aria-label="Dismiss error" className="text-red-700 hover:text-red-900 font-bold ml-2">×</button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>

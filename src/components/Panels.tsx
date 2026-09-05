@@ -1317,17 +1317,8 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
   handleSendPO,
   loading
 }) => {
-// ⚡ Bolt: Memoize filtered array to prevent O(n) filtering on every render
+  // ⚡ Bolt: Memoize filtered array to prevent O(n) filtering on every render
   const sentPurchaseOrders = React.useMemo(() => purchaseOrders.filter(po => po.status === 'sent'), [purchaseOrders]);
-
-  // ⚡ Bolt: Memoize purchase orders into a dictionary to make lookups O(1) in onChange
-  const purchaseOrdersById = React.useMemo(() => {
-    const map = new Map<string, any>();
-    for (const po of purchaseOrders) {
-      map.set(po.id, po);
-    }
-    return map;
-  }, [purchaseOrders]);
 
   return (
   <div className="grid-cols-2">
@@ -1405,7 +1396,7 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                 onChange={(e) => {
                   const id = e.target.value;
                   setReceivePoId(id);
-                  const po = purchaseOrdersById.get(id);
+                  const po = purchaseOrders.find(p => p.id === id);
                   if (po) {
                     setReceivePoLines(po.items.map((i: any) => ({ sku: i.sku, quantity: i.quantity })));
                   }
@@ -1497,7 +1488,7 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                         </button>
                       )}
                       {po.status === 'approved' && (
-                        <button className="btn btn-accent" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleSendPO(po.id)}>
+                        <button className="btn btn-accent" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleSendPO(po.id)} aria-label={`Send PO ${po.id}`}>
                           Send PO
                         </button>
                       )}
@@ -1648,7 +1639,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
                   <td>{loc.maxWeightGrams}g</td>
                   <td>{loc.maxVolumeCubicMeters}m³</td>
                   <td>
-                    <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)}>
+                    <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)} aria-label={`Delete location ${loc.id}`}>
                       Delete
                     </button>
                   </td>
@@ -1775,7 +1766,7 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
                       ))}
                     </td>
                     <td>
-                      <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)}>
+                      <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)} aria-label={`Delete webhook ${w.id}`}>
                         Delete
                       </button>
                     </td>
