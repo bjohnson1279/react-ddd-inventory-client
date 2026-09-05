@@ -104,13 +104,13 @@ export const ThermalPrintingArPanel: React.FC<ThermalPrintingArPanelProps> = ({ 
           <div style={{ background: '#1e293b', padding: '20px', borderRadius: '8px' }}>
             <h3 style={{ marginTop: 0, color: '#f1f5f9', fontSize: '18px' }}>Spool ZPL/TSPL Thermal Print Job</h3>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Target Printer Name</label>
-              <input type="text" value={printerName} onChange={(e) => setPrinterName(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+              <label htmlFor="printerName" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Target Printer Name</label>
+              <input id="printerName" type="text" value={printerName} onChange={(e) => setPrinterName(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Label Category</label>
-              <select value={labelType} onChange={(e: any) => setLabelType(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }}>
+              <label htmlFor="labelType" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Label Category</label>
+              <select id="labelType" value={labelType} onChange={(e: any) => setLabelType(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }}>
                 <option value="BIN">BIN Tag Label</option>
                 <option value="LOT">LOT Batch Tag</option>
                 <option value="SERIAL">SERIAL Item Tag</option>
@@ -119,13 +119,13 @@ export const ThermalPrintingArPanel: React.FC<ThermalPrintingArPanelProps> = ({ 
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Barcode / QR Value</label>
-              <input type="text" value={barcodeValue} onChange={(e) => setBarcodeValue(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+              <label htmlFor="barcodeValue" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Barcode / QR Value</label>
+              <input id="barcodeValue" type="text" value={barcodeValue} onChange={(e) => setBarcodeValue(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Subtitle / Header Text</label>
-              <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+              <label htmlFor="subtitle" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Subtitle / Header Text</label>
+              <input id="subtitle" type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
 
             <button onClick={handlePrintLabel} disabled={loading} aria-busy={loading} style={{ width: '100%', padding: '10px', background: '#10b981', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
@@ -158,16 +158,16 @@ export const ThermalPrintingArPanel: React.FC<ThermalPrintingArPanelProps> = ({ 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
             <div>
               <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Target Location Bin</label>
-                <input type="text" value={targetBin} onChange={(e) => setTargetBin(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+                <label htmlFor="targetBin" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Target Location Bin</label>
+                <input id="targetBin" type="text" value={targetBin} onChange={(e) => setTargetBin(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
               </div>
               <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Pick SKU</label>
-                <input type="text" value={pickSku} onChange={(e) => setPickSku(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+                <label htmlFor="pickSku" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Pick SKU</label>
+                <input id="pickSku" type="text" value={pickSku} onChange={(e) => setPickSku(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
               </div>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Required Quantity</label>
-                <input type="number" value={pickQuantity} onChange={(e) => setPickQuantity(parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+                <label htmlFor="pickQuantity" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Required Quantity</label>
+                <input id="pickQuantity" type="number" value={pickQuantity} onChange={(e) => setPickQuantity(parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
               </div>
 
               <button
