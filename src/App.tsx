@@ -57,8 +57,7 @@ function App() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // --- Loaded Data States ---
-  const [inventoryItemsMap, setInventoryItemsMap] = useState<Record<string, InventoryItem>>({});
-  const inventoryItems = useMemo(() => Object.values(inventoryItemsMap), [inventoryItemsMap]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [onboardings, setOnboardings] = useState<StockOnboarding[]>([]);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
@@ -317,17 +316,11 @@ function App() {
   const [permissions, setPermissions] = useState<string[]>([]);
 
   useEffect(() => {
-    if (typeof token === 'string') {
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        try {
-          const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-          const payload = JSON.parse(atob(base64));
-          setPermissions(Array.isArray(payload.permissions) ? payload.permissions : []);
-        } catch (e) {
-          setPermissions([]);
-        }
-      } else {
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setPermissions(payload.permissions || []);
+      } catch (e) {
         setPermissions([]);
       }
     } else {
@@ -398,8 +391,7 @@ function App() {
         const queued = await getQueuedScans();
         setOfflineQueueCount(queued.length);
       } catch (err) {
-        // Silently ignore if offline queue cannot be read
-        // Silent fail on background queue check
+        console.error('Failed to read IndexedDB offline queue:', err);
       }
     };
     checkQueue();
@@ -446,11 +438,7 @@ function App() {
     setLoading(true);
     try {
       const invData = await client.getInventoryItems();
-      const invDict: Record<string, InventoryItem> = {};
-      (invData || []).forEach((item: InventoryItem) => {
-        invDict[`${item.sku}|${item.locationId}`] = item;
-      });
-      setInventoryItemsMap(invDict);
+      setInventoryItems(invData || []);
 
       const prodData = await client.getProducts();
       setProducts(prodData || []);
@@ -588,7 +576,7 @@ function App() {
       const stats = await client.getCacheStats();
       setCacheStats(stats);
     } catch (err: any) {
-      // Ignore non-critical background fetch error
+      console.warn('Failed to fetch cache stats:', err);
     }
   };
 
@@ -661,6 +649,7 @@ function App() {
         setValuationItems(v);
       }
     } catch (err: any) {
+      console.error('Failed to load admin data:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to load administrative data.' });
     } finally {
       setLoading(false);
@@ -771,30 +760,27 @@ function App() {
           const data = JSON.parse(event.data);
           
           if (data.type === 'stock_changed') {
-            // ⚡ Bolt: Use O(1) dictionary lookup for websocket state updates instead of O(N) array findIndex
-            setInventoryItemsMap(prev => {
-              const key = `${data.sku}|${data.locationId}`;
-              const existing = prev[key];
-              if (existing) {
-                return {
-                  ...prev,
-                  [key]: {
-                    ...existing,
-                    quantity: data.quantity,
-                    version: data.version
-                  }
+            setInventoryItems(prev => {
+              const idx = prev.findIndex(item => item.sku === data.sku && item.locationId === data.locationId);
+              if (idx !== -1) {
+                const updated = [...prev];
+                updated[idx] = {
+                  ...updated[idx],
+                  quantity: data.quantity,
+                  version: data.version
                 };
+                return updated;
               } else {
-                return {
+                return [
                   ...prev,
-                  [key]: {
+                  {
                     id: crypto.randomUUID(),
                     sku: data.sku,
                     locationId: data.locationId,
                     quantity: data.quantity,
                     version: data.version
                   }
-                };
+                ];
               }
             });
             setMessage({ type: 'success', text: `Real-time Stock Update: SKU ${data.sku} is now ${data.quantity} units.` });
@@ -813,8 +799,8 @@ function App() {
         reconnectTimeout = setTimeout(connect, 3000);
       };
 
-      socket.onerror = () => {
-        // Connection errors are handled by onclose reconnections
+      socket.onerror = (err) => {
+        console.error('[WebSocket] Sync error:', err);
       };
     };
 
@@ -864,29 +850,26 @@ function App() {
               const payload = JSON.parse(line.substring(6));
               if (payload.type === 'stock_changed') {
                 const data = JSON.parse(payload.message);
-                // ⚡ Bolt: Use O(1) dictionary lookup for SSE state updates instead of O(N) array findIndex
-                setInventoryItemsMap(prev => {
-                  const key = `${data.sku}|${data.locationId}`;
-                  const existing = prev[key];
-                  if (existing) {
-                    return {
-                      ...prev,
-                      [key]: {
-                        ...existing,
-                        quantity: data.quantity
-                      }
+                setInventoryItems(prev => {
+                  const idx = prev.findIndex(item => item.sku === data.sku && item.locationId === data.locationId);
+                  if (idx !== -1) {
+                    const updated = [...prev];
+                    updated[idx] = {
+                      ...updated[idx],
+                      quantity: data.quantity
                     };
+                    return updated;
                   } else {
-                    return {
+                    return [
                       ...prev,
-                      [key]: {
+                      {
                         id: crypto.randomUUID(),
                         sku: data.sku,
                         locationId: data.locationId,
                         quantity: data.quantity,
                         version: 1
                       }
-                    };
+                    ];
                   }
                 });
                 setMessage({ type: 'success', text: `Real-time Stock Update (Laravel): SKU ${data.sku} is now ${data.quantity} units.` });
@@ -905,7 +888,7 @@ function App() {
       }
     }).catch(err => {
       if (err.name !== 'AbortError') {
-        // Ignore non-abort background connection errors to prevent console spam
+        console.error('[Laravel SSE] Collaborative connection error:', err);
       }
     });
 
