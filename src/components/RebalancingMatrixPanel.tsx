@@ -57,7 +57,7 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({
             <button className="btn btn-secondary" onClick={fetchData}>
               Retry
             </button>
-            <button
+            <button type="button"
               onClick={() => setError(null)}
               aria-label="Dismiss error"
               className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"

@@ -211,7 +211,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
       {error && (
         <div role="alert" aria-live="assertive" className="p-4 bg-red-950/60 border border-red-500/50 rounded-lg text-red-200 text-sm flex items-center justify-between">
           <span>⚠️ {error}</span>
-          <button onClick={() => setError(null)} aria-label="Dismiss error" className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded">×</button>
+          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded">×</button>
         </div>
       )}
 
@@ -422,7 +422,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
                   </div>
                 )}
 
-                {labelResult.bolUrl && (labelResult.bolUrl.startsWith('http://') || labelResult.bolUrl.startsWith('https://')) && (
+                {labelResult.bolUrl && (
                   <div className="p-2 bg-indigo-950/40 rounded border border-indigo-500/40 flex justify-between items-center">
                     <span className="text-indigo-300 font-sans">Bill of Lading (BOL):</span>
                     <a href={labelResult.bolUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 underline font-sans">
