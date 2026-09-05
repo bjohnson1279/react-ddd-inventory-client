@@ -59,21 +59,30 @@ export class GraphQLAdapter implements InventoryClient {
     }`);
     const rawProducts = prodData.products || [];
     
-    // Resolve barcodes for variants to complete product models
-    return Promise.all(rawProducts.map(async (p: Product) => {
-      const variants = await Promise.all(p.variants.map(async (v) => {
-        try {
-          const bcData = await this.fetchGraphql(`query GetBarcodes($sku: String!) {
-            barcodeSet(sku: $sku) {
-              assignments { id sku barcode { value symbology } source isPrimary assignedAt }
-            }
-          }`, { sku: v.sku });
-          return { ...v, barcodes: bcData.barcodeSet?.assignments || [] };
-        } catch {
-          return { ...v, barcodes: [] };
-        }
-      }));
-      return { ...p, variants };
+    // Resolve barcodes for variants using batched alias query to prevent N+1 requests
+    const allVariants = rawProducts.flatMap((p: Product) => p.variants || []);
+    const barcodeMap = new Map<string, any[]>();
+    const CHUNK_SIZE = 25;
+
+    for (let i = 0; i < allVariants.length; i += CHUNK_SIZE) {
+      const chunk = allVariants.slice(i, i + CHUNK_SIZE);
+      const fields = chunk.map((v, idx) => `bc_${idx}: barcodeSet(sku: "${v.sku}") { assignments { id sku barcode { value symbology } source isPrimary assignedAt } }`).join('\n');
+      try {
+        const batchData = await this.fetchGraphql(`query GetBatchedBarcodes {\n${fields}\n}`);
+        chunk.forEach((v, idx) => {
+          barcodeMap.set(v.sku, batchData?.[`bc_${idx}`]?.assignments || []);
+        });
+      } catch {
+        chunk.forEach(v => barcodeMap.set(v.sku, []));
+      }
+    }
+
+    return rawProducts.map((p: Product) => ({
+      ...p,
+      variants: p.variants.map((v) => ({
+        ...v,
+        barcodes: barcodeMap.get(v.sku) || []
+      }))
     }));
   }
 
