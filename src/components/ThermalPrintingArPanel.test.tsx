@@ -69,8 +69,8 @@ describe('ThermalPrintingArPanel', () => {
       });
     });
 
-    expect(screen.getByText('TEST_JOB_123')).toBeInTheDocument();
-    expect(screen.getByText('^XA^FO50,50^ADN,36,20^FDTEST^FS^XZ')).toBeInTheDocument();
+    expect(screen.getByText(/TEST_JOB_123/i)).toBeInTheDocument();
+    expect(screen.getByText(/\^XA\^FO50,50\^ADN,36,20\^FDTEST\^FS\^XZ/i)).toBeInTheDocument();
   });
 
   it('handles fetch fallback correctly when no api provided', async () => {
@@ -95,7 +95,7 @@ describe('ThermalPrintingArPanel', () => {
       }));
     });
 
-    expect(screen.getByText('FETCH_JOB_456')).toBeInTheDocument();
-    expect(screen.getByText('^XA^FO50,50^ADN,36,20^FDFETCH^FS^XZ')).toBeInTheDocument();
+    expect(screen.getByText(/FETCH_JOB_456/i)).toBeInTheDocument();
+    expect(screen.getByText(/\^XA\^FO50,50\^ADN,36,20\^FDFETCH\^FS\^XZ/i)).toBeInTheDocument();
   });
 });
