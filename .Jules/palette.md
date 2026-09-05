@@ -30,3 +30,6 @@
 ## 2024-05-16 - Dynamic ARIA Labels in Lists
 **Learning:** Found that generic `aria-label="Mark as read"` on repeated list items leaves screen reader users without context about which specific item they are acting upon.
 **Action:** Always use template literals to inject unique item identifiers (e.g., IDs or names) into `aria-label` attributes for repeated action buttons in lists.
+## 2024-05-18 - Missing Explicit button types and standard labels
+**Learning:** Dismiss buttons on dynamically rendered alert messages often unintentionally trigger form submissions when placed near `<form>` elements because they lack `type="button"`. Furthermore, they often omit screen-reader friendly identifiers.
+**Action:** When creating or modifying dynamic alert/error banner components, always include `role="alert"` and `aria-live="assertive"` for screen reader announcements. Additionally, explicitly set `type="button"` and an appropriate `aria-label` (e.g., 'Dismiss error') on dismiss buttons to prevent unintended form submissions and improve accessibility.

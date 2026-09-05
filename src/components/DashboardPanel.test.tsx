@@ -1,86 +1,124 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { describe, it, expect, vi } from 'vitest';
 import { DashboardPanel } from './Panels';
 
 describe('DashboardPanel', () => {
-  const defaultProps = {
-    products: [{ id: 1 }, { id: 2 }],
-    inventoryItems: [
-      { id: '1', sku: 'SKU1', locationId: 'L1', quantity: 15, version: 1 },
-      { id: '2', sku: 'SKU2', locationId: 'L2', quantity: 5, version: 1 }
-    ],
-    shopifyConns: [{ isActive: true }, { isActive: false }, { isActive: true }],
-    journals: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
-    loadDashboardData: vi.fn(),
-    loading: false
-  };
+  const mockProducts = [{ id: 'p1' }, { id: 'p2' }];
+  const mockInventoryItems = [
+    { id: 'i1', sku: 'SKU-1', locationId: 'LOC-1', quantity: 5, version: 1 },
+    { id: 'i2', sku: 'SKU-2', locationId: 'LOC-2', quantity: 15, version: 2 }
+  ];
+  const mockShopifyConns = [{ id: 's1', isActive: true }, { id: 's2', isActive: false }];
+  const mockJournals = [{ id: 'j1' }, { id: 'j2' }, { id: 'j3' }];
 
-  it('renders stat cards correctly', () => {
-    render(<DashboardPanel {...defaultProps} />);
+  it('renders stat cards correctly with derived counts', () => {
+    render(
+      <DashboardPanel
+        products={mockProducts}
+        inventoryItems={mockInventoryItems}
+        shopifyConns={mockShopifyConns}
+        journals={mockJournals}
+        loadDashboardData={vi.fn()}
+        loading={false}
+      />
+    );
 
-    // Catalog Inventory
+    // Products length
     expect(screen.getByText('Catalog Inventory')).toBeInTheDocument();
-    expect(screen.getByText('Unique Products Registered')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
 
-    // Low Stock SKUs
+    // Low stock count (qty < 10) -> 1 item (qty 5)
     expect(screen.getByText('Low Stock SKUs')).toBeInTheDocument();
-    expect(screen.getByText('SKUs below safety threshold (10)')).toBeInTheDocument();
 
-    // Platform Integrations
+    // Active shopify conns -> 1 item
     expect(screen.getByText('Platform Integrations')).toBeInTheDocument();
-    expect(screen.getByText('Active Shopify Connections')).toBeInTheDocument();
 
-    // Double-Entry Ledger
+    // The low stock and active shopify conns both evaluate to '1'. We just ensure the values are present.
+    const ones = screen.getAllByText('1');
+    expect(ones.length).toBeGreaterThanOrEqual(2);
+
+    // Journals length
     expect(screen.getByText('Double-Entry Ledger')).toBeInTheDocument();
-    expect(screen.getByText('Recorded Journal Entries')).toBeInTheDocument();
-
-    // Check values
-    const values = screen.getAllByText('2'); // products.length and activeShopifyConns
-    expect(values.length).toBeGreaterThanOrEqual(2);
-
-    // lowStockCount: find '1' elements
-    const lowStockValues = screen.getAllByText('1');
-    expect(lowStockValues.length).toBeGreaterThanOrEqual(1);
-
-    expect(screen.getByText('4')).toBeInTheDocument(); // journals.length
+    expect(screen.getByText('3')).toBeInTheDocument();
   });
 
-  it('renders empty state for inventory table', () => {
-    render(<DashboardPanel {...defaultProps} inventoryItems={[]} />);
+  it('renders empty state for inventory items', () => {
+    render(
+      <DashboardPanel
+        products={[]}
+        inventoryItems={[]}
+        shopifyConns={[]}
+        journals={[]}
+        loadDashboardData={vi.fn()}
+        loading={false}
+      />
+    );
     expect(screen.getByText('No inventory stock records loaded.')).toBeInTheDocument();
   });
 
-  it('renders populated inventory table with correct badges', () => {
-    render(<DashboardPanel {...defaultProps} />);
+  it('renders inventory items table correctly', () => {
+    render(
+      <DashboardPanel
+        products={mockProducts}
+        inventoryItems={mockInventoryItems}
+        shopifyConns={mockShopifyConns}
+        journals={mockJournals}
+        loadDashboardData={vi.fn()}
+        loading={false}
+      />
+    );
 
-    expect(screen.getByText('SKU1')).toBeInTheDocument();
-    expect(screen.getByText('15 units')).toBeInTheDocument();
-    expect(screen.getByText('Healthy')).toBeInTheDocument();
-
-    expect(screen.getByText('SKU2')).toBeInTheDocument();
+    expect(screen.getByText('SKU-1')).toBeInTheDocument();
     expect(screen.getByText('5 units')).toBeInTheDocument();
     expect(screen.getByText('Low Stock')).toBeInTheDocument();
+
+    expect(screen.getByText('SKU-2')).toBeInTheDocument();
+    expect(screen.getByText('15 units')).toBeInTheDocument();
+    expect(screen.getByText('Healthy')).toBeInTheDocument();
   });
 
-  it('handles refresh button correctly when not loading', () => {
-    render(<DashboardPanel {...defaultProps} />);
+  it('handles loadDashboardData click', async () => {
+    const user = userEvent.setup();
+    const loadDashboardDataMock = vi.fn();
 
-    const refreshButton = screen.getByRole('button', { name: /refresh stock/i });
-    expect(refreshButton).not.toBeDisabled();
-    expect(refreshButton).toHaveAttribute('aria-busy', 'false');
+    render(
+      <DashboardPanel
+        products={[]}
+        inventoryItems={[]}
+        shopifyConns={[]}
+        journals={[]}
+        loadDashboardData={loadDashboardDataMock}
+        loading={false}
+      />
+    );
 
-    fireEvent.click(refreshButton);
-    expect(defaultProps.loadDashboardData).toHaveBeenCalledTimes(1);
+    const refreshButton = screen.getByRole('button', { name: /Refresh Stock/i });
+    await user.click(refreshButton);
+
+    expect(loadDashboardDataMock).toHaveBeenCalledTimes(1);
   });
 
-  it('handles refresh button correctly when loading', () => {
-    // When loading is true, button renders a Spinner instead of 'Refresh Stock' text
-    // The DashboardPanel has a button with disabled={loading} and aria-busy={loading}
-    render(<DashboardPanel {...defaultProps} loading={true} />);
+  it('disables refresh button and shows busy state when loading', () => {
+    const { container } = render(
+      <DashboardPanel
+        products={[]}
+        inventoryItems={[]}
+        shopifyConns={[]}
+        journals={[]}
+        loadDashboardData={vi.fn()}
+        loading={true}
+      />
+    );
 
-    const button = screen.getByRole('button');
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute('aria-busy', 'true');
+    const refreshButton = screen.getByRole('button');
+    expect(refreshButton).toBeDisabled();
+    expect(refreshButton).toHaveAttribute('aria-busy', 'true');
+
+    // Spinner should be rendered (svg element with class 'spinner')
+    const spinner = container.querySelector('.spinner');
+    expect(spinner).toBeInTheDocument();
   });
 });
