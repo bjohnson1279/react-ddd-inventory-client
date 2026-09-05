@@ -13,6 +13,5 @@ export default defineConfig({
         singleThread: true,
       },
     },
-    pool: 'forks',
   },
 })
