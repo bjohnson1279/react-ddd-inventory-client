@@ -211,7 +211,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
       {error && (
         <div role="alert" aria-live="assertive" className="p-4 bg-red-950/60 border border-red-500/50 rounded-lg text-red-200 text-sm flex items-center justify-between">
           <span>⚠️ {error}</span>
-          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded">×</button>
+          <button onClick={() => setError(null)} aria-label="Dismiss error" className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded">×</button>
         </div>
       )}
 
