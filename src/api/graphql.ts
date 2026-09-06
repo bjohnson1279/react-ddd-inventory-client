@@ -66,14 +66,14 @@ export class GraphQLAdapter implements InventoryClient {
 
     for (let i = 0; i < allVariants.length; i += CHUNK_SIZE) {
       const chunk = allVariants.slice(i, i + CHUNK_SIZE);
-      const fields = chunk.map((v, idx) => `bc_${idx}: barcodeSet(sku: "${v.sku}") { assignments { id sku barcode { value symbology } source isPrimary assignedAt } }`).join('\n');
+      const fields = chunk.map((v: any, idx: number) => `bc_${idx}: barcodeSet(sku: "${v.sku}") { assignments { id sku barcode { value symbology } source isPrimary assignedAt } }`).join('\n');
       try {
         const batchData = await this.fetchGraphql(`query GetBatchedBarcodes {\n${fields}\n}`);
-        chunk.forEach((v, idx) => {
+        chunk.forEach((v: any, idx: number) => {
           barcodeMap.set(v.sku, batchData?.[`bc_${idx}`]?.assignments || []);
         });
       } catch {
-        chunk.forEach(v => barcodeMap.set(v.sku, []));
+        chunk.forEach((v: any) => barcodeMap.set(v.sku, []));
       }
     }
 
