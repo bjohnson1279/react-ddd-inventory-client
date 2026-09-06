@@ -70,7 +70,7 @@ describe('WebhooksPanel', () => {
   it('handles delete webhook', () => {
     const webhooks = [{ id: 'w1', url: 'https://test.com', eventTypes: ['StockReceived'] }];
     render(<WebhooksPanel {...defaultProps} webhooks={webhooks} />);
-    const deleteBtn = screen.getByText('Delete');
+    const deleteBtn = screen.getByRole('button', { name: /Delete webhook/i });
     fireEvent.click(deleteBtn);
     expect(defaultProps.handleDeleteWebhook).toHaveBeenCalledWith('w1');
   });

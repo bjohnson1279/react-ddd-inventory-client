@@ -93,7 +93,7 @@ describe('ProcurementPanel', () => {
     expect(screen.getByText('DRAFT')).toBeInTheDocument();
 
     const user = userEvent.setup();
-    const approveButton = screen.getByRole('button', { name: /Approve/i });
+    const approveButton = screen.getByRole('button', { name: /Approve purchase order/i });
     await user.click(approveButton);
     expect(mockHandleApprovePO).toHaveBeenCalledWith('PO-1');
   });

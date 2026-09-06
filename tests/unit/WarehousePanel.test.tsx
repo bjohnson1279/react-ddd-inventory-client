@@ -99,7 +99,7 @@ describe('WarehousePanel', () => {
       { id: 'LOC-1', zone: 'A', maxWeightGrams: 1000, maxVolumeCubicMeters: 1.5 }
     ];
     render(<WarehousePanel {...defaultProps} wmsLocations={locations} />);
-    const deleteBtn = screen.getByRole('button', { name: 'Delete' });
+    const deleteBtn = screen.getByRole('button', { name: /Delete warehouse location/i });
     fireEvent.click(deleteBtn);
     expect(defaultProps.handleDeleteWmsLocation).toHaveBeenCalledWith('LOC-1');
   });
