@@ -33,3 +33,6 @@
 ## 2024-05-18 - Missing Explicit button types and standard labels
 **Learning:** Dismiss buttons on dynamically rendered alert messages often unintentionally trigger form submissions when placed near `<form>` elements because they lack `type="button"`. Furthermore, they often omit screen-reader friendly identifiers.
 **Action:** When creating or modifying dynamic alert/error banner components, always include `role="alert"` and `aria-live="assertive"` for screen reader announcements. Additionally, explicitly set `type="button"` and an appropriate `aria-label` (e.g., 'Dismiss error') on dismiss buttons to prevent unintended form submissions and improve accessibility.
+## 2024-05-16 - Context-Specific Accessible Labels in Lists
+**Learning:** Generic icon-only or ambiguous text buttons (like "Approve" or "Delete") in data tables/lists fail WCAG guidelines without context. Furthermore, to satisfy the WCAG "Label in Name" criterion, the dynamic `aria-label` applied to an element must contain the exact visible text of that element.
+**Action:** When adding `aria-label`s to disambiguate repeated buttons, use template literals to include the unique identifier (e.g., `aria-label={"Send PO ${po.id}"}`) while strictly ensuring the visible text ("Send PO") is a substring of the accessible name.
