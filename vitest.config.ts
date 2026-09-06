@@ -5,9 +5,10 @@ export default defineConfig({
   plugins: [react()],
   test: {
     pool: 'forks',
+    fileParallelism: false,
     environment: 'jsdom',
     globals: true,
     setupFiles: './tests/unit/setup.ts',
     exclude: ['**/node_modules/**', '**/dist/**', '**/tests/e2e/**'],
-      },
+  },
 });
