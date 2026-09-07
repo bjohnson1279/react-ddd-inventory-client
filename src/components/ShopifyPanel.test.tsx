@@ -8,20 +8,20 @@ import React from 'react';
 // The SVG it renders has class="spinner", we can assert against that instead.
 
 describe('ShopifyPanel', () => {
-  const defaultProps = {
+  const getDefaultProps = () => ({
     newShopifyId: '',
     setNewShopifyId: vi.fn(),
     newShopifyDomain: '',
     setNewShopifyDomain: vi.fn(),
     newShopifyToken: '',
     setNewShopifyToken: vi.fn(),
-    handleConnectShopify: vi.fn((e) => e.preventDefault()),
+    handleConnectShopify: vi.fn((e: React.FormEvent) => e.preventDefault()),
     shopifyConns: [],
     loading: false,
-  };
+  });
 
   it('renders correctly with empty storefronts', () => {
-    render(<ShopifyPanel {...defaultProps} />);
+    render(<ShopifyPanel {...getDefaultProps()} />);
 
     expect(screen.getByText('Configure Shopify Connection')).toBeInTheDocument();
 
@@ -43,7 +43,7 @@ describe('ShopifyPanel', () => {
       { id: '1', storeDomain: 'store1.myshopify.com', platform: 'shopify', isActive: true },
       { id: '2', storeDomain: 'store2.myshopify.com', platform: 'shopify', isActive: false },
     ];
-    render(<ShopifyPanel {...defaultProps} shopifyConns={shopifyConns} />);
+    render(<ShopifyPanel {...getDefaultProps()} shopifyConns={shopifyConns} />);
 
     expect(screen.queryByText('No active store connections.')).not.toBeInTheDocument();
 
@@ -56,33 +56,33 @@ describe('ShopifyPanel', () => {
   });
 
   it('calls setters on input change', () => {
-    render(<ShopifyPanel {...defaultProps} />);
+    const props = getDefaultProps();
+    render(<ShopifyPanel {...props} />);
 
     fireEvent.change(screen.getByPlaceholderText('e.g. shopify-store-1'), { target: { value: 'store-1' } });
-    expect(defaultProps.setNewShopifyId).toHaveBeenCalledWith('store-1');
+    expect(props.setNewShopifyId).toHaveBeenCalledWith('store-1');
 
     fireEvent.change(screen.getByPlaceholderText('mystore.myshopify.com'), { target: { value: 'test.myshopify.com' } });
-    expect(defaultProps.setNewShopifyDomain).toHaveBeenCalledWith('test.myshopify.com');
+    expect(props.setNewShopifyDomain).toHaveBeenCalledWith('test.myshopify.com');
 
     fireEvent.change(screen.getByPlaceholderText('shpat_...'), { target: { value: 'token123' } });
-    expect(defaultProps.setNewShopifyToken).toHaveBeenCalledWith('token123');
+    expect(props.setNewShopifyToken).toHaveBeenCalledWith('token123');
   });
 
   it('calls handleConnectShopify on form submit', () => {
-    render(<ShopifyPanel {...defaultProps} />);
+    const props = getDefaultProps();
+    render(<ShopifyPanel {...props} />);
 
     const submitButton = screen.getByRole('button', { name: 'Connect Store' });
     const form = submitButton.closest('form');
     expect(form).not.toBeNull();
     fireEvent.submit(form!);
 
-    expect(defaultProps.handleConnectShopify).toHaveBeenCalled();
+    expect(props.handleConnectShopify).toHaveBeenCalled();
   });
 
   it('disables button and shows spinner when loading', () => {
-    // Need to clear handleConnectShopify mock since it's shared in defaultProps across tests,
-    // although this test doesn't check it, it's good practice.
-    const container = render(<ShopifyPanel {...defaultProps} loading={true} />).container;
+    const container = render(<ShopifyPanel {...getDefaultProps()} loading={true} />).container;
 
     const submitButton = screen.getByRole('button');
     expect(submitButton).toBeDisabled();
