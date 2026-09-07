@@ -30,12 +30,22 @@ describe('WebhooksPanel', () => {
   });
 
   it('renders webhooks and deliveries when provided', () => {
-    const webhooks = [{ id: 'w1', url: 'https://test.com', eventTypes: ['StockReceived'] }];
-    const deliveries = [{ id: 'd1', eventName: 'StockReceived', statusCode: 200, occurredOn: new Date().toISOString() }];
+    const webhooks = [{ id: 'w1', url: 'https://test.com', eventTypes: ['StockReceived', 'LowStockDetected'] }];
+    const deliveries = [{ id: 'd1', eventName: 'StockReceived', statusCode: 500, occurredOn: new Date().toISOString(), status: 'Failed' }];
 
     render(<WebhooksPanel {...defaultProps} webhooks={webhooks} webhookDeliveries={deliveries} />);
     expect(screen.getByText('https://test.com')).toBeInTheDocument();
-    expect(screen.getByText('200')).toBeInTheDocument();
+    expect(screen.getAllByText('StockReceived').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('LowStockDetected').length).toBeGreaterThan(0);
+    expect(screen.getByText('500')).toBeInTheDocument();
+    expect(screen.getByText('500')).toHaveClass('badge-error');
+  });
+
+  it('renders delivery correctly when no status code but status present', () => {
+    const deliveries = [{ id: 'd2', eventName: 'StockDispatched', status: 'Pending', occurredOn: null }];
+    render(<WebhooksPanel {...defaultProps} webhookDeliveries={deliveries} />);
+    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText('Pending')).toHaveClass('badge-error');
   });
 
   it('handles url input changes', () => {
@@ -47,7 +57,6 @@ describe('WebhooksPanel', () => {
 
   it('handles checkbox events', () => {
     render(<WebhooksPanel {...defaultProps} />);
-    // Select StockReceived
     const checkbox = screen.getAllByRole('checkbox')[0];
     fireEvent.click(checkbox);
     expect(defaultProps.setWebhookEvents).toHaveBeenCalledWith(['StockReceived']);
@@ -55,7 +64,7 @@ describe('WebhooksPanel', () => {
 
   it('handles unchecking events', () => {
     render(<WebhooksPanel {...defaultProps} webhookEvents={['StockReceived']} />);
-    const checkbox = screen.getAllByRole('checkbox')[0]; // StockReceived is checked
+    const checkbox = screen.getAllByRole('checkbox')[0];
     fireEvent.click(checkbox);
     expect(defaultProps.setWebhookEvents).toHaveBeenCalledWith([]);
   });
@@ -64,7 +73,7 @@ describe('WebhooksPanel', () => {
     render(<WebhooksPanel {...defaultProps} webhookUrl="https://test.com" />);
     const submitBtn = screen.getByText('Create Webhook Subscription');
     fireEvent.click(submitBtn);
-    expect(defaultProps.handleCreateWebhook).toHaveBeenCalled();
+    expect(defaultProps.handleCreateWebhook).toHaveBeenCalledTimes(1);
   });
 
   it('handles delete webhook', () => {
