@@ -318,7 +318,7 @@ function App() {
   useEffect(() => {
     if (token) {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
         setPermissions(payload.permissions || []);
       } catch (e) {
         setPermissions([]);
@@ -747,13 +747,13 @@ function App() {
       socket = new WebSocket(wsUrl);
       const activeToken = localStorage.getItem('auth_token') || '';
 
-      socket.onopen = () => {
+      socket.addEventListener('open', () => {
         // Authenticate WebSocket connection securely after opening,
         // preventing token leakage in the URL query string
         if (socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
         }
-      };
+      });
 
       socket.onmessage = (event) => {
         try {

@@ -1483,12 +1483,12 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                     </div>
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
                       {po.status === 'draft' && (
-                        <button className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleApprovePO(po.id)}>
+                        <button className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleApprovePO(po.id)} aria-label={`Approve purchase order ${po.id}`}>
                           Approve
                         </button>
                       )}
                       {po.status === 'approved' && (
-                        <button className="btn btn-accent" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleSendPO(po.id)}>
+                        <button className="btn btn-accent" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleSendPO(po.id)} aria-label={`Send PO ${po.id}`}>
                           Send PO
                         </button>
                       )}
@@ -1639,7 +1639,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
                   <td>{loc.maxWeightGrams}g</td>
                   <td>{loc.maxVolumeCubicMeters}m³</td>
                   <td>
-                    <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)}>
+                    <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)} aria-label={`Delete warehouse location ${loc.id}`}>
                       Delete
                     </button>
                   </td>
@@ -1766,7 +1766,7 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
                       ))}
                     </td>
                     <td>
-                      <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)}>
+                      <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)} aria-label={`Delete webhook ${w.id}`}>
                         Delete
                       </button>
                     </td>

@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     pool: 'forks',
-    environment: 'jsdom',
+        environment: 'jsdom',
     globals: true,
-      },
+  },
 })
