@@ -149,4 +149,81 @@ describe('ProcurementPanel', () => {
     await user.click(fulfillButton);
     expect(mockHandleReceivePO).toHaveBeenCalled();
   });
+  it('updates draft PO line items correctly', async () => {
+    render(<ProcurementPanel {...getDefaultProps()} />);
+    const user = userEvent.setup();
+
+    const skuInput = screen.getByPlaceholderText('SKU');
+    await user.clear(skuInput);
+    await user.type(skuInput, 'NEW-SKU');
+
+    const qtyInput = screen.getByPlaceholderText('Qty');
+    await user.clear(qtyInput);
+    await user.type(qtyInput, '5');
+
+    const costInput = screen.getByPlaceholderText('Unit Cost (Cents)');
+    await user.clear(costInput);
+    await user.type(costInput, '1500');
+
+    expect(mockSetNewPoLines).toHaveBeenCalled();
+  });
+
+  it('updates receipt quantities correctly', async () => {
+    const props = {
+      ...getDefaultProps(),
+      purchaseOrders: [
+        {
+          id: 'PO-3',
+          supplier: 'Supplier',
+          status: 'sent',
+          items: [{ sku: 'SKU-RECV', quantity: 10, unitCostCents: 500 }],
+          createdAt: new Date().toISOString()
+        }
+      ],
+      receivePoId: 'PO-3',
+      receivePoLines: [{ sku: 'SKU-RECV', quantity: 10 }]
+    };
+
+    render(<ProcurementPanel {...props} />);
+    const user = userEvent.setup();
+
+    const spinbuttons = screen.getAllByRole('spinbutton');
+    const receiptQtyInput = spinbuttons[spinbuttons.length - 1];
+
+    await user.clear(receiptQtyInput);
+    await user.type(receiptQtyInput, '12');
+
+    expect(mockSetReceivePoLines).toHaveBeenCalled();
+  });
+
+  it('disables submit buttons when loading is true', () => {
+    const props = {
+      ...getDefaultProps(),
+      loading: true,
+      purchaseOrders: [
+        {
+          id: 'PO-3',
+          supplier: 'Supplier',
+          status: 'sent',
+          items: [{ sku: 'SKU-RECV', quantity: 10, unitCostCents: 500 }],
+          createdAt: new Date().toISOString()
+        }
+      ],
+      receivePoId: 'PO-3',
+      receivePoLines: [{ sku: 'SKU-RECV', quantity: 10 }]
+    };
+
+    const { container } = render(<ProcurementPanel {...props} />);
+
+    // Since loading replaces button text with Spinner, get the submit buttons by querySelector
+    const submitButtons = container.querySelectorAll('button[type="submit"]');
+
+    expect(submitButtons.length).toBe(2);
+
+    expect(submitButtons[0]).toBeDisabled();
+    expect(submitButtons[0]).toHaveAttribute('aria-busy', 'true');
+
+    expect(submitButtons[1]).toBeDisabled();
+    expect(submitButtons[1]).toHaveAttribute('aria-busy', 'true');
+  });
 });
