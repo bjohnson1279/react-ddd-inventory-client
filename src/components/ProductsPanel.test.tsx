@@ -157,7 +157,7 @@ describe('ProductsPanel', () => {
     };
     render(<ProductsPanel {...propsWithVariants} />);
 
-    const generateBtn = screen.getByRole('button', { name: 'Generate Internal Barcode' });
+    const generateBtn = screen.getByRole('button', { name: 'Generate Internal Barcode for SKU-1' });
     await user.click(generateBtn);
 
     expect(defaultProps.handleGenerateBarcode).toHaveBeenCalledWith('SKU-1');

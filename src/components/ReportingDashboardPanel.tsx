@@ -115,12 +115,16 @@ export const ReportingDashboardPanel: React.FC<Props> = ({ client, tenantId }) =
                   </div>
                   <div className="space-x-2">
                     <button 
+                      type="button"
+                      aria-label={`Run Now for report ${r.name}`}
                       className="text-sm bg-green-100 text-green-700 px-2 py-1 rounded"
                       onClick={() => handleExecuteReport(r.id)}
                     >
                       Run Now
                     </button>
                     <button 
+                      type="button"
+                      aria-label={`Schedule report ${r.name}`}
                       className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded"
                       onClick={() => handleScheduleReport(r.id)}
                     >

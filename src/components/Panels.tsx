@@ -344,6 +344,8 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
                             ))}
                           </div>
                           <button 
+                            type="button"
+                            aria-label={`Generate Internal Barcode for ${v.sku}`}
                             className="btn btn-secondary" 
                             style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', marginTop: '0.35rem' }} 
                             onClick={(e) => { e.stopPropagation(); handleGenerateBarcode(v.sku); }}
