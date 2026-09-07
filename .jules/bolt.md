@@ -41,3 +41,6 @@
 - **Zero-Diff Task Termination**: If the requested optimization, refactor, or fix is ALREADY natively present in the target branch, DO NOT create an empty pull request or commit an acknowledgment PR. Exit the task cleanly without opening a PR.
 - **Stale Suggestion Guard**: Always verify the current code on `main`/`master` before planning changes. If no actionable diff is required, cancel task execution immediately.
 
+## 2026-09-07 - N+1 Bulk Fetch Replacement
+**Learning:** Found a systemic N+1 parallel query issue in `getPurchaseOrders` inside `laravel.ts`, where doing parallel `Promise.all` over N network requests is highly inefficient and overloads the backend.
+**Action:** Replace `Promise.all` maps containing HTTP requests with single chunked or bulk backend fetch queries (`GET /resource?ids=...`) when possible to eliminate network round-trip overhead.

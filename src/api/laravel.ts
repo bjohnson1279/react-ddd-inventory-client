@@ -515,32 +515,43 @@ export class LaravelRESTAdapter implements InventoryClient {
     const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
     const ids: string[] = JSON.parse(idsStr);
 
-    const posPromises = ids.map(async (id) => {
-      try {
-        const po = await this.request('GET', `/api/purchase-orders/${id}?tenantId=${tenantId}`);
-        if (po) {
-          return {
-            id: po.id,
-            tenantId: po.tenant_id || po.tenantId,
-            supplier: po.supplier,
-            status: po.status,
-            createdAt: po.created_at || po.createdAt,
-            items: (po.items || []).map((i: any) => ({
-              sku: i.sku,
-              quantity: i.quantity,
-              unitCostCents: i.unit_cost_cents || i.unitCostCents || 0
-            }))
-          };
-        }
-        return null;
-      } catch (e) {
-        console.error(`Failed to load PO ${id}:`, e);
-        return null;
-      }
-    });
+    if (ids.length === 0) {
+      return [];
+    }
 
-    const pos = await Promise.all(posPromises);
-    return pos.filter((po) => po !== null) as PurchaseOrder[];
+    try {
+      // ⚡ Bolt: Replaced N+1 parallel requests with chunked bulk fetch to eliminate network overhead and prevent 414 URI Too Long errors.
+      const CHUNK_SIZE = 50;
+      const allPos = [];
+
+      for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+        const chunk = ids.slice(i, i + CHUNK_SIZE);
+        const response = await this.request('GET', `/api/purchase-orders?tenantId=${tenantId}&ids=${chunk.join(',')}`);
+
+        const bulkData = (response?.data || response || []);
+        if (Array.isArray(bulkData)) {
+           allPos.push(...bulkData);
+        }
+      }
+
+      return allPos
+        .filter((po: any) => po && ids.includes(po.id))
+        .map((po: any) => ({
+          id: po.id,
+          tenantId: po.tenant_id || po.tenantId,
+          supplier: po.supplier,
+          status: po.status,
+          createdAt: po.created_at || po.createdAt,
+          items: (po.items || []).map((i: any) => ({
+            sku: i.sku,
+            quantity: i.quantity,
+            unitCostCents: i.unit_cost_cents || i.unitCostCents || 0
+          }))
+        }));
+    } catch (err) {
+      console.error('Failed to fetch POs in bulk', err);
+      return [];
+    }
   }
 
   async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
