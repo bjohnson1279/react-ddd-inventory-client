@@ -79,7 +79,8 @@ describe('ProductsPanel', () => {
       ...defaultProps,
       products: [
         { id: 'p1', name: 'Product 1', variants: [] },
-        { id: 'p2', name: 'Product 2', variants: [{ id: 'v1', sku: 'SKU-1', trackingMode: 'quantity', barcodes: [] }] }
+        { id: 'p2', name: 'Product 2', variants: [{ id: 'v1', sku: 'SKU-1', trackingMode: 'quantity', barcodes: [] }] },
+        { id: 'p3', name: 'Product 3', variants: [{ id: 'v2', sku: 'SKU-2', trackingMode: 'lot', barcodes: [{ id: 'b1', barcodeValue: '111', symbology: 'qr_code' }, { id: 'b2', barcode: { value: '222', symbology: 'ean_13' } }] }] }
       ]
     };
     render(<ProductsPanel {...propsWithProducts} />);
@@ -88,11 +89,15 @@ describe('ProductsPanel', () => {
     expect(screen.getByText('Product 2')).toBeInTheDocument();
     expect(screen.getByText('SKU-1')).toBeInTheDocument();
 
+    // Test alternative barcode property structures and rendering of variants/barcodes
+    expect(screen.getByText('111 (qr_code)')).toBeInTheDocument();
+    expect(screen.getByText('222 (ean_13)')).toBeInTheDocument();
+
     await user.click(screen.getByText('Product 1'));
     expect(defaultProps.setSelectedProduct).toHaveBeenCalledWith(propsWithProducts.products[0]);
   });
 
-  it('renders add variant form when product is selected', async () => {
+  it('renders add variant form when product is selected and handles tracking/attr changes', async () => {
     const user = userEvent.setup();
     const selectedProduct = { id: 'p1', name: 'Test Product', variants: [] };
     render(<ProductsPanel {...defaultProps} selectedProduct={selectedProduct} />);
@@ -103,6 +108,15 @@ describe('ProductsPanel', () => {
     const skuInput = skuInputs[0];
     await user.type(skuInput, 'TEST-SKU');
     expect(defaultProps.setNewVarSku).toHaveBeenCalled();
+
+    const selects = screen.getAllByRole('combobox');
+    const trackingSelect = selects[0];
+    await user.selectOptions(trackingSelect, 'serial');
+    expect(defaultProps.setNewVarTracking).toHaveBeenCalledWith('serial');
+
+    const attrInput = screen.getByPlaceholderText('[{"name":"color","value":"black"}]');
+    fireEvent.change(attrInput, { target: { value: '[{"name":"size","value":"large"}]' } });
+    expect(defaultProps.setNewVarAttrJSON).toHaveBeenCalled();
 
         const form = document.querySelectorAll('form')[1];
     fireEvent.submit(form);
@@ -139,36 +153,40 @@ describe('ProductsPanel', () => {
     await user.click(isPrimaryCheckbox);
     expect(defaultProps.setAssignIsPrimary).toHaveBeenCalledWith(true);
 
-    // Since we mock state setters as vi.fn() without implementation, inputs remain empty causing native HTML5 validation (required) to block the submit event on button click.
-    // We can simulate the form submission directly.
     const forms = document.querySelectorAll('form');
     const manualForm = forms[forms.length - 1];
         fireEvent.submit(manualForm);
     expect(defaultProps.handleAssignBarcode).toHaveBeenCalled();
   });
 
-  it('handles generate internal barcode button', async () => {
+  it('handles generate internal barcode button and stops propagation', async () => {
     const user = userEvent.setup();
     const propsWithVariants = {
       ...defaultProps,
       products: [
-        { id: 'p2', name: 'Product 2', variants: [{ id: 'v1', sku: 'SKU-1', trackingMode: 'quantity', barcodes: [] }] }
+        { id: 'p2', name: 'Product 2', variants: [{ id: 'v1', sku: 'SKU-1', trackingMode: 'quantity', barcodes: null }] }
       ]
     };
     render(<ProductsPanel {...propsWithVariants} />);
 
     const generateBtn = screen.getByRole('button', { name: 'Generate Internal Barcode' });
+
+    // Testing e.stopPropagation by clicking the button which is inside a row with an onClick
     await user.click(generateBtn);
 
     expect(defaultProps.handleGenerateBarcode).toHaveBeenCalledWith('SKU-1');
+    expect(defaultProps.setSelectedProduct).not.toHaveBeenCalled();
   });
 
-  it('disables buttons when loading', () => {
+  it('disables buttons and shows spinner when loading', () => {
     render(<ProductsPanel {...defaultProps} loading={true} />);
     const buttons = screen.getAllByRole('button');
     buttons.forEach(btn => {
       expect(btn).toBeDisabled();
       expect(btn).toHaveAttribute('aria-busy', 'true');
     });
+    // The real Spinner renders an svg with class 'spinner'
+    const spinners = document.querySelectorAll('svg.spinner');
+    expect(spinners.length).toBeGreaterThan(0);
   });
 });
