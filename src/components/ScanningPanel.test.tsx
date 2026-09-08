@@ -100,4 +100,29 @@ describe('ScanningPanel', () => {
     expect(screen.getByText('DISPATCH')).toBeInTheDocument();
     expect(screen.getByText('Error: invalid')).toBeInTheDocument();
   });
+
+  it('disables buttons when loading is true', () => {
+    render(<ScanningPanel {...defaultProps} loading={true} offlineQueueCount={1} isOnline={true} />);
+    const submitBtn = screen.getByRole('button', { name: 'Dispatch Barcode Scan' });
+    expect(submitBtn).toBeDisabled();
+    expect(submitBtn).toHaveAttribute('aria-busy', 'true');
+
+    const syncBtn = screen.getByRole('button', { name: 'Sync Queue Now' });
+    expect(syncBtn).toBeDisabled();
+    expect(syncBtn).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('calls handleSyncQueue when Sync Queue Now button is clicked', async () => {
+    const user = userEvent.setup();
+    render(<ScanningPanel {...defaultProps} offlineQueueCount={1} isOnline={true} />);
+    const syncBtn = screen.getByRole('button', { name: 'Sync Queue Now' });
+    await user.click(syncBtn);
+    expect(defaultProps.handleSyncQueue).toHaveBeenCalled();
+  });
+
+  it('does not render sync queue alert when offline', () => {
+    render(<ScanningPanel {...defaultProps} offlineQueueCount={1} isOnline={false} />);
+    expect(screen.queryByText(/waiting in IndexedDB queue/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sync Queue Now' })).not.toBeInTheDocument();
+  });
 });
