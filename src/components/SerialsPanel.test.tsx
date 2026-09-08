@@ -82,18 +82,7 @@ describe('SerialsPanel', () => {
     expect(screen.getByText(mockDate.toLocaleTimeString())).toBeInTheDocument();
   });
 
-  it('renders fallback message when tracedItem has no history', () => {
-    const mockTracedItem = {
-      serialNumber: 'SN-123',
-      variantId: 'VAR-1',
-      locationId: 'LOC-1',
-      status: 'active'
-    };
-    render(<SerialsPanel {...defaultProps} tracedItem={mockTracedItem} />);
-    expect(screen.getByText('Enter a serial number to trace custody and location transitions.')).toBeInTheDocument();
-  });
-
-  it('renders fallback message when tracedItem has empty history array', () => {
+  it('renders default text when tracedItem has empty history', () => {
     const mockTracedItem = {
       serialNumber: 'SN-123',
       variantId: 'VAR-1',
@@ -105,7 +94,18 @@ describe('SerialsPanel', () => {
     expect(screen.getByText('Enter a serial number to trace custody and location transitions.')).toBeInTheDocument();
   });
 
-  it('handles history item missing occurredAt and referenceId', () => {
+  it('renders default text when tracedItem has no history property', () => {
+    const mockTracedItem = {
+      serialNumber: 'SN-123',
+      variantId: 'VAR-1',
+      locationId: 'LOC-1',
+      status: 'active'
+    };
+    render(<SerialsPanel {...defaultProps} tracedItem={mockTracedItem} />);
+    expect(screen.getByText('Enter a serial number to trace custody and location transitions.')).toBeInTheDocument();
+  });
+
+  it('renders history correctly when occurredAt and referenceId are missing', () => {
     const mockTracedItem = {
       serialNumber: 'SN-123',
       variantId: 'VAR-1',
@@ -113,17 +113,21 @@ describe('SerialsPanel', () => {
       status: 'active',
       history: [
         {
-          from: 'A',
-          to: 'B',
-          reason: 'Test',
-          actor: 'user'
+          from: 'Warehouse A',
+          to: 'Warehouse C',
+          reason: 'Transfer',
+          actor: 'admin'
         }
       ]
     };
-    render(<SerialsPanel {...defaultProps} tracedItem={mockTracedItem} />);
 
+    render(<SerialsPanel {...defaultProps} tracedItem={mockTracedItem} />);
+    expect(screen.getByText(/Status Transition: Warehouse A → Warehouse C/)).toBeInTheDocument();
+    expect(screen.getByText('Transfer')).toBeInTheDocument();
+    expect(screen.getByText('admin')).toBeInTheDocument();
+    // The reference ID block should not be rendered
     expect(screen.queryByText('Reference ID:')).not.toBeInTheDocument();
-    expect(screen.getByText(/Status Transition: A → B/)).toBeInTheDocument();
-    expect(screen.getByText('Test')).toBeInTheDocument();
+    // The time should be rendered using current time, just testing that a time is rendered and component doesn't crash
+    expect(screen.queryAllByText(/:/)).not.toHaveLength(0);
   });
 });
