@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { describe, it, expect, vi } from 'vitest';
@@ -59,6 +59,12 @@ describe('RoutingPanel', () => {
     await user.click(submitButton);
 
     expect(defaultProps.handleComputeRoute).toHaveBeenCalled();
+
+    const form = submitButton.closest('form');
+    if (form) {
+      fireEvent.submit(form);
+      expect(defaultProps.handleComputeRoute).toHaveBeenCalledTimes(2);
+    }
   });
 
   it('disables submit button and shows loading state', () => {
@@ -94,4 +100,20 @@ describe('RoutingPanel', () => {
     expect(screen.getByText('WH-2')).toBeInTheDocument();
     expect(screen.getByText('2 units')).toBeInTheDocument();
   });
+
+  it('renders optimal fulfillment plan with empty allocations gracefully', () => {
+    const mockRoutingPlanEmpty = {
+      totalCost: 0,
+      totalDistance: 0,
+      splitCount: 0,
+      allocations: []
+    };
+
+    render(<RoutingPanel {...defaultProps} routingPlan={mockRoutingPlanEmpty} />);
+
+    expect(screen.getByText('Optimal Fulfillment Plan')).toBeInTheDocument();
+    expect(screen.getByText('$0.00')).toBeInTheDocument();
+    expect(screen.getByText('0 splits')).toBeInTheDocument();
+  });
+
 });

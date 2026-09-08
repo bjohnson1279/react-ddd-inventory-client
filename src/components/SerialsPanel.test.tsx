@@ -81,4 +81,49 @@ describe('SerialsPanel', () => {
     expect(screen.getByText('TRX-1')).toBeInTheDocument();
     expect(screen.getByText(mockDate.toLocaleTimeString())).toBeInTheDocument();
   });
+
+  it('renders fallback message when tracedItem has no history', () => {
+    const mockTracedItem = {
+      serialNumber: 'SN-123',
+      variantId: 'VAR-1',
+      locationId: 'LOC-1',
+      status: 'active'
+    };
+    render(<SerialsPanel {...defaultProps} tracedItem={mockTracedItem} />);
+    expect(screen.getByText('Enter a serial number to trace custody and location transitions.')).toBeInTheDocument();
+  });
+
+  it('renders fallback message when tracedItem has empty history array', () => {
+    const mockTracedItem = {
+      serialNumber: 'SN-123',
+      variantId: 'VAR-1',
+      locationId: 'LOC-1',
+      status: 'active',
+      history: []
+    };
+    render(<SerialsPanel {...defaultProps} tracedItem={mockTracedItem} />);
+    expect(screen.getByText('Enter a serial number to trace custody and location transitions.')).toBeInTheDocument();
+  });
+
+  it('handles history item missing occurredAt and referenceId', () => {
+    const mockTracedItem = {
+      serialNumber: 'SN-123',
+      variantId: 'VAR-1',
+      locationId: 'LOC-1',
+      status: 'active',
+      history: [
+        {
+          from: 'A',
+          to: 'B',
+          reason: 'Test',
+          actor: 'user'
+        }
+      ]
+    };
+    render(<SerialsPanel {...defaultProps} tracedItem={mockTracedItem} />);
+
+    expect(screen.queryByText('Reference ID:')).not.toBeInTheDocument();
+    expect(screen.getByText(/Status Transition: A → B/)).toBeInTheDocument();
+    expect(screen.getByText('Test')).toBeInTheDocument();
+  });
 });
