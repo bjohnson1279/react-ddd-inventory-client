@@ -1,4 +1,4 @@
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -90,6 +90,39 @@ describe('LotManagementPanel', () => {
     expect(screen.getByText('⚡ Dynamic Cross-Docking Evaluator')).toBeInTheDocument();
   });
 
+  it('updates input fields correctly', async () => {
+    const user = userEvent.setup();
+    render(<LotManagementPanel />);
+
+    const lotInput = screen.getByDisplayValue('LOT-2026-X');
+    await user.clear(lotInput);
+    await user.type(lotInput, 'NEW-LOT-123');
+    expect(lotInput).toHaveValue('NEW-LOT-123');
+
+    const variantInput = screen.getByDisplayValue('VAR-MED-100');
+    await user.clear(variantInput);
+    await user.type(variantInput, 'VAR-NEW-999');
+    expect(variantInput).toHaveValue('VAR-NEW-999');
+
+    const reasonInput = screen.getByDisplayValue('Quality defect inspection');
+    await user.clear(reasonInput);
+    await user.type(reasonInput, 'Testing reason');
+    expect(reasonInput).toHaveValue('Testing reason');
+
+    const poInput = screen.getByDisplayValue('PO-9910');
+    await user.clear(poInput);
+    await user.type(poInput, 'PO-1111');
+    expect(poInput).toHaveValue('PO-1111');
+
+    const inboundInput = screen.getByDisplayValue('[{"variantId":"VAR-MED-100","quantity":50}]');
+    fireEvent.change(inboundInput, { target: { value: '[]' } });
+    expect(inboundInput).toHaveValue('[]');
+
+    const backorderInput = screen.getByDisplayValue('[{"orderId":"ORD-501","variantId":"VAR-MED-100","quantity":30,"priority":2}]');
+    fireEvent.change(backorderInput, { target: { value: '[]' } });
+    expect(backorderInput).toHaveValue('[]');
+  });
+
   it('handles quarantine action successfully', async () => {
     const user = userEvent.setup();
     vi.mocked(globalThis.fetch).mockResolvedValueOnce({
@@ -104,6 +137,52 @@ describe('LotManagementPanel', () => {
     });
 
     expect(globalThis.fetch).toHaveBeenCalledWith('/api/lots/quarantine', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({
+        lotNumber: 'LOT-2026-X',
+        variantId: 'VAR-MED-100',
+        reason: 'Quality defect inspection'
+      })
+    }));
+  });
+
+  it('handles recall action successfully', async () => {
+    const user = userEvent.setup();
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      json: async () => ({}), // Returns empty object to test status fallback
+    } as Response);
+    render(<LotManagementPanel />);
+
+    await user.click(screen.getByRole('button', { name: /trigger lot recall/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Lot LOT-2026-X updated to RECALL')).toBeInTheDocument();
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/lots/recall', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({
+        lotNumber: 'LOT-2026-X',
+        variantId: 'VAR-MED-100',
+        reason: 'Quality defect inspection'
+      })
+    }));
+  });
+
+  it('handles release action successfully', async () => {
+    const user = userEvent.setup();
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      json: async () => ({ status: 'RELEASED' }),
+    } as Response);
+    render(<LotManagementPanel />);
+
+    await user.click(screen.getByRole('button', { name: /release lot/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Lot LOT-2026-X updated to RELEASED')).toBeInTheDocument();
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/lots/release', expect.objectContaining({
       method: 'POST',
       body: JSON.stringify({
         lotNumber: 'LOT-2026-X',
@@ -186,5 +265,67 @@ describe('LotManagementPanel', () => {
     await waitFor(() => {
       expect(screen.getByText('Cross-Docking error: Cross-dock failure')).toBeInTheDocument();
     });
+  });
+
+  it('handles requests without auth token successfully', async () => {
+    localStorage.removeItem('auth_token');
+    const user = userEvent.setup();
+
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      json: async () => ({ status: 'RELEASED' }),
+    } as Response);
+    const { unmount } = render(<LotManagementPanel />);
+
+    await user.click(screen.getByRole('button', { name: /release lot/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Lot LOT-2026-X updated to RELEASED')).toBeInTheDocument();
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/lots/release', expect.objectContaining({
+      headers: { 'Content-Type': 'application/json' }
+    }));
+
+    unmount();
+    vi.mocked(globalThis.fetch).mockClear();
+
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      json: async () => ({
+        lotNumber: 'LOT-2026-X',
+        status: 'ACTIVE'
+      }),
+    } as Response);
+    render(<LotManagementPanel />);
+
+    await user.click(screen.getByRole('button', { name: /generate trace report/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Lot Lineage Traceability Report')).toBeInTheDocument();
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/lots/LOT-2026-X/traceability?variantId=VAR-MED-100', expect.objectContaining({
+      headers: {}
+    }));
+  });
+
+  it('handles cross-docking requests without auth token successfully', async () => {
+    localStorage.removeItem('auth_token');
+    const user = userEvent.setup();
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      json: async () => ([
+        { destinationBay: 'BAY-01', recommendedCrossDockQuantity: 30 }
+      ]),
+    } as Response);
+    render(<LotManagementPanel />);
+
+    await user.click(screen.getByRole('button', { name: /evaluate dock-to-dock opportunities/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Recommended Direct Transfers')).toBeInTheDocument();
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/cross-dock/evaluate', expect.objectContaining({
+      headers: { 'Content-Type': 'application/json' }
+    }));
   });
 });

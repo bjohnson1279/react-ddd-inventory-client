@@ -1924,10 +1924,14 @@ export const RfidPanel: React.FC<{
 
   // Metrics
   const totalProcessedBatches = scanEvents.length;
-  // ⚡ Bolt: Memoize metrics calculations to prevent O(N) array reduction on every render during continuous RFID scanning
+  // ⚡ Bolt: Replace double O(N) .reduce() with a single-pass O(N) for-loop to calculate continuous stream metrics without callback overhead
   const { totalMatched, totalScanned, averageMatchRate } = React.useMemo(() => {
-    const matched = scanEvents.reduce((acc, curr) => acc + curr.matchedCount, 0);
-    const scanned = scanEvents.reduce((acc, curr) => acc + curr.totalCount, 0);
+    let matched = 0;
+    let scanned = 0;
+    for (const curr of scanEvents) {
+      matched += curr.matchedCount;
+      scanned += curr.totalCount;
+    }
     const rate = scanned > 0 ? ((matched / scanned) * 100).toFixed(1) : '100.0';
     return { totalMatched: matched, totalScanned: scanned, averageMatchRate: rate };
   }, [scanEvents]);
