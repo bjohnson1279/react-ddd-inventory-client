@@ -11,6 +11,79 @@ describe('LotManagementPanel', () => {
     localStorage.setItem('auth_token', 'mock_token');
   });
 
+  it('updates input values correctly and handles recall action', async () => {
+    const user = userEvent.setup();
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      json: async () => ({ status: 'RECALLED' }),
+    } as Response);
+    render(<LotManagementPanel />);
+
+    const lotNumberInputs = screen.getAllByRole('textbox');
+
+    const lotInput = lotNumberInputs[0];
+    const variantInput = lotNumberInputs[1];
+    const reasonInput = lotNumberInputs[2];
+    const poInput = lotNumberInputs[3];
+    const inboundInput = lotNumberInputs[4];
+    const backorderInput = lotNumberInputs[5];
+
+    await user.clear(lotInput);
+    await user.type(lotInput, 'LOT-NEW-123');
+
+    await user.clear(variantInput);
+    await user.type(variantInput, 'VAR-NEW-456');
+
+    await user.clear(reasonInput);
+    await user.type(reasonInput, 'Testing recall');
+
+    await user.clear(poInput);
+    await user.type(poInput, 'PO-NEW');
+
+    await user.clear(inboundInput);
+    await user.type(inboundInput, '[[{{"test": 1}}]]'); // Escape [ and {
+
+    await user.clear(backorderInput);
+    await user.type(backorderInput, '[[{{"test": 2}}]]');
+
+    await user.click(screen.getByRole('button', { name: /trigger lot recall/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Lot LOT-NEW-123 updated to RECALLED')).toBeInTheDocument();
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/lots/recall', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({
+        lotNumber: 'LOT-NEW-123',
+        variantId: 'VAR-NEW-456',
+        reason: 'Testing recall'
+      })
+    }));
+  });
+
+  it('handles release action successfully', async () => {
+    const user = userEvent.setup();
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      json: async () => ({ status: 'RELEASED' }),
+    } as Response);
+    render(<LotManagementPanel />);
+
+    await user.click(screen.getByRole('button', { name: /release lot/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Lot LOT-2026-X updated to RELEASED')).toBeInTheDocument();
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/lots/release', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({
+        lotNumber: 'LOT-2026-X',
+        variantId: 'VAR-MED-100',
+        reason: 'Quality defect inspection'
+      })
+    }));
+  });
+
   it('renders initial state correctly', () => {
     render(<LotManagementPanel />);
     expect(screen.getByText('🛡️ Lot Quarantine & Recall Traceability')).toBeInTheDocument();
