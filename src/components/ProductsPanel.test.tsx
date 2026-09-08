@@ -169,7 +169,7 @@ describe('ProductsPanel', () => {
     };
     render(<ProductsPanel {...propsWithVariants} />);
 
-    const generateBtn = screen.getByRole('button', { name: 'Generate Internal Barcode' });
+    const generateBtn = screen.getByRole('button', { name: 'Generate Internal Barcode for SKU-1' });
 
     // Testing e.stopPropagation by clicking the button which is inside a row with an onClick
     await user.click(generateBtn);
