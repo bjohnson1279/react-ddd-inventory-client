@@ -33,6 +33,22 @@ describe('OnboardingPanel', () => {
     expect(screen.getByText('sheet-2')).toBeInTheDocument();
   });
 
+  it('renders with a selected onboarding sheet highlighting its row', () => {
+    const onboardings = [
+      { id: 'sheet-1', locationId: 'loc-1', asOfDate: '2024-01-01T00:00:00Z', status: 'draft' },
+      { id: 'sheet-2', locationId: 'loc-2', asOfDate: '2024-01-02T00:00:00Z', status: 'submitted' },
+    ];
+    render(<OnboardingPanel {...defaultProps} onboardings={onboardings} selectedOnboarding={onboardings[0]} />);
+
+    const sheetRows = screen.getAllByText('sheet-1');
+    const sheet1Row = sheetRows[0].closest('tr');
+    expect(sheet1Row).toHaveStyle({ background: 'rgba(var(--primary-rgb), 0.1)' });
+
+    const sheet2Rows = screen.getAllByText('sheet-2');
+    const sheet2Row = sheet2Rows[0].closest('tr');
+    expect(sheet2Row).toHaveStyle({ background: 'transparent' });
+  });
+
   it('allows selecting an onboarding sheet', async () => {
     const user = userEvent.setup();
     const setSelectedOnboarding = vi.fn();
@@ -41,7 +57,8 @@ describe('OnboardingPanel', () => {
     ];
     render(<OnboardingPanel {...defaultProps} onboardings={onboardings} setSelectedOnboarding={setSelectedOnboarding} />);
 
-    const sheetRow = screen.getByText('sheet-1').closest('tr');
+    const sheetRows = screen.getAllByText('sheet-1');
+    const sheetRow = sheetRows[0].closest('tr');
     await act(async () => {
       await user.click(sheetRow!);
     });

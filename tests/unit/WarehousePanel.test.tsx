@@ -1,8 +1,35 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WarehousePanel } from '../../src/components/Panels';
 import userEvent from '@testing-library/user-event';
+
+const Wrapper = (props: any) => {
+  const [wmsMaxWeight, setWmsMaxWeight] = React.useState(0);
+  const [wmsMaxVolume, setWmsMaxVolume] = React.useState(0);
+  const [putawayQty, setPutawayQty] = React.useState(0);
+
+  return (
+    <WarehousePanel
+      {...props}
+      wmsMaxWeight={wmsMaxWeight}
+      setWmsMaxWeight={(val) => {
+        setWmsMaxWeight(val);
+        props.setWmsMaxWeight(val);
+      }}
+      wmsMaxVolume={wmsMaxVolume}
+      setWmsMaxVolume={(val) => {
+        setWmsMaxVolume(val);
+        props.setWmsMaxVolume(val);
+      }}
+      putawayQty={putawayQty}
+      setPutawayQty={(val) => {
+        setPutawayQty(val);
+        props.setPutawayQty(val);
+      }}
+    />
+  );
+};
 
 describe('WarehousePanel', () => {
   const defaultProps = {
@@ -46,11 +73,27 @@ describe('WarehousePanel', () => {
 
   it('handles input changes for configure location form', async () => {
     const user = userEvent.setup();
-    render(<WarehousePanel {...defaultProps} />);
+    render(<Wrapper {...defaultProps} />);
 
     const locIdInput = screen.getByPlaceholderText('e.g. LOC-CENTRAL');
     await user.type(locIdInput, 'L');
     expect(defaultProps.setWmsLocId).toHaveBeenCalledWith('L');
+
+    const inputs = screen.getAllByRole('textbox');
+    await user.type(inputs[1], 'W1');
+    expect(defaultProps.setWmsWarehouseId).toHaveBeenCalledWith('W');
+
+    await user.type(inputs[2], 'Z1');
+    expect(defaultProps.setWmsZone).toHaveBeenCalledWith('Z');
+
+    const numberInputs = screen.getAllByRole('spinbutton');
+    await user.clear(numberInputs[0]);
+    await user.type(numberInputs[0], '100');
+    expect(defaultProps.setWmsMaxWeight).toHaveBeenCalledWith(100);
+
+    await user.clear(numberInputs[1]);
+    await user.type(numberInputs[1], '10.5');
+    expect(defaultProps.setWmsMaxVolume).toHaveBeenCalledWith(10.5);
   });
 
   it('submits configure location form', () => {
@@ -63,11 +106,17 @@ describe('WarehousePanel', () => {
 
   it('handles input changes for get putaway recommendation form', async () => {
     const user = userEvent.setup();
-    render(<WarehousePanel {...defaultProps} />);
+    render(<Wrapper {...defaultProps} />);
 
     const skuInput = screen.getByPlaceholderText('e.g. ROUTE-SKU');
     await user.type(skuInput, 'S');
     expect(defaultProps.setPutawaySku).toHaveBeenCalledWith('S');
+
+    const numberInputs = screen.getAllByRole('spinbutton');
+    const qtyInput = numberInputs[2];
+    await user.clear(qtyInput);
+    await user.type(qtyInput, '50');
+    expect(defaultProps.setPutawayQty).toHaveBeenCalledWith(50);
   });
 
   it('submits get putaway recommendation form', () => {
@@ -99,7 +148,7 @@ describe('WarehousePanel', () => {
       { id: 'LOC-1', zone: 'A', maxWeightGrams: 1000, maxVolumeCubicMeters: 1.5 }
     ];
     render(<WarehousePanel {...defaultProps} wmsLocations={locations} />);
-    const deleteBtn = screen.getByRole('button', { name: /Delete warehouse location/i });
+    const deleteBtn = screen.getByRole('button', { name: /Delete/i });
     fireEvent.click(deleteBtn);
     expect(defaultProps.handleDeleteWmsLocation).toHaveBeenCalledWith('LOC-1');
   });
@@ -135,5 +184,19 @@ describe('WarehousePanel', () => {
     expect(screen.getByText('Suggested Sequencing Path')).toBeInTheDocument();
     expect(screen.getByText('SKU-1')).toBeInTheDocument();
     expect(screen.getByText('SKU-2')).toBeInTheDocument();
+  });
+
+  it('disables buttons when loading is true', () => {
+    render(<WarehousePanel {...defaultProps} loading={true} />);
+    const configBtn = screen.getByRole('button', { name: 'Configure Location' });
+    const suggestBtn = screen.getByRole('button', { name: 'Suggest Bin Location' });
+    const optimizeBtn = screen.getByRole('button', { name: 'Generate Optimal Pick Sequence' });
+
+    expect(configBtn).toBeDisabled();
+    expect(configBtn).toHaveAttribute('aria-busy', 'true');
+    expect(suggestBtn).toBeDisabled();
+    expect(suggestBtn).toHaveAttribute('aria-busy', 'true');
+    expect(optimizeBtn).toBeDisabled();
+    expect(optimizeBtn).toHaveAttribute('aria-busy', 'true');
   });
 });

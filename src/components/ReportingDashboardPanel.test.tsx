@@ -141,4 +141,50 @@ describe('ReportingDashboardPanel', () => {
       expect(window.alert).toHaveBeenCalledWith('Schedule error');
     });
   });
+
+  it('dismisses error message', async () => {
+    mockClient.getReportDefinitions.mockRejectedValueOnce(new Error('Fetch failed'));
+    render(<ReportingDashboardPanel client={mockClient} tenantId="tenant-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Fetch failed')).toBeInTheDocument();
+    });
+
+    const dismissBtn = screen.getByLabelText('Dismiss error');
+    fireEvent.click(dismissBtn);
+
+    expect(screen.queryByText('Fetch failed')).not.toBeInTheDocument();
+  });
+
+  it('changes report type selection', async () => {
+    render(<ReportingDashboardPanel client={mockClient} tenantId="tenant-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Inventory Val')).toBeInTheDocument();
+    });
+
+    // Using getAllByRole because there might be multiple comboboxes, but in this case we only have one
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: 'STOCK_MOVEMENT' } });
+
+    expect(select).toHaveValue('STOCK_MOVEMENT');
+
+    const createBtn = screen.getByText('Create');
+    fireEvent.click(createBtn);
+
+    expect(window.alert).toHaveBeenCalledWith('Name required');
+
+    const input = screen.getByPlaceholderText('Report Name');
+    fireEvent.change(input, { target: { value: 'New Report' } });
+    fireEvent.click(createBtn);
+
+    await waitFor(() => {
+      expect(mockClient.createReportDefinition).toHaveBeenCalledWith('tenant-1', {
+        name: 'New Report',
+        type: 'STOCK_MOVEMENT',
+        filters: {},
+        grouping: {}
+      });
+    });
+  });
 });
