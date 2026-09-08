@@ -149,3 +149,127 @@ describe('OmnichannelIntegrationPanel', () => {
     });
   });
 });
+
+describe('OmnichannelIntegrationPanel Edge Cases', () => {
+  let mockClient: any;
+
+  beforeEach(() => {
+    mockClient = {
+      getConnections: vi.fn().mockRejectedValue(new Error('Fetch Error')),
+      connectAmazon: vi.fn().mockResolvedValue(undefined),
+      connectWooCommerce: vi.fn().mockRejectedValue(new Error('Woo Error')),
+      connectShopify: vi.fn().mockRejectedValue(new Error('Shopify Error')),
+    };
+
+    vi.mocked(useInventory).mockReturnValue({ client: mockClient } as any);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('handles fetch connections errors on mount', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<OmnichannelIntegrationPanel tenantId="tenant-1" />);
+
+    await waitFor(() => {
+      expect(mockClient.getConnections).toHaveBeenCalledWith('tenant-1');
+      expect(consoleSpy).toHaveBeenCalled();
+    });
+    consoleSpy.mockRestore();
+  });
+
+  it('handles WooCommerce connection errors', async () => {
+    const user = userEvent.setup();
+    render(<OmnichannelIntegrationPanel tenantId="tenant-1" />);
+
+    await waitFor(() => expect(screen.getByText('Omnichannel Integrations')).toBeInTheDocument());
+
+    const urlInput = screen.getByLabelText('Store URL');
+    const keyInput = screen.getByLabelText('Consumer Key');
+    const secretInput = screen.getByLabelText('Consumer Secret');
+    const connectBtn = screen.getByRole('button', { name: 'Connect WooCommerce' });
+
+    await user.type(urlInput, 'https://woo.store');
+    await user.type(keyInput, 'woo-key');
+    await user.type(secretInput, 'woo-secret');
+
+    fireEvent.submit(connectBtn.closest('form')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Woo Error')).toBeInTheDocument();
+    });
+  });
+
+  it('handles Shopify connection errors', async () => {
+    const user = userEvent.setup();
+    render(<OmnichannelIntegrationPanel tenantId="tenant-1" />);
+
+    await waitFor(() => expect(screen.getByText('Omnichannel Integrations')).toBeInTheDocument());
+
+    const domainInput = screen.getByLabelText('Store Domain');
+    const tokenInput = screen.getByLabelText('Access Token');
+    const connectBtn = screen.getByRole('button', { name: 'Connect Shopify' });
+
+    await user.type(domainInput, 'my.shopify.com');
+    await user.type(tokenInput, 'shp-token');
+
+    fireEvent.submit(connectBtn.closest('form')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Shopify Error')).toBeInTheDocument();
+    });
+  });
+
+  it('can dismiss error and success messages', async () => {
+    const user = userEvent.setup();
+    render(<OmnichannelIntegrationPanel tenantId="tenant-1" />);
+
+    await waitFor(() => expect(screen.getByText('Omnichannel Integrations')).toBeInTheDocument());
+
+    // Trigger an error message
+    const domainInput = screen.getByLabelText('Store Domain');
+    const tokenInput = screen.getByLabelText('Access Token');
+    const connectShopifyBtn = screen.getByRole('button', { name: 'Connect Shopify' });
+
+    await user.type(domainInput, 'my.shopify.com');
+    await user.type(tokenInput, 'shp-token');
+
+    fireEvent.submit(connectShopifyBtn.closest('form')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Shopify Error')).toBeInTheDocument();
+    });
+
+    const dismissErrorBtn = screen.getByRole('button', { name: 'Dismiss error' });
+    fireEvent.click(dismissErrorBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Shopify Error')).not.toBeInTheDocument();
+    });
+
+    // Trigger a success message (by modifying mock for amazon)
+    mockClient.connectAmazon.mockResolvedValueOnce(undefined);
+    const sellerIdInput = screen.getByLabelText('Seller ID');
+    const authTokenInput = screen.getByLabelText('MWS Auth Token');
+    const marketplaceIdInput = screen.getByLabelText('Marketplace ID');
+    const connectAmazonBtn = screen.getByRole('button', { name: 'Connect Amazon' });
+
+    await user.type(sellerIdInput, 'seller-123');
+    await user.type(authTokenInput, 'auth-token');
+    await user.type(marketplaceIdInput, 'market-456');
+
+    fireEvent.submit(connectAmazonBtn.closest('form')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Amazon connected successfully')).toBeInTheDocument();
+    });
+
+    const dismissSuccessBtn = screen.getByRole('button', { name: 'Dismiss success message' });
+    fireEvent.click(dismissSuccessBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Amazon connected successfully')).not.toBeInTheDocument();
+    });
+  });
+});

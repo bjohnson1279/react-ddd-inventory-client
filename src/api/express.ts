@@ -83,7 +83,12 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   async getProducts(): Promise<Product[]> {
     try {
-      const assignments = await this.request('GET', '/barcodes');
+      // ⚡ Bolt: Execute independent network requests concurrently
+      const [assignments, inventory] = await Promise.all([
+        this.request('GET', '/barcodes'),
+        this.getInventoryItems()
+      ]);
+
       const grouped: Record<string, BarcodeAssignment[]> = {};
       for (const a of assignments || []) {
         const variantId = a.variantId;
@@ -101,9 +106,9 @@ export class ExpressRESTAdapter implements InventoryClient {
         });
       }
 
-      const inventory = await this.getInventoryItems();
-      const skus = new Set(inventory.map(item => item.sku));
-      for (const sku of skus) {
+      // ⚡ Bolt: Replace O(N) array mapping before Set creation with a single pass
+      for (let i = 0; i < inventory.length; i++) {
+        const sku = inventory[i].sku;
         if (!grouped[sku]) {
           grouped[sku] = [];
         }
