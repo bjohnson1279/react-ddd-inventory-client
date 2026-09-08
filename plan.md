@@ -1,8 +1,7 @@
-1. **Identify Performance Bottlenecks**: Review `src/App.tsx` for inline array traversals (`.filter()`, `.some()`) that run on every render pass.
-2. **Implement Memoization optimizations**:
-    - Memoize `sentPurchaseOrders` to replace inline `purchaseOrders.some(...)` and `purchaseOrders.filter(...)` inside the render loop of the 'procurement' tab.
-    - Memoize `filteredWmsLocations` to replace the inline `wmsLocations.filter(...)` inside the 'warehouse' map rendering.
-3. **Add explanatory comments**: Annotate the optimized code with `// ⚡ Bolt: ` as per guidelines.
-4. **Update Journal**: Add a new entry to `.jules/bolt.md` detailing the performance patterns optimized (memoizing inline filtering to prevent main thread blocking).
-5. **Pre-commit verification**: Run test/lint equivalents (or pre-commit instructions) to ensure code quality and safety.
-6. **Submit PR**: Submit the changes with appropriate title and description as "Bolt".
+1. **Understand the Test Improvement Goal**: We need to add an error path test for when `client.getInventoryItems()` fails inside `loadDashboardData()`. The test must assert that the expected error message is displayed to the user using the UI alert component.
+
+2. **Run Tests to Verify the Modification**: Run the full test suite using `pnpm run test:unit` and `pnpm run test:e2e` to ensure the modifications applied are correct and have not introduced regressions.
+
+3. **Complete Pre-Commit Steps**: Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+
+4. **Submit Pull Request**: Call the `submit` tool to create a pull request titled '🧪 [testing improvement] Add error path test for inventory items fetch' with a description containing the sections '🎯 What: Added missing error path test for inventory items fetch', '📊 Coverage: Now tests that `loadDashboardData` properly catches and displays errors from `getInventoryItems`', and '✨ Result: Improved test coverage and reliability for error states'.
