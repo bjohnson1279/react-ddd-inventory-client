@@ -2,6 +2,7 @@ import { render, waitFor, screen, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import App from '../../src/App';
 import * as client from '../../src/api/client';
+import { useInventory } from '../../src/api/client';
 
 // Suppress known expected errors from React and websockets in testing env to keep output clean
 const originalConsoleError = console.error;
@@ -48,7 +49,7 @@ vi.mock('../../src/api/client', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    useInventory: () => ({
+    useInventory: vi.fn().mockReturnValue({
       client: {
         getInventory: vi.fn().mockResolvedValue([]),
         getJournal: vi.fn().mockResolvedValue([]),
@@ -74,7 +75,7 @@ vi.mock('../../src/api/client', async (importOriginal) => {
       },
       backendType: 'express',
       setBackendType: vi.fn(),
-    })
+    }) // end mockReturnValue
   };
 });
 
@@ -134,5 +135,31 @@ describe('App Health Checks', () => {
       const offlineDots = component.queryAllByTitle('offline');
       expect(offlineDots).toHaveLength(3);
     });
+  });
+});
+
+
+describe('App Data Loading Errors', () => {
+  it('handles getInventoryItems fetch failure by showing an error message', async () => {
+    const mockUseInventory = vi.mocked(useInventory);
+    const defaultClient = mockUseInventory().client;
+
+    // Override the specific method for this test
+    mockUseInventory.mockReturnValueOnce({
+      client: {
+        ...defaultClient,
+        getInventoryItems: vi.fn().mockRejectedValue(new Error('Test network error')),
+      },
+      backendType: 'express',
+      setBackendType: vi.fn(),
+    });
+
+    render(<App />);
+
+    // loadDashboardData is called on mount. We should see the error message in the DOM.
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Test network error')).toBeInTheDocument();
   });
 });

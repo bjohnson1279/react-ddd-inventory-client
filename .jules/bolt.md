@@ -29,6 +29,13 @@
 ## 2024-05-21 - Extract static arrays used in useMemo dependencies
 **Learning:** Found static arrays defined inside a React component (`ApiSpecViewerPanel`) that were being passed into `useMemo` dependency arrays. Defining static arrays inside a component body causes them to be re-instantiated on every render (creating a new reference), which guarantees the shallow equality check (`old !== new`) in `useMemo` will always fail, causing the expensive calculations to run continuously anyway.
 **Action:** Always hoist static arrays, objects, and objects that don't depend on component state or props outside the component definition to maintain referential stability.
+## 2024-05-23 - Avoid mapping for single lookups
+**Learning:** Building a hash map to reduce time complexity from O(N) to O(1) is only an optimization if you are doing *multiple* lookups. For a single lookup, building the map does O(N) work with a massive memory/allocation overhead, whereas a linear search (like `for...of` with a `break`) does O(N) work with zero overhead.
+**Action:** Do not use `new Map()` optimizations for operations that only execute a single lookup per dataset load.
+
+## 2024-05-23 - Single-pass loops for multiple reductions
+**Learning:** Chaining multiple `.reduce()` calls on the same array to extract different metrics in a render loop iterates the dataset multiple times and adds callback overhead, blocking the main thread during continuous events.
+**Action:** Replace consecutive `.reduce()` calls with a single-pass `for...of` loop that calculates all required metrics simultaneously to halve iteration time and remove callback overhead.
 
 ## Prevention Directives for Automated Refactoring
 - **Never Overwrite Complete Files**: Always use range-scoped replacement chunks (`StartLine`/`EndLine`) for edits to `schema.prisma`, `index.ts`, `public/index.php`, or DDL SQL scripts.
@@ -40,4 +47,3 @@
 ## Hallucinatory Task & Empty PR Directives
 - **Zero-Diff Task Termination**: If the requested optimization, refactor, or fix is ALREADY natively present in the target branch, DO NOT create an empty pull request or commit an acknowledgment PR. Exit the task cleanly without opening a PR.
 - **Stale Suggestion Guard**: Always verify the current code on `main`/`master` before planning changes. If no actionable diff is required, cancel task execution immediately.
-
