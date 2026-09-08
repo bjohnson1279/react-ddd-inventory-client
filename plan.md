@@ -1,7 +1,19 @@
-1. **Understand the Test Improvement Goal**: We need to add an error path test for when `client.getInventoryItems()` fails inside `loadDashboardData()`. The test must assert that the expected error message is displayed to the user using the UI alert component.
+1. **Analyze RFIDBulkScannerView Component**
+   - The "Execute Bulk RFID Ingest" button currently shows text "Processing Ingest..." when `isScanning` is true, but it lacks a visual loading indicator (Spinner).
+   - This makes the async operation feel less responsive or less integrated with the rest of the application, which uses `<Spinner />` for loading states in buttons.
 
-2. **Run Tests to Verify the Modification**: Run the full test suite using `pnpm run test:unit` and `pnpm run test:e2e` to ensure the modifications applied are correct and have not introduced regressions.
+2. **Update RFIDBulkScannerView.tsx**
+   - Import `Spinner` from `./Panels` or create an inline SVG spinner if one is not readily available (Wait, let's use the one from `Panels.tsx` since `Spinner` is exported from `src/components/Panels.tsx`, but wait, I can just use a similar inline SVG to keep it self-contained or import it). Let's import `Spinner` from `src/components/Panels.tsx`.
+   - Update the button content to include the spinner when `isScanning` is true: `{isScanning ? <><Spinner /> Processing Ingest...</> : "Execute Bulk RFID Ingest"}`.
+   - We might need to adjust the display of the button to use flexbox for aligning the spinner and text properly.
 
-3. **Complete Pre-Commit Steps**: Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+3. **Verify Changes**
+   - Run vitest `pnpm run test:unit test_script.test.tsx` (or whatever tests are relevant).
+   - Check formatting `pnpm format` and linting `pnpm lint`.
 
-4. **Submit Pull Request**: Call the `submit` tool to create a pull request titled '🧪 [testing improvement] Add error path test for inventory items fetch' with a description containing the sections '🎯 What: Added missing error path test for inventory items fetch', '📊 Coverage: Now tests that `loadDashboardData` properly catches and displays errors from `getInventoryItems`', and '✨ Result: Improved test coverage and reliability for error states'.
+4. **Complete Pre-commit Steps**
+   - Run pre-commit instructions to ensure proper testing, verification, review, and reflection are done.
+
+5. **Submit PR**
+   - Create a PR with title "🎨 Palette: Add loading spinner to RFID bulk ingest button".
+   - Include description required for Palette agents.

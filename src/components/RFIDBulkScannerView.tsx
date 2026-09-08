@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Spinner } from "./Panels";
 
 export const RFIDBulkScannerView: React.FC = () => {
   const [scanCount, setScanCount] = useState<number>(1000);
@@ -119,7 +120,13 @@ export const RFIDBulkScannerView: React.FC = () => {
               cursor: isScanning ? "not-allowed" : "pointer",
             }}
           >
-            {isScanning ? "Processing Ingest..." : "Execute Bulk RFID Ingest"}
+            {isScanning ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                <Spinner /> Processing Ingest...
+              </div>
+            ) : (
+              "Execute Bulk RFID Ingest"
+            )}
           </button>
         </div>
 
