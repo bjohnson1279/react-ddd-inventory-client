@@ -56,3 +56,7 @@
 ## Hallucinatory Task & Empty PR Directives
 - **Zero-Diff Task Termination**: If the requested optimization, refactor, or fix is ALREADY natively present in the target branch, DO NOT create an empty pull request or commit an acknowledgment PR. Exit the task cleanly without opening a PR.
 - **Stale Suggestion Guard**: Always verify the current code on `main`/`master` before planning changes. If no actionable diff is required, cancel task execution immediately.
+
+## 2024-11-20 - Batch O(N) array traversals during websocket/stream events
+**Learning:** Found an O(N) array traversal (`prev.findIndex`) inside the state setter for both WebSocket and Server-Sent Events (SSE) `onmessage` handlers in `App.tsx`. When handling a burst of high-frequency events (e.g. `stock_changed` updates for large inventories), performing O(N) lookups inside an unbatched sequential state setter causes O(N*M) time complexity and massive main thread blocking. Even if React batches the final DOM render, the JavaScript execution of the state updater functions will compound and lag the browser.
+**Action:** Always introduce an `updateBuffer` and `requestAnimationFrame`/`setTimeout` batching mechanism for WebSockets, and loop-level batching for SSE streams. Accumulate incoming messages into a buffer/Map, then apply all updates in a single `setXYZ` call using an O(N+M) pass, eliminating consecutive O(N) lookups per message.
