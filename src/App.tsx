@@ -755,34 +755,69 @@ function App() {
         }
       });
 
+      // ⚡ Bolt: Accumulate incoming WebSocket events to avoid O(N) array traversals per message
+      let updateBuffer: Array<{ sku: string; locationId: string; quantity: number; version: number }> = [];
+      let batchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+      const flushBuffer = () => {
+        if (updateBuffer.length === 0) return;
+
+        const currentBatch = [...updateBuffer];
+        updateBuffer = [];
+
+        setInventoryItems(prev => {
+          // Pre-compute map for O(1) lookups
+          const batchMap = new Map<string, typeof currentBatch[0]>();
+          currentBatch.forEach(update => {
+            batchMap.set(`${update.sku}|${update.locationId}`, update);
+          });
+
+          let hasChanges = false;
+          const next = prev.map(item => {
+            const key = `${item.sku}|${item.locationId}`;
+            const update = batchMap.get(key);
+            if (update) {
+              batchMap.delete(key);
+              hasChanges = true;
+              return { ...item, quantity: update.quantity, version: update.version };
+            }
+            return item;
+          });
+
+          // Append new items
+          batchMap.forEach(update => {
+            hasChanges = true;
+            next.push({
+              id: crypto.randomUUID(),
+              sku: update.sku,
+              locationId: update.locationId,
+              quantity: update.quantity,
+              version: update.version
+            });
+          });
+
+          return hasChanges ? next : prev;
+        });
+      };
+
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           
           if (data.type === 'stock_changed') {
-            setInventoryItems(prev => {
-              const idx = prev.findIndex(item => item.sku === data.sku && item.locationId === data.locationId);
-              if (idx !== -1) {
-                const updated = [...prev];
-                updated[idx] = {
-                  ...updated[idx],
-                  quantity: data.quantity,
-                  version: data.version
-                };
-                return updated;
-              } else {
-                return [
-                  ...prev,
-                  {
-                    id: crypto.randomUUID(),
-                    sku: data.sku,
-                    locationId: data.locationId,
-                    quantity: data.quantity,
-                    version: data.version
-                  }
-                ];
-              }
+            updateBuffer.push({
+              sku: data.sku,
+              locationId: data.locationId,
+              quantity: data.quantity,
+              version: data.version
             });
+
+            if (!batchTimeout) {
+              batchTimeout = setTimeout(() => {
+                flushBuffer();
+                batchTimeout = null;
+              }, 100); // 100ms accumulation window
+            }
             setMessage({ type: 'success', text: `Real-time Stock Update: SKU ${data.sku} is now ${data.quantity} units.` });
           } else if (data.type === 'webhook_failed') {
             setMessage({
@@ -814,6 +849,7 @@ function App() {
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
       }
+
     };
   }, [token, tenantId, backendType]);
 
@@ -844,33 +880,19 @@ function App() {
         const lines = buffer.split('\n\n');
         buffer = lines.pop() || '';
 
+        // ⚡ Bolt: Batch SSE stock_changed events across multiple lines to prevent consecutive O(N) array traversals
+        const batchMap = new Map<string, { sku: string; locationId: string; quantity: number }>();
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
               const payload = JSON.parse(line.substring(6));
               if (payload.type === 'stock_changed') {
                 const data = JSON.parse(payload.message);
-                setInventoryItems(prev => {
-                  const idx = prev.findIndex(item => item.sku === data.sku && item.locationId === data.locationId);
-                  if (idx !== -1) {
-                    const updated = [...prev];
-                    updated[idx] = {
-                      ...updated[idx],
-                      quantity: data.quantity
-                    };
-                    return updated;
-                  } else {
-                    return [
-                      ...prev,
-                      {
-                        id: crypto.randomUUID(),
-                        sku: data.sku,
-                        locationId: data.locationId,
-                        quantity: data.quantity,
-                        version: 1
-                      }
-                    ];
-                  }
+                batchMap.set(`${data.sku}|${data.locationId}`, {
+                  sku: data.sku,
+                  locationId: data.locationId,
+                  quantity: data.quantity
                 });
                 setMessage({ type: 'success', text: `Real-time Stock Update (Laravel): SKU ${data.sku} is now ${data.quantity} units.` });
               } else if (payload.type === 'webhook_failed') {
@@ -884,6 +906,35 @@ function App() {
               console.error('[Laravel SSE] Collaborative message error:', err);
             }
           }
+        }
+
+        if (batchMap.size > 0) {
+          setInventoryItems(prev => {
+            let hasChanges = false;
+            const next = prev.map(item => {
+              const key = `${item.sku}|${item.locationId}`;
+              const update = batchMap.get(key);
+              if (update) {
+                batchMap.delete(key);
+                hasChanges = true;
+                return { ...item, quantity: update.quantity };
+              }
+              return item;
+            });
+
+            batchMap.forEach(update => {
+              hasChanges = true;
+              next.push({
+                id: crypto.randomUUID(),
+                sku: update.sku,
+                locationId: update.locationId,
+                quantity: update.quantity,
+                version: 1
+              });
+            });
+
+            return hasChanges ? next : prev;
+          });
         }
       }
     }).catch(err => {
