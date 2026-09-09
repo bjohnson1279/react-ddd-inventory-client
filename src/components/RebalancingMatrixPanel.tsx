@@ -248,6 +248,7 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({
                       </div>
                       <button
                         className="transfer-execute-btn"
+                        aria-label={`Execute Transfer for ${rec.sku}`}
                         onClick={() =>
                           alert(`Executing transfer for ${rec.sku}`)
                         }
