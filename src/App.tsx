@@ -1809,7 +1809,7 @@ function App() {
         {message && (
           <div role="alert" aria-live="assertive" className={`alert-box alert-${message.type} flex-between`}>
             <span>{message.text}</span>
-            <button aria-label="Dismiss alert" className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setMessage(null)}>
+            <button aria-label="Dismiss alert" title="Dismiss alert" className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setMessage(null)}>
               Dismiss
             </button>
           </div>
