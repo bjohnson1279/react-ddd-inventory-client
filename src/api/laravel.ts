@@ -890,19 +890,24 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   // Approvals
   async getApprovalWorkflows(): Promise<any[]> {
-    throw new Error('Not implemented for Laravel');
+    return await this.request('GET', '/api/approvals/workflows');
   }
 
   async toggleApprovalWorkflow(id: string): Promise<any> {
-    throw new Error('Not implemented for Laravel');
+    return await this.request('POST', `/api/approvals/workflows/${id}/toggle`);
   }
 
   async getPendingApprovals(): Promise<any[]> {
-    throw new Error('Not implemented for Laravel');
+    return await this.request('GET', '/api/approvals/pending');
   }
 
-  async submitApprovalDecision(id: string, decision: string, notes: string): Promise<any> {
-    throw new Error('Not implemented for Laravel');
+  async submitApprovalDecision(id: string, decision: 'APPROVED' | 'REJECTED' | 'REQUEST_MORE_INFO', notes?: string): Promise<any> {
+    return await this.request('POST', `/api/approvals/${id}/decide`, { decision, notes });
+  }
+
+  async getApprovalHistory(requestId: string): Promise<any[]> {
+    const data = await this.request('GET', `/api/approvals/${requestId}`);
+    return data.decisions || [];
   }
 
   // Reporting & Analytics

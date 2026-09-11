@@ -877,19 +877,67 @@ export class GraphQLAdapter implements InventoryClient {
 
   // Approvals
   async getApprovalWorkflows(): Promise<any[]> {
-    throw new Error('Not implemented for GraphQL');
+    const data = await this.fetchGraphql(`query GetApprovalWorkflows {
+      approvalWorkflows {
+        id
+        tenantId
+        name
+        triggerEvent
+        isActive
+        config
+        createdAt
+        updatedAt
+      }
+    }`);
+    return data.approvalWorkflows || [];
   }
 
   async toggleApprovalWorkflow(id: string): Promise<any> {
-    throw new Error('Not implemented for GraphQL');
+    const data = await this.fetchGraphql(`mutation ToggleApprovalWorkflow($id: ID!) {
+      toggleApprovalWorkflow(id: $id) {
+        id
+        isActive
+      }
+    }`, { id });
+    return data.toggleApprovalWorkflow;
   }
 
   async getPendingApprovals(): Promise<any[]> {
-    throw new Error('Not implemented for GraphQL');
+    const data = await this.fetchGraphql(`query GetPendingApprovals {
+      pendingApprovalRequests {
+        id
+        workflowId
+        referenceType
+        referenceId
+        status
+      }
+    }`);
+    return data.pendingApprovalRequests || [];
   }
 
-  async submitApprovalDecision(id: string, decision: string, notes: string): Promise<any> {
-    throw new Error('Not implemented for GraphQL');
+  async submitApprovalDecision(id: string, decision: 'APPROVED' | 'REJECTED' | 'REQUEST_MORE_INFO', notes?: string): Promise<any> {
+    const data = await this.fetchGraphql(`mutation SubmitApprovalDecision($id: ID!, $decision: String!, $notes: String) {
+      submitApprovalDecision(requestId: $id, decision: $decision, notes: $notes) {
+        status
+        referenceType
+        referenceId
+      }
+    }`, { id, decision, notes });
+    return data.submitApprovalDecision;
+  }
+
+  async getApprovalHistory(requestId: string): Promise<any[]> {
+    const data = await this.fetchGraphql(`query GetApprovalHistory($id: ID!) {
+      approvalRequest(id: $id) {
+        decisions {
+          decision
+          actorId
+          notes
+          decidedAt
+        }
+      }
+    }`, { id: requestId });
+    return data.approvalRequest?.decisions || [];
   }
 
   // Reporting & Analytics

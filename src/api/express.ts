@@ -728,6 +728,11 @@ export class ExpressRESTAdapter implements InventoryClient {
     return await this.request('POST', `/approvals/${id}/decide`, { decision, notes });
   }
 
+  async getApprovalHistory(requestId: string): Promise<any[]> {
+    const data = await this.request('GET', `/approvals/${requestId}`);
+    return data.decisions || [];
+  }
+
   // Reporting & Analytics
   async getReportDefinitions(tenantId: string): Promise<any[]> {
     return await this.request('GET', `/reports?tenantId=${tenantId}`);

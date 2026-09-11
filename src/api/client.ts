@@ -400,7 +400,8 @@ export interface InventoryClient {
   getApprovalWorkflows(): Promise<any[]>;
   toggleApprovalWorkflow(id: string): Promise<any>;
   getPendingApprovals(): Promise<any[]>;
-  submitApprovalDecision(id: string, decision: string, notes: string): Promise<any>;
+  submitApprovalDecision(id: string, decision: 'APPROVED' | 'REJECTED' | 'REQUEST_MORE_INFO', notes?: string): Promise<any>;
+  getApprovalHistory(requestId: string): Promise<any[]>;
 
   runAudit(tenantId: string): Promise<any>;
   getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]>;
