@@ -217,7 +217,11 @@ export class ExpressRESTAdapter implements InventoryClient {
   async createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void> {
     // Express records journals based on specific workflows (received/sold)
     // Map to the appropriate REST payload
-    const totalAmount = lines.filter(l => l.type === 'debit').reduce((acc, curr) => acc + curr.amountCents, 0);
+    // ⚡ Bolt: Replace O(2N) .filter().reduce() with a single-pass O(N) loop to reduce callback overhead and array allocation
+    let totalAmount = 0;
+    for (const l of lines) {
+      if (l.type === 'debit') totalAmount += l.amountCents;
+    }
     const sku = lines[0]?.memo || 'SKU-1';
     await this.request('POST', '/accounting/stock-received', {
       tenantId,
