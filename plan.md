@@ -1,19 +1,22 @@
-1. **Analyze RFIDBulkScannerView Component**
-   - The "Execute Bulk RFID Ingest" button currently shows text "Processing Ingest..." when `isScanning` is true, but it lacks a visual loading indicator (Spinner).
-   - This makes the async operation feel less responsive or less integrated with the rest of the application, which uses `<Spinner />` for loading states in buttons.
+1. **Analyze Panels.tsx**
+   - In `Panels.tsx` at line 1896, there is an operation: `const manualEpcs = unregisteredTagsText.split('\n').map(x => x.trim()).filter(x => x.length > 0);`
+   - This creates an intermediate array in `.map` and iterates over it again in `.filter`.
+   - The memory rule states: "Replacing consecutive `.reduce()` or `.filter()` calls on the same array with a single-pass `for...of` loop optimizes React render cycles by eliminating redundant iterations and callback overhead." While it doesn't explicitly state `map().filter()`, the logic applies perfectly here to avoid an intermediate array.
+   - Another performance opportunity in `Panels.tsx` (line 1401) is inside the `onChange` handler for `receivePoId`: `const po = purchaseOrders.find(p => p.id === id);`. This `<select>` element only displays `sentPurchaseOrders`. Searching through the smaller `sentPurchaseOrders` array instead of the larger `purchaseOrders` array reduces the O(N) lookup size. We will optimize this array lookup as well.
 
-2. **Update RFIDBulkScannerView.tsx**
-   - Import `Spinner` from `./Panels` or create an inline SVG spinner if one is not readily available (Wait, let's use the one from `Panels.tsx` since `Spinner` is exported from `src/components/Panels.tsx`, but wait, I can just use a similar inline SVG to keep it self-contained or import it). Let's import `Spinner` from `src/components/Panels.tsx`.
-   - Update the button content to include the spinner when `isScanning` is true: `{isScanning ? <><Spinner /> Processing Ingest...</> : "Execute Bulk RFID Ingest"}`.
-   - We might need to adjust the display of the button to use flexbox for aligning the spinner and text properly.
+2. **Update Panels.tsx**
+   - Replace the `purchaseOrders.find` with `sentPurchaseOrders.find` at line 1401 to reduce the O(N) array search size.
+   - Replace the `.map().filter()` chain at line 1896 with a single-pass `reduce` or `for` loop to eliminate redundant iteration and array allocation.
+   - Add a comment explaining the performance optimization using the format `// ⚡ Bolt: ...`.
 
 3. **Verify Changes**
-   - Run vitest `pnpm run test:unit test_script.test.tsx` (or whatever tests are relevant).
-   - Check formatting `pnpm format` and linting `pnpm lint`.
+   - Run type checks (`npx tsc --noEmit` if possible, though tests are run with vitest).
+   - Run tests using `pnpm run test:unit`.
+   - Ensure the code still functions identically.
 
 4. **Complete Pre-commit Steps**
-   - Run pre-commit instructions to ensure proper testing, verification, review, and reflection are done.
+   - Ensure proper testing, verification, review, and reflection are done.
 
 5. **Submit PR**
-   - Create a PR with title "🎨 Palette: Add loading spinner to RFID bulk ingest button".
-   - Include description required for Palette agents.
+   - Create a PR with title "⚡ Bolt: Optimize array lookup and iteration in Panels".
+   - Include description required for Bolt agents.

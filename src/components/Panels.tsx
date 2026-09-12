@@ -1398,7 +1398,8 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                 onChange={(e) => {
                   const id = e.target.value;
                   setReceivePoId(id);
-                  const po = purchaseOrders.find(p => p.id === id);
+                  // ⚡ Bolt: Use smaller pre-filtered sentPurchaseOrders array for O(N) search instead of full purchaseOrders array
+                  const po = sentPurchaseOrders.find(p => p.id === id);
                   if (po) {
                     setReceivePoLines(po.items.map((i: any) => ({ sku: i.sku, quantity: i.quantity })));
                   }
@@ -1893,7 +1894,12 @@ export const RfidPanel: React.FC<{
     // Combine checked registered tags with any arbitrary manual tags
     let epcsToScan = [...selectedTags];
     if (unregisteredTagsText.trim()) {
-      const manualEpcs = unregisteredTagsText.split('\n').map(x => x.trim()).filter(x => x.length > 0);
+      // ⚡ Bolt: Replace consecutive .map() and .filter() calls with a single-pass reduce to eliminate redundant iterations and callback overhead
+      const manualEpcs = unregisteredTagsText.split('\n').reduce((acc, x) => {
+        const trimmed = x.trim();
+        if (trimmed.length > 0) acc.push(trimmed);
+        return acc;
+      }, [] as string[]);
       epcsToScan.push(...manualEpcs);
     }
 
