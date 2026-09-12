@@ -25,6 +25,8 @@ import { CycleCountDashboardPanel } from './components/CycleCountDashboardPanel'
 import { SupplierCollaborationPortal } from './components/SupplierCollaborationPortal';
 import { NotificationInboxPanel } from './components/NotificationInboxPanel';
 import { InventoryAgingPanel } from './components/InventoryAgingPanel';
+import { IntercompanyPanel } from './panels/IntercompanyPanel';
+import { ApiUsageDashboardPanel } from './panels/ApiUsageDashboardPanel';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1756,6 +1758,13 @@ function App() {
             </div>
             <div className={`nav-link ${(activeTab as string) === 'esg' ? 'active' : ''}`} onClick={() => setActiveTab('esg' as any)}>
               🌱 ESG Emissions Tracking
+            </div>
+            <div className="nav-separator">Enterprise</div>
+            <div className={`nav-link ${(activeTab as string) === 'intercompany' ? 'active' : ''}`} onClick={() => setActiveTab('intercompany' as any)}>
+              🏢 Intercompany Accounting
+            </div>
+            <div className={`nav-link ${(activeTab as string) === 'api-usage' ? 'active' : ''}`} onClick={() => setActiveTab('api-usage' as any)}>
+              📈 API Usage Metering
             </div>
           </div>
         </div>
@@ -4147,6 +4156,8 @@ function App() {
         {(activeTab as string) === 'digital-twin' && <DigitalTwinCopilotPanel api={client} />}
         {(activeTab as string) === 'esg' && <EsgEmissionsPanel api={client} />}
         {(activeTab as string) === 'reporting' && <ReportingDashboardPanel client={client} tenantId={tenantId} />}
+        {(activeTab as string) === 'intercompany' && <IntercompanyPanel tenantId={tenantId} />}
+        {(activeTab as string) === 'api-usage' && <ApiUsageDashboardPanel tenantId={tenantId} />}
       </div>
     </div>
   );

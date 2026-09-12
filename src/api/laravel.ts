@@ -963,4 +963,24 @@ export class LaravelRESTAdapter implements InventoryClient {
   async generateAgingReport(tenantId: string): Promise<any> {
     return await this.request('GET', `/api/aging/report?tenantId=${tenantId}`);
   }
+
+  async createLegalEntity(tenantId: string, name: string, baseCurrency: string, taxIdentifier?: string): Promise<any> {
+    return await this.request('POST', `/api/intercompany/entities`, { tenantId, name, baseCurrency, taxIdentifier });
+  }
+
+  async getLegalEntities(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/api/intercompany/entities?tenantId=${tenantId}`);
+  }
+
+  async executeIntercompanyTransfer(dto: { tenantId: string, fromEntityId: string, toEntityId: string, sku: string, quantity: number, unitCostCents: number, markupPercentage: number, dutyCents?: number }): Promise<any> {
+    return await this.request('POST', `/api/intercompany/transfers`, dto);
+  }
+
+  async getIntercompanyTransfers(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/api/intercompany/transfers?tenantId=${tenantId}`);
+  }
+
+  async getApiUsageMetrics(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/api/usage?tenantId=${tenantId}`);
+  }
 }

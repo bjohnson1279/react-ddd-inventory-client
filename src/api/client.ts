@@ -312,7 +312,7 @@ export interface RfidScanUpdate {
 }
 
 export type BackendType = 'graphql' | 'express' | 'laravel';
-export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous' | 'conformance' | 'api-specs' | 'anomaly-detection' | 'rebalancing' | 'logistics-erp' | 'approvals';
+export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous' | 'conformance' | 'api-specs' | 'anomaly-detection' | 'rebalancing' | 'logistics-erp' | 'approvals' | 'intercompany' | 'api-usage';
 
 // --- Abstract Client Interface ---
 export interface InventoryClient {
@@ -440,6 +440,15 @@ export interface InventoryClient {
   saveDashboardWidget(tenantId: string, widget: Partial<DashboardWidget>): Promise<{ id: string }>;
 
   // --- Item 15: Operational Depth ---
+  // Intercompany
+  createLegalEntity(tenantId: string, name: string, baseCurrency: string, taxIdentifier?: string): Promise<any>;
+  getLegalEntities(tenantId: string): Promise<any[]>;
+  executeIntercompanyTransfer(dto: { tenantId: string, fromEntityId: string, toEntityId: string, sku: string, quantity: number, unitCostCents: number, markupPercentage: number, dutyCents?: number }): Promise<any>;
+  getIntercompanyTransfers(tenantId: string): Promise<any[]>;
+
+  // API Usage
+  getApiUsageMetrics(tenantId: string): Promise<any[]>;
+
   startCycleCount(tenantId: string, name: string, isBlindCount: boolean, abcClass?: string, zone?: string): Promise<any>;
   submitCycleCount(id: string, countedLines: any): Promise<void>;
   getCycleCounts(tenantId: string): Promise<any[]>;

@@ -786,4 +786,24 @@ export class ExpressRESTAdapter implements InventoryClient {
   async generateAgingReport(tenantId: string): Promise<any> {
     return await this.request('GET', `/aging/report?tenantId=${tenantId}`);
   }
+
+  async createLegalEntity(tenantId: string, name: string, baseCurrency: string, taxIdentifier?: string): Promise<any> {
+    return await this.request('POST', `/intercompany/entities`, { tenantId, name, baseCurrency, taxIdentifier });
+  }
+
+  async getLegalEntities(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/intercompany/entities?tenantId=${tenantId}`);
+  }
+
+  async executeIntercompanyTransfer(dto: { tenantId: string, fromEntityId: string, toEntityId: string, sku: string, quantity: number, unitCostCents: number, markupPercentage: number, dutyCents?: number }): Promise<any> {
+    return await this.request('POST', `/intercompany/transfers`, dto);
+  }
+
+  async getIntercompanyTransfers(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/intercompany/transfers?tenantId=${tenantId}`);
+  }
+
+  async getApiUsageMetrics(tenantId: string): Promise<any[]> {
+    return await this.request('GET', `/usage?tenantId=${tenantId}`);
+  }
 }
