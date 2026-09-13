@@ -48,17 +48,17 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async getProducts(): Promise<Product[]> {
-    const prodData = await this.fetchGraphql(`query { 
-      products { 
-        id name 
-        variants { 
-          id sku trackingMode 
-          attributes { name value } 
-        } 
-      } 
+    const prodData = await this.fetchGraphql(`query {
+      products {
+        id name
+        variants {
+          id sku trackingMode
+          attributes { name value }
+        }
+      }
     }`);
     const rawProducts = prodData.products || [];
-    
+
     // Resolve barcodes for variants using batched alias query to prevent N+1 requests
     const allVariants = rawProducts.flatMap((p: Product) => p.variants || []);
     const barcodeMap = new Map<string, any[]>();
@@ -122,8 +122,8 @@ export class GraphQLAdapter implements InventoryClient {
 
   async getJournalEntries(tenantId: string): Promise<JournalEntry[]> {
     const data = await this.fetchGraphql(`query GetGL($tenant: ID!) {
-      journalEntries(tenantId: $tenant) { 
-        id tenantId date description method referenceId 
+      journalEntries(tenantId: $tenant) {
+        id tenantId date description method referenceId
         lines { accountCode amountCents type memo }
       }
     }`, { tenant: tenantId });
@@ -271,7 +271,7 @@ export class GraphQLAdapter implements InventoryClient {
         safetyStock
       }
     }`, { location: locationId });
-    
+
     const rawReport = data.demandPlanningReport || [];
     return rawReport.map((item: any) => ({
       sku: item.sku,
@@ -616,6 +616,47 @@ export class GraphQLAdapter implements InventoryClient {
     await this.fetchGraphql(`mutation RetryOutbox($id: ID!) {
       retryOutboxEvent(id: $id)
     }`, { id });
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
+    await this.fetchGraphql(`mutation MarkNotif($id: ID!) { markNotificationRead(id: $id) }`, { id });
+  }
+
+  async generateAgingReport(tenantId: string): Promise<any> {
+    return await this.fetchGraphql(`query GetAging($tenant: ID!) { agingReport(tenantId: $tenant) { categories } }`, { tenant: tenantId });
+  }
+
+  async createLegalEntity(tenantId: string, name: string, baseCurrency: string, taxIdentifier?: string): Promise<any> {
+    return await this.fetchGraphql(`mutation CreateLegalEntity($tenant: ID!, $name: String!, $baseCurrency: String!, $taxIdentifier: String) {
+      createLegalEntity(tenantId: $tenant, name: $name, baseCurrency: $baseCurrency, taxIdentifier: $taxIdentifier) { id }
+    }`, { tenant: tenantId, name, baseCurrency, taxIdentifier });
+  }
+
+  async getLegalEntities(tenantId: string): Promise<any[]> {
+    const data = await this.fetchGraphql(`query GetLegalEntities($tenant: ID!) {
+      legalEntities(tenantId: $tenant) { id name baseCurrency taxIdentifier }
+    }`, { tenant: tenantId });
+    return data.legalEntities || [];
+  }
+
+  async executeIntercompanyTransfer(dto: { tenantId: string, fromEntityId: string, toEntityId: string, sku: string, quantity: number, unitCostCents: number, markupPercentage: number, dutyCents?: number }): Promise<any> {
+    return await this.fetchGraphql(`mutation ExecuteIntercompanyTransfer($input: IntercompanyTransferInput!) {
+      executeIntercompanyTransfer(input: $input) { id status }
+    }`, { input: dto });
+  }
+
+  async getIntercompanyTransfers(tenantId: string): Promise<any[]> {
+    const data = await this.fetchGraphql(`query GetIntercompanyTransfers($tenant: ID!) {
+      intercompanyTransfers(tenantId: $tenant) { id fromEntityId toEntityId sku quantity unitCostCents markupPercentage dutyCents totalAmountCents status createdAt }
+    }`, { tenant: tenantId });
+    return data.intercompanyTransfers || [];
+  }
+
+  async getApiUsageMetrics(tenantId: string): Promise<any[]> {
+    const data = await this.fetchGraphql(`query GetApiUsageMetrics($tenant: ID!) {
+      apiUsageMetrics(tenantId: $tenant) { date endpoint calls errors averageLatencyMs }
+    }`, { tenant: tenantId });
+    return data.apiUsageMetrics || [];
   }
 
   async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
@@ -1006,7 +1047,7 @@ export class GraphQLAdapter implements InventoryClient {
     const data = await this.fetchGraphql(query, { tenantId });
     return data.getCycleCounts;
   }
-  
+
   async submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any> {
     const mutation = `mutation SubmitASN($tenantId: ID!, $poId: ID!, $supplierId: ID!, $expectedArrivalDate: String!, $lines: [ASNLineInput!]!) {
       submitASN(tenantId: $tenantId, poId: $poId, supplierId: $supplierId, expectedArrivalDate: $expectedArrivalDate, lines: $lines) { id status }
@@ -1021,7 +1062,7 @@ export class GraphQLAdapter implements InventoryClient {
     const data = await this.fetchGraphql(query, { tenantId, supplierId });
     return data.getSupplierASNs;
   }
-  
+
   async getNotifications(tenantId: string, userId: string): Promise<any[]> {
     const query = `query GetNotifications($tenantId: ID!, $userId: ID!) {
       getNotifications(tenantId: $tenantId, userId: $userId) { id message isRead createdAt }
@@ -1035,7 +1076,7 @@ export class GraphQLAdapter implements InventoryClient {
     }`;
     await this.fetchGraphql(mutation, { id });
   }
-  
+
   async generateAgingReport(tenantId: string): Promise<any> {
     const query = `query GenerateAgingReport($tenantId: ID!) {
       generateAgingReport(tenantId: $tenantId) { generatedAt buckets { bucket sku quantity value } }
