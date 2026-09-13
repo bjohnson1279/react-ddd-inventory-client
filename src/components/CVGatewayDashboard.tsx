@@ -94,8 +94,9 @@ const CVGatewayDashboard: React.FC = () => {
       <h1 className="text-2xl font-bold mb-4">Computer Vision Receiving Gateway</h1>
       
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Upload Package Image</label>
+        <label htmlFor="image-upload" className="block text-sm font-medium text-gray-700 mb-2">Upload Package Image</label>
         <input 
+          id="image-upload"
           type="file" 
           accept="image/*" 
           onChange={handleImageUpload} 

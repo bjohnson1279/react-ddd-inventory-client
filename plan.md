@@ -1,17 +1,22 @@
-1. **Explore the codebase & select a micro-UX enhancement**:
-   - I have identified `CVGatewayDashboard.tsx` where an image upload input exists without a proper `id` or `htmlFor` association, causing a minor accessibility issue (no click-to-focus on the label).
-   - I added `id="image-upload"` to the `<input type="file" />` and `htmlFor="image-upload"` to the corresponding `<label>`. This allows users (especially those with screen readers or motor impairments) to click the label to trigger the file upload dialog, which is a classic accessibility and UX improvement.
-2. **Write execution plan**:
-   - I'll create a plan outlining this process.
-3. **Run Verification**:
-   - `pnpm install` and `pnpm run lint` and `npx tsc --noEmit` to verify code correctness.
-4. **Complete Pre-Commit Steps**:
-   - Include a step to call `pre_commit_instructions` before submitting.
-5. **Submit**:
-   - I will submit the PR with the required PR format for Palette:
-     - Title: "🎨 Palette: Associate label with file upload input in CV Gateway"
-     - Description:
-       - 💡 What: Added `id` and `htmlFor` attributes to the file upload input and label.
-       - 🎯 Why: Improves accessibility and user experience by making the label clickable to trigger the file upload, which is especially helpful for users with motor impairments or screen readers.
-       - 📸 Before/After: Before, clicking the label did nothing. After, clicking the label triggers the file upload dialog.
-       - ♿ Accessibility: Improved screen reader support and motor impairment usability by associating the label with the input.
+1. **Analyze Panels.tsx**
+   - In `Panels.tsx` at line 1896, there is an operation: `const manualEpcs = unregisteredTagsText.split('\n').map(x => x.trim()).filter(x => x.length > 0);`
+   - This creates an intermediate array in `.map` and iterates over it again in `.filter`.
+   - The memory rule states: "Replacing consecutive `.reduce()` or `.filter()` calls on the same array with a single-pass `for...of` loop optimizes React render cycles by eliminating redundant iterations and callback overhead." While it doesn't explicitly state `map().filter()`, the logic applies perfectly here to avoid an intermediate array.
+   - Another performance opportunity in `Panels.tsx` (line 1401) is inside the `onChange` handler for `receivePoId`: `const po = purchaseOrders.find(p => p.id === id);`. This `<select>` element only displays `sentPurchaseOrders`. Searching through the smaller `sentPurchaseOrders` array instead of the larger `purchaseOrders` array reduces the O(N) lookup size. We will optimize this array lookup as well.
+
+2. **Update Panels.tsx**
+   - Replace the `purchaseOrders.find` with `sentPurchaseOrders.find` at line 1401 to reduce the O(N) array search size.
+   - Replace the `.map().filter()` chain at line 1896 with a single-pass `reduce` or `for` loop to eliminate redundant iteration and array allocation.
+   - Add a comment explaining the performance optimization using the format `// ⚡ Bolt: ...`.
+
+3. **Verify Changes**
+   - Run type checks (`npx tsc --noEmit` if possible, though tests are run with vitest).
+   - Run tests using `pnpm run test:unit`.
+   - Ensure the code still functions identically.
+
+4. **Complete Pre-commit Steps**
+   - Ensure proper testing, verification, review, and reflection are done.
+
+5. **Submit PR**
+   - Create a PR with title "⚡ Bolt: Optimize array lookup and iteration in Panels".
+   - Include description required for Bolt agents.
