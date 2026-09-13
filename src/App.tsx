@@ -27,6 +27,7 @@ import { NotificationInboxPanel } from './components/NotificationInboxPanel';
 import { InventoryAgingPanel } from './components/InventoryAgingPanel';
 import { IntercompanyPanel } from './panels/IntercompanyPanel';
 import { ApiUsageDashboardPanel } from './panels/ApiUsageDashboardPanel';
+import CVGatewayDashboard from './components/CVGatewayDashboard';
 
 const Spinner = () => (
   <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -342,11 +343,11 @@ function App() {
 
   // Redirect to dashboard if the active tab is not allowed for the role/permissions
   useEffect(() => {
-    const allowedTabs = ['dashboard'];
+    const allowedTabs = ['dashboard', 'cv-gateway'];
     if (role === 'admin' || hasPermission('*', '*')) {
       allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid', 'anomaly-detection', 'rebalancing', 'conformance', 'api-specs', 'logistics-erp', 'reverse-logistics', 'thermal-ar', 'digital-twin', 'esg', 'approvals');
     } else {
-      if (hasPermission('inventory', 'read') || role === 'warehouse_operator') allowedTabs.push('products', 'scanning', 'serials', 'warehouse', 'autonomous', 'rfid', 'lots');
+      if (hasPermission('inventory', 'read') || role === 'warehouse_operator') allowedTabs.push('products', 'scanning', 'serials', 'warehouse', 'autonomous', 'rfid', 'lots', 'cv-gateway');
       if (hasPermission('procurement', 'read') || role === 'warehouse_operator' || role === 'accountant') allowedTabs.push('procurement', 'forecasting', 'routing', 'rebalancing');
       if (hasPermission('ledger', 'read') || role === 'accountant') allowedTabs.push('ledger', 'onboarding', 'compliance');
       if (hasPermission('admin', 'read') || hasPermission('approval', 'read')) allowedTabs.push('admin', 'approvals');
@@ -1731,6 +1732,11 @@ function App() {
               </div>
             )}
             <div className="nav-separator">AI & Automation</div>
+            {(role === 'admin' || role === 'warehouse_operator') && (
+              <div className={`nav-link ${(activeTab as string) === 'cv-gateway' ? 'active' : ''}`} onClick={() => setActiveTab('cv-gateway' as any)}>
+                📷 CV Receiving Gateway
+              </div>
+            )}
             <div className={`nav-link ${activeTab === 'anomaly-detection' ? 'active' : ''}`} onClick={() => setActiveTab('anomaly-detection')}>
               🔍 Anomaly Detection
             </div>
@@ -4145,6 +4151,9 @@ function App() {
 
         {activeTab === 'autonomous' && (
           <AutonomousInventoryDashboard />
+        )}
+        {(activeTab as string) === 'cv-gateway' && (
+          <CVGatewayDashboard />
         )}
         {activeTab === 'anomaly-detection' && <AnomalyDetectionPanel api={client} />}
         {activeTab === 'rebalancing' && <RebalancingMatrixPanel api={client} />}
