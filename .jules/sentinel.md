@@ -71,3 +71,7 @@
 ## Hallucinatory Task & Empty PR Directives
 - **Zero-Diff Task Termination**: If the requested optimization, refactor, or fix is ALREADY natively present in the target branch, DO NOT create an empty pull request or commit an acknowledgment PR. Exit the task cleanly without opening a PR.
 - **Stale Suggestion Guard**: Always verify the current code on `main`/`master` before planning changes. If no actionable diff is required, cancel task execution immediately.
+## 2023-10-27 - Security Headers missing from Nginx Server Block
+**Vulnerability:** Standard NGINX configurations generated or used for static site serving often miss basic security headers.
+**Learning:** These headers are not injected by Vite or the React application layer by default, leaving them missing entirely unless explicitly added to the proxy configuration.
+**Prevention:** Include a standard block of security headers in all Nginx webserver templates going forward.
