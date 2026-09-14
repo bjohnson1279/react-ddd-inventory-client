@@ -618,7 +618,46 @@ export class GraphQLAdapter implements InventoryClient {
     }`, { id });
   }
 
+  async markNotificationRead(id: string): Promise<void> {
+    await this.fetchGraphql(`mutation MarkNotif($id: ID!) { markNotificationRead(id: $id) }`, { id });
+  }
 
+  async generateAgingReport(tenantId: string): Promise<any> {
+    return await this.fetchGraphql(`query GetAging($tenant: ID!) { agingReport(tenantId: $tenant) { categories } }`, { tenant: tenantId });
+  }
+
+  async createLegalEntity(tenantId: string, name: string, baseCurrency: string, taxIdentifier?: string): Promise<any> {
+    return await this.fetchGraphql(`mutation CreateLegalEntity($tenant: ID!, $name: String!, $baseCurrency: String!, $taxIdentifier: String) {
+      createLegalEntity(tenantId: $tenant, name: $name, baseCurrency: $baseCurrency, taxIdentifier: $taxIdentifier) { id }
+    }`, { tenant: tenantId, name, baseCurrency, taxIdentifier });
+  }
+
+  async getLegalEntities(tenantId: string): Promise<any[]> {
+    const data = await this.fetchGraphql(`query GetLegalEntities($tenant: ID!) {
+      legalEntities(tenantId: $tenant) { id name baseCurrency taxIdentifier }
+    }`, { tenant: tenantId });
+    return data.legalEntities || [];
+  }
+
+  async executeIntercompanyTransfer(dto: { tenantId: string, fromEntityId: string, toEntityId: string, sku: string, quantity: number, unitCostCents: number, markupPercentage: number, dutyCents?: number }): Promise<any> {
+    return await this.fetchGraphql(`mutation ExecuteIntercompanyTransfer($input: IntercompanyTransferInput!) {
+      executeIntercompanyTransfer(input: $input) { id status }
+    }`, { input: dto });
+  }
+
+  async getIntercompanyTransfers(tenantId: string): Promise<any[]> {
+    const data = await this.fetchGraphql(`query GetIntercompanyTransfers($tenant: ID!) {
+      intercompanyTransfers(tenantId: $tenant) { id fromEntityId toEntityId sku quantity unitCostCents markupPercentage dutyCents totalAmountCents status createdAt }
+    }`, { tenant: tenantId });
+    return data.intercompanyTransfers || [];
+  }
+
+  async getApiUsageMetrics(tenantId: string): Promise<any[]> {
+    const data = await this.fetchGraphql(`query GetApiUsageMetrics($tenant: ID!) {
+      apiUsageMetrics(tenantId: $tenant) { date endpoint calls errors averageLatencyMs }
+    }`, { tenant: tenantId });
+    return data.apiUsageMetrics || [];
+  }
 
   async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
     const data = await this.fetchGraphql(`query GetTenantConfig($tenant: ID!) {
