@@ -5,6 +5,7 @@ import { InventoryClientContext, BackendType, InventoryClient } from './api/clie
 import { GraphQLAdapter } from './api/graphql';
 import { ExpressRESTAdapter } from './api/express';
 import { LaravelRESTAdapter } from './api/laravel';
+import { PythonRESTAdapter } from './api/python';
 import './index.css';
 
 function ClientProvider({ children }: { children: React.ReactNode }) {
@@ -26,6 +27,8 @@ function ClientProvider({ children }: { children: React.ReactNode }) {
         return new ExpressRESTAdapter();
       case 'laravel':
         return new LaravelRESTAdapter();
+      case 'python':
+        return new PythonRESTAdapter();
       case 'graphql':
       default:
         return new GraphQLAdapter();

@@ -7,17 +7,17 @@ interface ConformanceDashboardPanelProps {
 
 
 const conformanceResults = [
-  { module: 'Inventory CRUD', graphql: { pass: 24, fail: 0, skip: 0 }, express: { pass: 24, fail: 0, skip: 0 }, php: { pass: 23, fail: 1, skip: 0 } },
-  { module: 'Accounting Ledger', graphql: { pass: 15, fail: 0, skip: 0 }, express: { pass: 15, fail: 0, skip: 0 }, php: { pass: 15, fail: 0, skip: 0 } },
-  { module: 'Compliance Rules', graphql: { pass: 10, fail: 0, skip: 0 }, express: { pass: 10, fail: 0, skip: 0 }, php: { pass: 9, fail: 0, skip: 1 } },
+  { module: 'Inventory CRUD', graphql: { pass: 24, fail: 0, skip: 0 }, express: { pass: 24, fail: 0, skip: 0 }, php: { pass: 23, fail: 1, skip: 0 }, python: { pass: 24, fail: 0, skip: 0 } },
+  { module: 'Accounting Ledger', graphql: { pass: 15, fail: 0, skip: 0 }, express: { pass: 15, fail: 0, skip: 0 }, php: { pass: 15, fail: 0, skip: 0 }, python: { pass: 15, fail: 0, skip: 0 } },
+  { module: 'Compliance Rules', graphql: { pass: 10, fail: 0, skip: 0 }, express: { pass: 10, fail: 0, skip: 0 }, php: { pass: 9, fail: 0, skip: 1 }, python: { pass: 10, fail: 0, skip: 0 } },
 ];
 
 const totalStats = conformanceResults.reduce(
   (acc, cur) => {
-    acc.total += 3 * (cur.graphql.pass + cur.graphql.fail + cur.graphql.skip);
-    acc.pass += cur.graphql.pass + cur.express.pass + cur.php.pass;
-    acc.fail += cur.graphql.fail + cur.express.fail + cur.php.fail;
-    acc.skip += cur.graphql.skip + cur.express.skip + cur.php.skip;
+    acc.total += 4 * (cur.graphql.pass + cur.graphql.fail + cur.graphql.skip);
+    acc.pass += cur.graphql.pass + cur.express.pass + cur.php.pass + cur.python.pass;
+    acc.fail += cur.graphql.fail + cur.express.fail + cur.php.fail + cur.python.fail;
+    acc.skip += cur.graphql.skip + cur.express.skip + cur.php.skip + cur.python.skip;
     return acc;
   },
   { total: 0, pass: 0, fail: 0, skip: 0 }
@@ -28,7 +28,8 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
   const [healthData, setHealthData] = useState([
     { name: 'GraphQL', port: 4000, status: 'Checking', latency: 0, lastChecked: Date.now() },
     { name: 'Express REST', port: 5000, status: 'Checking', latency: 0, lastChecked: Date.now() },
-    { name: 'PHP REST', port: 8000, status: 'Checking', latency: 0, lastChecked: Date.now() }
+    { name: 'PHP REST', port: 8000, status: 'Checking', latency: 0, lastChecked: Date.now() },
+    { name: 'Python FastAPI', port: 8000, status: 'Checking', latency: 0, lastChecked: Date.now() }
   ]);
   const [pollingInterval, setPollingInterval] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -38,7 +39,8 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
     const endpoints = [
       { name: 'GraphQL', url: 'http://localhost:4000' },
       { name: 'Express REST', url: 'http://localhost:5000' },
-      { name: 'PHP REST', url: 'http://localhost:8000' }
+      { name: 'PHP REST', url: 'http://localhost:8000' },
+      { name: 'Python FastAPI', url: 'http://localhost:8000' }
     ];
 
     const results = await Promise.all(
@@ -82,7 +84,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
 
   // --- Section C: API Response Comparison Tool ---
   const [selectedOperation, setSelectedOperation] = useState('inventory');
-  const [comparisonResults, setComparisonResults] = useState<{ graphql?: any, express?: any, php?: any } | null>(null);
+  const [comparisonResults, setComparisonResults] = useState<{ graphql?: any, express?: any, php?: any, python?: any } | null>(null);
   const [isComparing, setIsComparing] = useState(false);
 
   const handleCompare = async () => {
@@ -125,13 +127,14 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
         }
       };
 
-      const [graphqlRes, expressRes, phpRes] = await Promise.all([
+      const [graphqlRes, expressRes, phpRes, pythonRes] = await Promise.all([
         fetchApi('http://localhost:4000', true),
         fetchApi('http://localhost:5000', false),
+        fetchApi('http://localhost:8000', false),
         fetchApi('http://localhost:8000', false)
       ]);
 
-      setComparisonResults({ graphql: graphqlRes, express: expressRes, php: phpRes });
+      setComparisonResults({ graphql: graphqlRes, express: expressRes, php: phpRes, python: pythonRes });
     } catch(e) {
       console.error(e);
     } finally {
@@ -204,6 +207,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
                 <th>GraphQL (4000)</th>
                 <th>Express REST (5000)</th>
                 <th>PHP REST (8000)</th>
+                <th>Python FastAPI (8000)</th>
               </tr>
             </thead>
             <tbody>
@@ -224,6 +228,11 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
                     <span style={{ color: 'var(--success)' }}>✅ {row.php.pass}</span>{' '}
                     {row.php.fail > 0 && <span style={{ color: 'var(--error)' }}>❌ {row.php.fail}</span>}{' '}
                     {row.php.skip > 0 && <span style={{ color: 'var(--warning)' }}>⏭️ {row.php.skip}</span>}
+                  </td>
+                  <td>
+                    <span style={{ color: 'var(--success)' }}>✅ {row.python.pass}</span>{' '}
+                    {row.python.fail > 0 && <span style={{ color: 'var(--error)' }}>❌ {row.python.fail}</span>}{' '}
+                    {row.python.skip > 0 && <span style={{ color: 'var(--warning)' }}>⏭️ {row.python.skip}</span>}
                   </td>
                 </tr>
               ))}
@@ -258,6 +267,10 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
             <div className="response-box">
               <h4 style={{ color: 'var(--info)', marginBottom: '0.5rem' }}>PHP (Port 8000)</h4>
               <pre><code>{JSON.stringify(comparisonResults.php, null, 2)}</code></pre>
+            </div>
+            <div className="response-box">
+              <h4 style={{ color: 'var(--warning)', marginBottom: '0.5rem' }}>Python (Port 8000)</h4>
+              <pre><code>{JSON.stringify(comparisonResults.python, null, 2)}</code></pre>
             </div>
           </div>
         )}

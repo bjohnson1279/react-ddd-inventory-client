@@ -311,7 +311,7 @@ export interface RfidScanUpdate {
   unmatchedEpcs: string[];
 }
 
-export type BackendType = 'graphql' | 'express' | 'laravel';
+export type BackendType = 'graphql' | 'express' | 'laravel' | 'python';
 export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous' | 'conformance' | 'api-specs' | 'anomaly-detection' | 'rebalancing' | 'logistics-erp' | 'approvals' | 'intercompany' | 'api-usage';
 
 // --- Abstract Client Interface ---

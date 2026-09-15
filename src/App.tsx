@@ -276,7 +276,8 @@ function App() {
   const [backendHealth, setBackendHealth] = useState<Record<BackendType, { status: 'online' | 'offline' | 'checking', latencyMs: number }>>({
     graphql: { status: 'checking', latencyMs: 0 },
     express: { status: 'checking', latencyMs: 0 },
-    laravel: { status: 'checking', latencyMs: 0 }
+    laravel: { status: 'checking', latencyMs: 0 },
+    python: { status: 'checking', latencyMs: 0 }
   });
 
   useEffect(() => {
@@ -284,7 +285,8 @@ function App() {
       const nodes: Record<BackendType, string> = {
         graphql: 'http://localhost:4000',
         express: 'http://localhost:5000',
-        laravel: 'http://localhost:8000'
+        laravel: 'http://localhost:8000',
+        python: 'http://localhost:8000'
       };
 
       const promises = (Object.entries(nodes) as [BackendType, string][]).map(async ([type, url]) => {
