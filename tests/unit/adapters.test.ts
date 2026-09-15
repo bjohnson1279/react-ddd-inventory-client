@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GraphQLAdapter } from '../../src/api/graphql';
 import { ExpressRESTAdapter } from '../../src/api/express';
 import { LaravelRESTAdapter } from '../../src/api/laravel';
+import { PythonRESTAdapter } from '../../src/api/python';
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -394,6 +395,52 @@ describe('Inventory Backend API Adapters', () => {
 
       await adapter.assignRfidTag('tenant-1', 'EPC-EXP-1', 'SKU-EXP', 'SN-EXP');
       await adapter.simulateRfidScan('tenant-1', 'LOC-A', ['EPC-EXP-1']);
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+  });
+  describe('PythonRESTAdapter', () => {
+    it('should query slotting suggestions route successfully', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [{ sku: 'SKU-A', currentLocationId: 'loc-1', estimatedSavings: 100 }]
+      });
+      global.fetch = mockFetch;
+      const adapter = new PythonRESTAdapter();
+      const suggestions = await adapter.getSlottingSuggestions('tenant-test');
+      expect(suggestions).toHaveLength(1);
+      expect(suggestions[0].sku).toBe('SKU-A');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8000/warehouse-locations/slotting-suggestions?tenantId=tenant-test',
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+
+    it('should query rfid tags, assign, and simulate scans', async () => {
+      const mockFetch = vi.fn()
+        // getRfidTags
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ tags: [{ epc: 'EPC-PY-1', sku: 'SKU-PY', serialNumber: 'SN-PY', status: 'ACTIVE' }] })
+        })
+        // assignRfidTag
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ message: 'Tag assigned successfully' })
+        })
+        // simulateRfidScan
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ message: 'RFID scan simulation published.' })
+        });
+      global.fetch = mockFetch;
+
+      const adapter = new PythonRESTAdapter();
+      const tags = await adapter.getRfidTags('tenant-1');
+      expect(tags).toHaveLength(1);
+      expect(tags[0].epc).toBe('EPC-PY-1');
+
+      await adapter.assignRfidTag('tenant-1', 'EPC-PY-1', 'SKU-PY', 'SN-PY');
+      await adapter.simulateRfidScan('tenant-1', 'LOC-A', ['EPC-PY-1']);
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
