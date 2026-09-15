@@ -2023,7 +2023,7 @@ export const RfidPanel: React.FC<{
               />
             </div>
 
-            <button type="submit" className="btn btn-secondary" disabled={loading || locations.length === 0} title={locations.length === 0 ? "Requires at least one registered location" : undefined}>
+            <button type="submit" className="btn btn-secondary" disabled={loading || locations.length === 0} aria-busy={loading} title={locations.length === 0 ? "Requires at least one registered location" : undefined}>
               Simulate Scan Ingest
             </button>
           </form>

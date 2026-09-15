@@ -61,7 +61,7 @@ export const YieldManagementDashboard: React.FC = () => {
         </div>
         <button
           onClick={runYieldOptimization}
-          disabled={loading}
+          disabled={loading} aria-busy={loading}
           className={`px-4 py-2 text-white font-medium rounded shadow ${
             loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
           }`}
