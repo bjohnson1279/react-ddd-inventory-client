@@ -29,7 +29,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
     { name: 'GraphQL', port: 4000, status: 'Checking', latency: 0, lastChecked: Date.now() },
     { name: 'Express REST', port: 5000, status: 'Checking', latency: 0, lastChecked: Date.now() },
     { name: 'PHP REST', port: 8000, status: 'Checking', latency: 0, lastChecked: Date.now() },
-    { name: 'Python FastAPI', port: 8000, status: 'Checking', latency: 0, lastChecked: Date.now() }
+    { name: 'Python FastAPI', port: 8001, status: 'Checking', latency: 0, lastChecked: Date.now() }
   ]);
   const [pollingInterval, setPollingInterval] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -40,7 +40,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
       { name: 'GraphQL', url: 'http://localhost:4000' },
       { name: 'Express REST', url: 'http://localhost:5000' },
       { name: 'PHP REST', url: 'http://localhost:8000' },
-      { name: 'Python FastAPI', url: 'http://localhost:8000' }
+      { name: 'Python FastAPI', url: 'http://localhost:8001' }
     ];
 
     const results = await Promise.all(
@@ -131,7 +131,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
         fetchApi('http://localhost:4000', true),
         fetchApi('http://localhost:5000', false),
         fetchApi('http://localhost:8000', false),
-        fetchApi('http://localhost:8000', false)
+        fetchApi('http://localhost:8001', false)
       ]);
 
       setComparisonResults({ graphql: graphqlRes, express: expressRes, php: phpRes, python: pythonRes });
@@ -269,7 +269,7 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
               <pre><code>{JSON.stringify(comparisonResults.php, null, 2)}</code></pre>
             </div>
             <div className="response-box">
-              <h4 style={{ color: 'var(--warning)', marginBottom: '0.5rem' }}>Python (Port 8000)</h4>
+              <h4 style={{ color: 'var(--warning)', marginBottom: '0.5rem' }}>Python (Port 8001)</h4>
               <pre><code>{JSON.stringify(comparisonResults.python, null, 2)}</code></pre>
             </div>
           </div>

@@ -71,8 +71,8 @@ describe('ConformanceDashboardPanel', () => {
 
     // It should have completed the fetch and updated state
     expect(screen.getAllByText('🟢 Online').length).toBe(2);
-    expect(screen.getByText('🔴 Offline')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(screen.getAllByText('🔴 Offline').length).toBe(2);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   it('polls for health data based on interval', async () => {
@@ -86,7 +86,7 @@ describe('ConformanceDashboardPanel', () => {
         await Promise.resolve();
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     fetchMock.mockClear();
 
     // Select 5s polling interval
@@ -105,8 +105,8 @@ describe('ConformanceDashboardPanel', () => {
       await Promise.resolve();
     });
 
-    // The immediate fetch within the new useEffect call means 3 fetches happen.
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    // The immediate fetch within the new useEffect call means 4 fetches happen.
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     fetchMock.mockClear();
 
     // Advance 5 seconds (5000ms) to trigger the first interval execution
@@ -117,7 +117,7 @@ describe('ConformanceDashboardPanel', () => {
       await Promise.resolve();
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     fetchMock.mockClear();
 
     // Advance another 5 seconds
@@ -128,7 +128,7 @@ describe('ConformanceDashboardPanel', () => {
       await Promise.resolve();
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   it('performs API response comparison', async () => {
@@ -143,7 +143,7 @@ describe('ConformanceDashboardPanel', () => {
           ok: true,
           json: () => Promise.resolve({ items: [] })
         });
-      } else if (url.includes('8000')) {
+      } else if (url.includes('8000') || url.includes('8001')) {
         return Promise.resolve({
           ok: false,
           json: () => Promise.resolve({ error: 'Not found' })
@@ -184,9 +184,9 @@ describe('ConformanceDashboardPanel', () => {
     // Check responses are rendered
     expect(screen.getByText(/inventoryItems/)).toBeInTheDocument();
     expect(screen.getByText(/items/)).toBeInTheDocument();
-    expect(screen.getByText(/Failed/)).toBeInTheDocument(); // Expect PHP failure based on logic where !res.ok throws
+    expect(screen.getAllByText(/Failed/)).toHaveLength(2); // Expect PHP and Python failures
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
 
     // Check headers passed
     const graphqlCall = fetchMock.mock.calls.find(c => c[0] === 'http://localhost:4000/graphql');
