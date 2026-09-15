@@ -23,7 +23,7 @@ export const PredictiveScheduling: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-800">Predictive Labor Scheduling</h1>
         <button 
           onClick={handleGenerate}
-          disabled={isGenerating}
+          disabled={isGenerating} aria-busy={isGenerating}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow flex items-center gap-2 disabled:opacity-50"
         >
           {isGenerating ? 'Analyzing Demand...' : 'Generate AI Schedule'}
