@@ -158,29 +158,24 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
             <h3 style={{ marginTop: 0, color: '#f1f5f9', fontSize: '18px' }}>RMA Returns Inspection & Grading</h3>
             
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>RMA Number</label>
-              <input
-                type="text"
-                value={rmaNumber}
+              <label htmlFor="rmaNumber" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>RMA Number</label>
+              <input id="rmaNumber" type="text" value={rmaNumber}
                 onChange={(e) => setRmaNumber(e.target.value)}
                 style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }}
               />
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Target SKU</label>
-              <input
-                type="text"
-                value={sku}
+              <label htmlFor="targetSku" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Target SKU</label>
+              <input id="targetSku" type="text" value={sku}
                 onChange={(e) => setSku(e.target.value)}
                 style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }}
               />
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Quality Grading Disposition</label>
-              <select
-                value={disposition}
+              <label htmlFor="disposition" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Quality Grading Disposition</label>
+              <select id="disposition" value={disposition}
                 onChange={(e: any) => setDisposition(e.target.value)}
                 style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }}
               >
@@ -191,9 +186,8 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Inspection Notes</label>
-              <textarea
-                value={inspectionNotes}
+              <label htmlFor="inspectionNotes" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Inspection Notes</label>
+              <textarea id="inspectionNotes" value={inspectionNotes}
                 onChange={(e) => setInspectionNotes(e.target.value)}
                 rows={3}
                 style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }}
@@ -233,16 +227,16 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
           <div style={{ background: '#1e293b', padding: '20px', borderRadius: '8px' }}>
             <h3 style={{ marginTop: 0, color: '#f1f5f9', fontSize: '18px' }}>Submit Inbound Supplier ASN</h3>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>ASN Number</label>
-              <input type="text" value={asnNumber} onChange={(e) => setAsnNumber(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+              <label htmlFor="asnNumber" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>ASN Number</label>
+              <input id="asnNumber" type="text" value={asnNumber} onChange={(e) => setAsnNumber(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Supplier ID</label>
-              <input type="text" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+              <label htmlFor="supplierId" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Supplier ID</label>
+              <input id="supplierId" type="text" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Expected Delivery Date</label>
-              <input type="date" value={expectedDelivery} onChange={(e) => setExpectedDelivery(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+              <label htmlFor="expectedDelivery" style={{ display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Expected Delivery Date</label>
+              <input id="expectedDelivery" type="date" value={expectedDelivery} onChange={(e) => setExpectedDelivery(e.target.value)} style={{ width: '100%', padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
             </div>
             <button onClick={handleSubmitASN} disabled={loading} aria-busy={loading} style={{ width: '100%', padding: '10px', background: '#0284c7', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
               {loading ? 'Submitting...' : 'Submit Supplier ASN'}
