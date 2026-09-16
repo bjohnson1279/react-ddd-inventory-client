@@ -397,7 +397,8 @@ export class ExpressRESTAdapter implements InventoryClient {
       const bulkData = (response?.data || response || []);
       const allPos = Array.isArray(bulkData) ? bulkData : [];
 
-      return allPos.filter((po: any) => po && ids.includes(po.id));
+      const idsSet = new Set(ids);
+      return allPos.filter((po: any) => po && idsSet.has(po.id));
     } catch (err) {
       console.error(`Failed to fetch POs in bulk`, err);
       return [];

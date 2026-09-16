@@ -87,3 +87,7 @@
 ## 2024-11-20 - Avoid Consecutive Map and Filter Operations Inside Event Handlers
 **Learning:** Found a sequence of array `.map().filter()` inside a component event handler (`handleOptimizePickRoute` in `App.tsx`) to process a comma-separated string input. This causes redundant iterations and unnecessary array memory allocations on the main thread during execution.
 **Action:** Replace consecutive `.map().filter()` chains with a single-pass `.reduce()` loop when processing data or user input, improving performance by avoiding multiple array traversals and intermediate allocations.
+
+## 2024-05-15 - Optimize purchase order fetch using Set
+**Learning:** Checking for ID presence using `Array.prototype.includes` inside a `.filter` or `.map` causes an O(N*M) lookup bottleneck.
+**Action:** Replace `ids.includes(id)` with a `Set` to provide O(1) checks, turning the operation into O(N+M) and improving performance.
