@@ -1295,7 +1295,12 @@ function App() {
     e.preventDefault();
     setLoading(true);
     try {
-      const skus = pickSkusInput.split(',').map(s => s.trim()).filter(s => s !== '');
+      // ⚡ Bolt: Replace consecutive .map() and .filter() calls with a single-pass reduce to eliminate redundant iterations and intermediate array allocations
+      const skus = pickSkusInput.split(',').reduce((acc, s) => {
+        const trimmed = s.trim();
+        if (trimmed !== '') acc.push(trimmed);
+        return acc;
+      }, [] as string[]);
       const data = await client.getOptimizedPickRoute(tenantId, skus);
       setPickRouteResult(data || []);
       setMessage({ type: 'success', text: 'Pick path optimization completed.' });
