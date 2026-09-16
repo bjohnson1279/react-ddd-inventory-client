@@ -109,7 +109,7 @@ const CVGatewayDashboard: React.FC = () => {
           <img src={imageSrc} alt="Preview" className="max-w-xs mb-4 rounded shadow" />
           <button 
             onClick={handleAnalyze} 
-            disabled={loading}
+            disabled={loading} aria-busy={loading}
             className="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 disabled:bg-blue-300"
           >
             {loading ? 'Analyzing...' : 'Run CV Analysis'}

@@ -39,3 +39,6 @@
 ## 2026-09-13 - Missing label associations in custom dashboards
 **Learning:** Found multiple instances where form inputs (`type="file"`, etc.) had visual labels without programmatic associations (missing `htmlFor` and `id`). This prevents users from clicking the label to trigger the file picker, limiting accessibility for users with motor impairments.
 **Action:** When designing or updating custom form panels, always ensure `htmlFor` and `id` attributes explicitly link `<label>` elements to their corresponding `<input>` components.
+## 2026-09-17 - Precision of aria-busy Binding
+**Learning:** Found that when buttons had complex `disabled` logic (e.g., `disabled={loading || locations.length === 0}`), blindly copying that entire expression into `aria-busy` created an accessibility bug. `aria-busy` indicates active background processing, so applying it when a button is merely disabled due to missing input tells the screen reader the element is perpetually "loading".
+**Action:** When adding `aria-busy` states to existing buttons, specifically isolate the variable representing the async loading state (e.g., `aria-busy={loading}`) rather than blindly mirroring the `disabled` property.
