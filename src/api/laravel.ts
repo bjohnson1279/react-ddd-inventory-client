@@ -534,8 +534,10 @@ export class LaravelRESTAdapter implements InventoryClient {
         }
       }
 
+      const idsSet = new Set(ids);
+
       return allPos
-        .filter((po: any) => po && ids.includes(po.id))
+        .filter((po: any) => po && idsSet.has(po.id))
         .map((po: any) => ({
           id: po.id,
           tenantId: po.tenant_id || po.tenantId,
