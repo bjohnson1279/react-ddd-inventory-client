@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useInventory } from '../api/client';
 import { Building2, ArrowRightLeft, Plus } from 'lucide-react';
 
@@ -19,6 +19,13 @@ export const IntercompanyPanel: React.FC<{ tenantId: string }> = ({ tenantId }) 
   const [unitCost, setUnitCost] = useState(0);
   const [markup, setMarkup] = useState(0);
   const [duty, setDuty] = useState(0);
+
+  // ⚡ Bolt: Replace O(N*M) array find inside render loop with O(N+M) Map lookup for entity names
+  const entityMap = useMemo(() => {
+    const map = new Map();
+    entities.forEach(e => map.set(e.id, e.name));
+    return map;
+  }, [entities]);
 
   const loadData = async () => {
     try {
@@ -146,8 +153,8 @@ export const IntercompanyPanel: React.FC<{ tenantId: string }> = ({ tenantId }) 
               {transfers.map(t => (
                 <tr key={t.id} className="hover:bg-slate-50/50">
                   <td className="py-3 px-6 text-slate-700">{new Date(t.createdAt || Date.now()).toLocaleDateString()}</td>
-                  <td className="py-3 px-6 text-slate-700">{entities.find(e => e.id === t.fromEntityId)?.name || t.fromEntityId}</td>
-                  <td className="py-3 px-6 text-slate-700">{entities.find(e => e.id === t.toEntityId)?.name || t.toEntityId}</td>
+                  <td className="py-3 px-6 text-slate-700">{entityMap.get(t.fromEntityId) || t.fromEntityId}</td>
+                  <td className="py-3 px-6 text-slate-700">{entityMap.get(t.toEntityId) || t.toEntityId}</td>
                   <td className="py-3 px-6 text-slate-700">{t.sku} (x{t.quantity})</td>
                   <td className="py-3 px-6">
                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

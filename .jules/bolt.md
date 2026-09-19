@@ -91,3 +91,6 @@
 ## 2024-05-15 - Optimize purchase order fetch using Set
 **Learning:** Checking for ID presence using `Array.prototype.includes` inside a `.filter` or `.map` causes an O(N*M) lookup bottleneck.
 **Action:** Replace `ids.includes(id)` with a `Set` to provide O(1) checks, turning the operation into O(N+M) and improving performance.
+## 2024-09-19 - Replace O(N*M) array find with O(N+M) Map lookup in render loops
+**Learning:** Found a major performance bottleneck where `entities.find` was called twice inside `transfers.map` during the React component render in `IntercompanyPanel`. This causes an O(N * M) operation blocking the main thread on every render.
+**Action:** Replace nested loops/finds in render functions with an O(N + M) grouping strategy. Convert the smaller array into a `Map` structure using `useMemo` prior to iterating the second collection, resulting in O(1) lookups.
