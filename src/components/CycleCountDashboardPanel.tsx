@@ -31,7 +31,7 @@ export const CycleCountDashboardPanel: React.FC<{ tenantId: string }> = ({ tenan
                     <Clock size={14} /> {count.status}
                   </div>
                 </div>
-                <button className="text-indigo-600 hover:text-indigo-800 font-medium text-sm flex items-center gap-1">
+                <button className="text-indigo-600 hover:text-indigo-800 font-medium text-sm flex items-center gap-1" aria-label={`Submit cycle count ${count.id}`}>
                   <CheckCircle size={16} /> Submit
                 </button>
               </div>

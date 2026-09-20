@@ -114,7 +114,7 @@ describe('ApprovalInboxPanel', () => {
       expect(screen.getByText('INVENTORY_WRITEOFF')).toBeInTheDocument();
     });
 
-    const approveButton = screen.getByText('Approve');
+    const approveButton = screen.getByRole('button', { name: 'Approve request req_1' });
     await user.click(approveButton);
 
     expect(mockApi.submitApprovalDecision).toHaveBeenCalledWith('req_1', 'APPROVED', 'Reviewed via UI');
