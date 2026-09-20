@@ -75,3 +75,7 @@
 **Vulnerability:** Standard NGINX configurations generated or used for static site serving often miss basic security headers.
 **Learning:** These headers are not injected by Vite or the React application layer by default, leaving them missing entirely unless explicitly added to the proxy configuration.
 **Prevention:** Include a standard block of security headers in all Nginx webserver templates going forward.
+## 2025-02-27 - Fix WebSocket URL Injection Vulnerability
+**Vulnerability:** Unencoded `tenantId` parameters in WebSocket connection URLs could allow URL injection or manipulation.
+**Learning:** String interpolation for URLs using untrusted or dynamic parameters without encoding is a common source of injection risks.
+**Prevention:** Always use `encodeURIComponent` when embedding dynamic variables as query parameters in URLs.
