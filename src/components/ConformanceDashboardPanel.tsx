@@ -57,9 +57,11 @@ export const ConformanceDashboardPanel: React.FC<ConformanceDashboardPanelProps>
       })
     );
 
+    // ⚡ Bolt: Replace O(N^2) .find() lookup inside .map() with O(N) Map lookup for health data resolution
+    const resultsMap = new Map(results.map((r) => [r.name, r]));
     setHealthData((prev) =>
       prev.map((h) => {
-        const result = results.find((r) => r.name === h.name);
+        const result = resultsMap.get(h.name);
         return result ? { ...h, ...result } : h;
       })
     );
