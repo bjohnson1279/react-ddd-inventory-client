@@ -25,7 +25,7 @@ describe('AutonomousInventoryDashboard', () => {
     render(<AutonomousInventoryDashboard />);
 
     // Find the first "Issue PO" button
-    const issueButtons = screen.getAllByRole('button', { name: 'Issue PO' });
+    const issueButtons = screen.getAllByRole('button', { name: /^Issue PO for/ });
     expect(issueButtons.length).toBeGreaterThan(0);
 
     fireEvent.click(issueButtons[0]);

@@ -205,7 +205,7 @@ export const AutonomousInventoryDashboard: React.FC = () => {
                     <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>✓ PO Issued</span>
                   ) : (
                     <button
-                      onClick={() => handleApprovePO(rec.sku)}
+                      onClick={() => handleApprovePO(rec.sku)} aria-label={`Issue PO for ${rec.sku}`}
                       style={{
                         padding: '6px 12px',
                         background: '#10b981',
