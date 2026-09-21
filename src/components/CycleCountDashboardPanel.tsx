@@ -57,6 +57,7 @@ export const CycleCountDashboardPanel: React.FC<{ tenantId: string }> = ({
                 </div>
                 <button
                   className="text-indigo-600 hover:text-indigo-800 font-medium text-sm flex items-center gap-1 disabled:opacity-50"
+                  aria-label={`Submit cycle count ${count.id}`}
                   onClick={() => {
                     setSubmittingId(count.id);
                     setTimeout(() => setSubmittingId(null), 1000);

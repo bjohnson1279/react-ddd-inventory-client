@@ -94,3 +94,6 @@
 ## 2024-09-19 - Replace O(N*M) array find with O(N+M) Map lookup in render loops
 **Learning:** Found a major performance bottleneck where `entities.find` was called twice inside `transfers.map` during the React component render in `IntercompanyPanel`. This causes an O(N * M) operation blocking the main thread on every render.
 **Action:** Replace nested loops/finds in render functions with an O(N + M) grouping strategy. Convert the smaller array into a `Map` structure using `useMemo` prior to iterating the second collection, resulting in O(1) lookups.
+## 2026-09-20 - Optimize health data resolution with Map lookup
+**Learning:** Inside frequently executed operations like polling `setInterval`, placing an O(N) `.find()` search inside an O(M) `.map()` loop creates an O(N*M) bottleneck.
+**Action:** Pre-compute a `Map` of the search array before mapping to achieve an O(1) inner lookup and an overall O(N+M) time complexity.
