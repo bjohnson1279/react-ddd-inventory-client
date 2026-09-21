@@ -270,7 +270,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   subscribeBarcodeScans(tenantId: string, onScan: (scan: any) => void): () => void {
-    const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
+    const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${encodeURIComponent(tenantId)}`);
 
     ws.addEventListener('open', () => {
       const activeToken = localStorage.getItem('auth_token') || '';
@@ -664,7 +664,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
-    const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${tenantId}`);
+    const ws = new WebSocket(`${EXPRESS_WS_URL}?tenantId=${encodeURIComponent(tenantId)}`);
 
     ws.addEventListener('open', () => {
       const activeToken = localStorage.getItem('auth_token') || '';

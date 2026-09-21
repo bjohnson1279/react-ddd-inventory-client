@@ -744,7 +744,7 @@ function App() {
     if (!token || backendType !== 'express') return;
 
     const activeToken = localStorage.getItem('auth_token') || '';
-    const wsUrl = `ws://localhost:5000?tenantId=${tenantId}`;
+    const wsUrl = `ws://localhost:5000?tenantId=${encodeURIComponent(tenantId)}`;
     let socket: WebSocket | null = null;
     let reconnectTimeout: any = null;
 
