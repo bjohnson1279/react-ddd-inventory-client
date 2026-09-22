@@ -333,14 +333,37 @@ function App() {
     }
   }, [token]);
 
-  const hasPermission = (resource: string, action: string) => {
-    return permissions.some(p => {
-      if (p === '*:*') return true;
-      const [pRes, pAct] = p.split(':');
-      if (pRes === '*' && pAct === '*') return true;
-      if (pRes.toLowerCase() === resource.toLowerCase() && (pAct === '*' || pAct.toLowerCase() === action.toLowerCase())) return true;
-      return false;
+  // ⚡ Bolt: Parse and memoize permissions to a Map to avoid O(N) array iteration and string splitting on every hasPermission call
+  const parsedPermissions = useMemo(() => {
+    if (permissions.includes('*:*')) return { isSuperAdmin: true, map: new Map() };
+    const map = new Map<string, Set<string>>();
+    permissions.forEach(p => {
+      const parts = p.split(':');
+      if (parts.length !== 2) return;
+      const pRes = parts[0].toLowerCase();
+      const pAct = parts[1].toLowerCase();
+
+      if (!map.has(pRes)) {
+        map.set(pRes, new Set());
+      }
+      map.get(pRes)!.add(pAct);
     });
+    return { isSuperAdmin: false, map };
+  }, [permissions]);
+
+  const hasPermission = (resource: string, action: string) => {
+    if (parsedPermissions.isSuperAdmin) return true;
+
+    const resLower = resource.toLowerCase();
+    const actLower = action.toLowerCase();
+
+    const wildcardRes = parsedPermissions.map.get('*');
+    if (wildcardRes && (wildcardRes.has('*') || wildcardRes.has(actLower))) return true;
+
+    const specificRes = parsedPermissions.map.get(resLower);
+    if (specificRes && (specificRes.has('*') || specificRes.has(actLower))) return true;
+
+    return false;
   };
 
   // Redirect to dashboard if the active tab is not allowed for the role/permissions
