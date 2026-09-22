@@ -97,3 +97,9 @@
 ## 2026-09-20 - Optimize health data resolution with Map lookup
 **Learning:** Inside frequently executed operations like polling `setInterval`, placing an O(N) `.find()` search inside an O(M) `.map()` loop creates an O(N*M) bottleneck.
 **Action:** Pre-compute a `Map` of the search array before mapping to achieve an O(1) inner lookup and an overall O(N+M) time complexity.
+## 2026-09-22 - Optimize hasPermission string splitting
+**Learning:** When evaluating authorization or permission checks repeatedly (like  inside  render cycle), inline string manipulations like `.split(':')` inside array `.some()` loops create significant allocation overhead. This was an O(N) check with dynamic allocations.
+**Action:** Use `useMemo` to pre-parse the permissions array into a fast O(1) `Map<string, Set<string>>` lookup dictionary. This ensures string splitting only occurs when the actual permissions array changes, drastically speeding up authorization checks across the app.
+## 2024-05-19 - Optimize hasPermission string splitting
+**Learning:** When evaluating authorization or permission checks repeatedly (like `hasPermission` inside `App.tsx` render cycle), inline string manipulations like `.split(':')` inside array `.some()` loops create significant allocation overhead. This was an O(N) check with dynamic allocations.
+**Action:** Use `useMemo` to pre-parse the permissions array into a fast O(1) `Map<string, Set<string>>` lookup dictionary. This ensures string splitting only occurs when the actual permissions array changes, drastically speeding up authorization checks across the app.
