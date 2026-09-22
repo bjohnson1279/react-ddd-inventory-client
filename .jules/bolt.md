@@ -97,3 +97,4 @@
 ## 2026-09-20 - Optimize health data resolution with Map lookup
 **Learning:** Inside frequently executed operations like polling `setInterval`, placing an O(N) `.find()` search inside an O(M) `.map()` loop creates an O(N*M) bottleneck.
 **Action:** Pre-compute a `Map` of the search array before mapping to achieve an O(1) inner lookup and an overall O(N+M) time complexity.
+## 2025-02-23 - Optimize hasPermission string lookups\n**Learning:** Authorization checks using string splitting inside array iterations (e.g. `p.split(":")`) can become a major bottleneck when called multiple times per render cycle (like in UI tab rendering checks).\n**Action:** Use `useMemo` to pre-compute and normalize string lists into a `Set` for O(1) lookups instead of parsing on every render call.

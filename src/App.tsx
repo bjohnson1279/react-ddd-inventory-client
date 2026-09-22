@@ -333,14 +333,17 @@ function App() {
     }
   }, [token]);
 
+  // ⚡ Bolt: Memoize normalized permissions to prevent O(N) string splitting and array iteration on every permission check
+  const normalizedPermissions = useMemo(() => {
+    return new Set(permissions.map(p => p.toLowerCase()));
+  }, [permissions]);
+
   const hasPermission = (resource: string, action: string) => {
-    return permissions.some(p => {
-      if (p === '*:*') return true;
-      const [pRes, pAct] = p.split(':');
-      if (pRes === '*' && pAct === '*') return true;
-      if (pRes.toLowerCase() === resource.toLowerCase() && (pAct === '*' || pAct.toLowerCase() === action.toLowerCase())) return true;
-      return false;
-    });
+    const res = resource.toLowerCase();
+    const act = action.toLowerCase();
+    if (normalizedPermissions.has('*:*')) return true;
+    if (normalizedPermissions.has(`${res}:*`)) return true;
+    return normalizedPermissions.has(`${res}:${act}`);
   };
 
   // Redirect to dashboard if the active tab is not allowed for the role/permissions
