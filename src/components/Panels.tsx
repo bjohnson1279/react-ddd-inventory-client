@@ -138,16 +138,16 @@ export const ShopifyPanel: React.FC<ShopifyPanelProps> = ({
       <h3 className="form-section-title">Configure Shopify Connection</h3>
       <form onSubmit={handleConnectShopify}>
         <div className="form-group">
-          <label>Connection Name / ID</label>
-          <input type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
+          <label htmlFor="connectionnameid_0">Connection Name / ID</label>
+          <input id="connectionnameid_0" type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
         </div>
         <div className="form-group">
-          <label>Store Domain</label>
-          <input type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
+          <label htmlFor="storedomain_1">Store Domain</label>
+          <input id="storedomain_1" type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
         </div>
         <div className="form-group">
-          <label>Shopify API Access Token</label>
-          <input type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
+          <label htmlFor="shopifyapiaccesstoken_2">Shopify API Access Token</label>
+          <input id="shopifyapiaccesstoken_2" type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
         </div>
         <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
           {loading ? <Spinner /> : 'Connect Store'}
@@ -261,12 +261,12 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
       <h3 className="form-section-title">Add Catalog Product</h3>
       <form onSubmit={handleCreateProduct}>
         <div className="form-group">
-          <label>Product Reference ID</label>
-          <input type="text" value={newProdId} onChange={(e) => setNewProdId(e.target.value)} required placeholder="e.g. prod-123" />
+          <label htmlFor="productreferenceid_3">Product Reference ID</label>
+          <input id="productreferenceid_3" type="text" value={newProdId} onChange={(e) => setNewProdId(e.target.value)} required placeholder="e.g. prod-123" />
         </div>
         <div className="form-group">
-          <label>Display Name</label>
-          <input type="text" value={newProdName} onChange={(e) => setNewProdName(e.target.value)} required placeholder="e.g. Wireless Charger" />
+          <label htmlFor="displayname_4">Display Name</label>
+          <input id="displayname_4" type="text" value={newProdName} onChange={(e) => setNewProdName(e.target.value)} required placeholder="e.g. Wireless Charger" />
         </div>
         <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
           {loading ? <Spinner /> : 'Register Product'}
@@ -278,20 +278,20 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
           <h3 className="form-section-title">Add Variant to {selectedProduct.name}</h3>
           <form onSubmit={handleAddVariant}>
             <div className="form-group">
-              <label>SKU Reference</label>
-              <input type="text" value={newVarSku} onChange={(e) => setNewVarSku(e.target.value)} required placeholder="e.g. CHARGER-WRLS-BLK" />
+              <label htmlFor="skureference_5">SKU Reference</label>
+          <input id="skureference_5" type="text" value={newVarSku} onChange={(e) => setNewVarSku(e.target.value)} required placeholder="e.g. CHARGER-WRLS-BLK" />
             </div>
             <div className="form-group">
-              <label>Inventory Tracking Mode</label>
-              <select value={newVarTracking} onChange={(e) => setNewVarTracking(e.target.value as any)}>
+              <label htmlFor="inventorytrackingmode_6">Inventory Tracking Mode</label>
+          <select id="inventorytrackingmode_6" value={newVarTracking} onChange={(e) => setNewVarTracking(e.target.value as any)}>
                 <option value="quantity">Quantity Tracking (Default)</option>
                 <option value="serial">Serial Number Tracking</option>
                 <option value="lot">Lot-Controlled Expiry Tracking</option>
               </select>
             </div>
             <div className="form-group">
-              <label>Attributes Configuration (JSON Array)</label>
-              <input type="text" value={newVarAttrJSON} onChange={(e) => setNewVarAttrJSON(e.target.value)} placeholder='[{"name":"color","value":"black"}]' />
+              <label htmlFor="attributesconfigurationjsonarray_7">Attributes Configuration (JSON Array)</label>
+          <input id="attributesconfigurationjsonarray_7" type="text" value={newVarAttrJSON} onChange={(e) => setNewVarAttrJSON(e.target.value)} placeholder='[{"name":"color","value":"black"}]' />
             </div>
             <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
               {loading ? <Spinner /> : 'Add Product Variant'}
@@ -367,16 +367,16 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
         <h3 className="form-section-title">Manual Barcode Assignment</h3>
         <form onSubmit={handleAssignBarcode}>
           <div className="form-group">
-            <label>Product Variant SKU</label>
-            <input type="text" value={assignSku} onChange={(e) => setAssignSku(e.target.value)} required placeholder="e.g. CHARGER-WRLS-BLK" />
+            <label htmlFor="productvariantsku_8">Product Variant SKU</label>
+          <input id="productvariantsku_8" type="text" value={assignSku} onChange={(e) => setAssignSku(e.target.value)} required placeholder="e.g. CHARGER-WRLS-BLK" />
           </div>
           <div className="form-group">
-            <label>Barcode Value</label>
-            <input type="text" value={assignVal} onChange={(e) => setAssignVal(e.target.value)} required placeholder="e.g. 750102030405" />
+            <label htmlFor="barcodevalue_9">Barcode Value</label>
+          <input id="barcodevalue_9" type="text" value={assignVal} onChange={(e) => setAssignVal(e.target.value)} required placeholder="e.g. 750102030405" />
           </div>
           <div className="form-group">
-            <label>Symbology / Standard</label>
-            <select value={assignSymbology} onChange={(e) => setAssignSymbology(e.target.value)}>
+            <label htmlFor="symbologystandard_10">Symbology / Standard</label>
+          <select id="symbologystandard_10" value={assignSymbology} onChange={(e) => setAssignSymbology(e.target.value)}>
               <option value="upc_a">UPC-A (North American Retail)</option>
               <option value="ean_13">EAN-13 (Global Retail)</option>
               <option value="code_128">Code 128 (Logistics/Internal)</option>
@@ -384,8 +384,8 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
             </select>
           </div>
           <div className="form-group">
-            <label>Source Type</label>
-            <select value={assignSource} onChange={(e) => setAssignSource(e.target.value)}>
+            <label htmlFor="sourcetype_11">Source Type</label>
+          <select id="sourcetype_11" value={assignSource} onChange={(e) => setAssignSource(e.target.value)}>
               <option value="manufacturer">Manufacturer Barcode</option>
               <option value="internal">Internal Inventory Label</option>
               <option value="third_party">Third Party Registry</option>
@@ -473,24 +473,24 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
 
       <form onSubmit={handleDispatchScan}>
         <div className="form-group">
-          <label>Scanned Barcode Value</label>
-          <input type="text" value={scanVal} onChange={(e) => setScanVal(e.target.value)} required placeholder="Scan label or input value..." />
+          <label htmlFor="scannedbarcodevalue_12">Scanned Barcode Value</label>
+          <input id="scannedbarcodevalue_12" type="text" value={scanVal} onChange={(e) => setScanVal(e.target.value)} required placeholder="Scan label or input value..." />
         </div>
         <div className="form-group">
-          <label>Fulfillment/Routing Context</label>
-          <select value={scanContext} onChange={(e) => setScanContext(e.target.value)}>
+          <label htmlFor="fulfillmentroutingcontext_13">Fulfillment/Routing Context</label>
+          <select id="fulfillmentroutingcontext_13" value={scanContext} onChange={(e) => setScanContext(e.target.value)}>
             <option value="receive">Receive Inventory (Replenishment)</option>
             <option value="dispatch">Dispatch Inventory (Sales Fulfillment)</option>
             <option value="audit">Store Count / Cycle Audit</option>
           </select>
         </div>
         <div className="form-group">
-          <label>Scanned Package Increment Quantity</label>
-          <input type="number" value={scanAmount || ''} onChange={(e) => setScanAmount(Number(e.target.value))} required />
+          <label htmlFor="scannedpackageincrementquantity_14">Scanned Package Increment Quantity</label>
+          <input id="scannedpackageincrementquantity_14" type="number" value={scanAmount || ''} onChange={(e) => setScanAmount(Number(e.target.value))} required />
         </div>
         <div className="form-group">
-          <label>Actual Store Count (Audit Context Only)</label>
-          <input type="number" value={scanActualQty || ''} onChange={(e) => setScanActualQty(Number(e.target.value))} />
+          <label htmlFor="actualstorecountauditcontextonly_15">Actual Store Count (Audit Context Only)</label>
+          <input id="actualstorecountauditcontextonly_15" type="number" value={scanActualQty || ''} onChange={(e) => setScanActualQty(Number(e.target.value))} />
         </div>
         <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
           {isOnline ? 'Dispatch Barcode Scan' : 'Buffer Barcode Offline'}
@@ -685,12 +685,12 @@ export const LedgerPanel: React.FC<LedgerPanelProps> = ({
       <h3 className="form-section-title">Manual Ledger Entry (Journal)</h3>
       <form onSubmit={handlePostJournal}>
         <div className="form-group">
-          <label>Journal Description</label>
-          <input type="text" value={newJournalDesc} onChange={(e) => setNewJournalDesc(e.target.value)} required placeholder="e.g. Month-end adjustments" />
+          <label htmlFor="journaldescription_16">Journal Description</label>
+          <input id="journaldescription_16" type="text" value={newJournalDesc} onChange={(e) => setNewJournalDesc(e.target.value)} required placeholder="e.g. Month-end adjustments" />
         </div>
         <div className="form-group">
-          <label>Accounting Method</label>
-          <select value={newJournalMethod} onChange={(e) => setNewJournalMethod(e.target.value as any)}>
+          <label htmlFor="accountingmethod_17">Accounting Method</label>
+          <select id="accountingmethod_17" value={newJournalMethod} onChange={(e) => setNewJournalMethod(e.target.value as any)}>
             <option value="accrual">Accrual Accounting (GAAP Compliant)</option>
             <option value="cash">Cash Accounting</option>
           </select>
@@ -816,8 +816,8 @@ export const SerialsPanel: React.FC<SerialsPanelProps> = ({
       <h3 className="form-section-title">Serialized Stock Tracker</h3>
       <form onSubmit={handleTraceSerial}>
         <div className="form-group">
-          <label>Item Serial Number</label>
-          <input type="text" value={traceSerialNum} onChange={(e) => setTraceSerialNum(e.target.value)} required placeholder="Enter unique serial number..." />
+          <label htmlFor="itemserialnumber_18">Item Serial Number</label>
+          <input id="itemserialnumber_18" type="text" value={traceSerialNum} onChange={(e) => setTraceSerialNum(e.target.value)} required placeholder="Enter unique serial number..." />
         </div>
         <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
           Trace Serial History
@@ -958,24 +958,24 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
         <h3 className="form-section-title">Configure Reorder Policy (ROP/EOQ)</h3>
         <form onSubmit={handleSaveReorderPolicy}>
           <div className="form-group">
-            <label>Product SKU</label>
-            <input type="text" value={policySku} onChange={(e) => setPolicySku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
+            <label htmlFor="productsku_19">Product SKU</label>
+          <input id="productsku_19" type="text" value={policySku} onChange={(e) => setPolicySku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
           </div>
           <div className="form-group">
-            <label>Location ID</label>
-            <input type="text" value={policyLoc} onChange={(e) => setPolicyLoc(e.target.value)} required placeholder="e.g. LOC-EAST" />
+            <label htmlFor="locationid_20">Location ID</label>
+          <input id="locationid_20" type="text" value={policyLoc} onChange={(e) => setPolicyLoc(e.target.value)} required placeholder="e.g. LOC-EAST" />
           </div>
           <div className="form-group">
-            <label>Reorder Point (Units)</label>
-            <input type="number" value={policyRop} onChange={(e) => setPolicyRop(Number(e.target.value))} required />
+            <label htmlFor="reorderpointunits_21">Reorder Point (Units)</label>
+          <input id="reorderpointunits_21" type="number" value={policyRop} onChange={(e) => setPolicyRop(Number(e.target.value))} required />
           </div>
           <div className="form-group">
-            <label>Safety Stock (Units)</label>
-            <input type="number" value={policySafety} onChange={(e) => setPolicySafety(Number(e.target.value))} required />
+            <label htmlFor="safetystockunits_22">Safety Stock (Units)</label>
+          <input id="safetystockunits_22" type="number" value={policySafety} onChange={(e) => setPolicySafety(Number(e.target.value))} required />
           </div>
           <div className="form-group">
-            <label>Economic Order Quantity (EOQ)</label>
-            <input type="number" value={policyEoq} onChange={(e) => setPolicyEoq(Number(e.target.value))} required />
+            <label htmlFor="economicorderquantityeoq_23">Economic Order Quantity (EOQ)</label>
+          <input id="economicorderquantityeoq_23" type="number" value={policyEoq} onChange={(e) => setPolicyEoq(Number(e.target.value))} required />
           </div>
           <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
             Save Policy
@@ -1028,12 +1028,12 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
         <h3 className="form-section-title">FEFO Expiry Pick Suggestions</h3>
         <form onSubmit={handleGetFefoSuggestions}>
           <div className="form-group">
-            <label>Product SKU</label>
-            <input type="text" value={fefoSku} onChange={(e) => setFefoSku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
+            <label htmlFor="productsku_24">Product SKU</label>
+          <input id="productsku_24" type="text" value={fefoSku} onChange={(e) => setFefoSku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
           </div>
           <div className="form-group">
-            <label>Fulfillment Quantity</label>
-            <input type="number" value={fefoQty} onChange={(e) => setFefoQty(Number(e.target.value))} required />
+            <label htmlFor="fulfillmentquantity_25">Fulfillment Quantity</label>
+          <input id="fulfillmentquantity_25" type="number" value={fefoQty} onChange={(e) => setFefoQty(Number(e.target.value))} required />
           </div>
           <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
             Get Expiring Stock Layers
@@ -1071,8 +1071,8 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
         <h3 className="form-section-title">Lot Recall Tracing Reports</h3>
         <form onSubmit={handleTraceRecall}>
           <div className="form-group">
-            <label>Target Lot Number</label>
-            <input type="text" value={recallLotNum} onChange={(e) => setRecallLotNum(e.target.value)} required placeholder="e.g. LOT-A-1" />
+            <label htmlFor="targetlotnumber_26">Target Lot Number</label>
+          <input id="targetlotnumber_26" type="text" value={recallLotNum} onChange={(e) => setRecallLotNum(e.target.value)} required placeholder="e.g. LOT-A-1" />
           </div>
           <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
             Compile Recall Report
@@ -1211,20 +1211,20 @@ export const RoutingPanel: React.FC<RoutingPanelProps> = ({
       <h3 className="form-section-title">Intelligent Order Routing Optimizer</h3>
       <form onSubmit={handleComputeRoute}>
         <div className="form-group">
-          <label>Product SKU</label>
-          <input type="text" value={routingSku} onChange={(e) => setRoutingSku(e.target.value)} required />
+          <label htmlFor="productsku_27">Product SKU</label>
+          <input id="productsku_27" type="text" value={routingSku} onChange={(e) => setRoutingSku(e.target.value)} required />
         </div>
         <div className="form-group">
-          <label>Order Quantity</label>
-          <input type="number" value={routingQuantity} onChange={(e) => setRoutingQuantity(Number(e.target.value))} required />
+          <label htmlFor="orderquantity_28">Order Quantity</label>
+          <input id="orderquantity_28" type="number" value={routingQuantity} onChange={(e) => setRoutingQuantity(Number(e.target.value))} required />
         </div>
         <div className="form-group">
-          <label>Destination Address (Geocode Lookup)</label>
-          <input type="text" value={routingAddress} onChange={(e) => setRoutingAddress(e.target.value)} required />
+          <label htmlFor="destinationaddressgeocodelookup_29">Destination Address (Geocode Lookup)</label>
+          <input id="destinationaddressgeocodelookup_29" type="text" value={routingAddress} onChange={(e) => setRoutingAddress(e.target.value)} required />
         </div>
         <div className="form-group">
-          <label>Routing Strategy</label>
-          <select value={routingStrategy} onChange={(e) => setRoutingStrategy(e.target.value)}>
+          <label htmlFor="routingstrategy_30">Routing Strategy</label>
+          <select id="routingstrategy_30" value={routingStrategy} onChange={(e) => setRoutingStrategy(e.target.value)}>
             <option value="MINIMIZE_COST">Minimize Carrier Cost (Balanced splits)</option>
             <option value="MINIMIZE_SPLITS">Minimize Splits (Fulfill from single location)</option>
             <option value="MINIMIZE_DISTANCE">Minimize Distance (Nearest origin warehouse)</option>
@@ -1328,8 +1328,8 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
       <h3 className="form-section-title">Create Purchase Order (PO) Draft</h3>
       <form onSubmit={handleCreatePurchaseOrder}>
         <div className="form-group">
-          <label>Supplier Name</label>
-          <input type="text" value={newPoSupplier} onChange={(e) => setNewPoSupplier(e.target.value)} required placeholder="e.g. Acme Supplies Ltd." />
+          <label htmlFor="suppliername_31">Supplier Name</label>
+          <input id="suppliername_31" type="text" value={newPoSupplier} onChange={(e) => setNewPoSupplier(e.target.value)} required placeholder="e.g. Acme Supplies Ltd." />
         </div>
         
         <div className="form-group">
@@ -1392,8 +1392,8 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
           <h3 className="form-section-title">Receive Purchase Order Inventory</h3>
           <form onSubmit={handleReceivePO}>
             <div className="form-group">
-              <label>Purchase Order ID</label>
-              <select 
+              <label htmlFor="purchaseorderid_32">Purchase Order ID</label>
+          <select id="purchaseorderid_32"
                 value={receivePoId} 
                 onChange={(e) => {
                   const id = e.target.value;
@@ -1566,24 +1566,24 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
       <h3 className="form-section-title">Configure Warehouse Location Layout</h3>
       <form onSubmit={handleCreateWmsLocation}>
         <div className="form-group">
-          <label>Location / Bin ID</label>
-          <input type="text" value={wmsLocId} onChange={(e) => setWmsLocId(e.target.value)} required placeholder="e.g. LOC-CENTRAL" />
+          <label htmlFor="locationbinid_33">Location / Bin ID</label>
+          <input id="locationbinid_33" type="text" value={wmsLocId} onChange={(e) => setWmsLocId(e.target.value)} required placeholder="e.g. LOC-CENTRAL" />
         </div>
         <div className="form-group">
-          <label>Warehouse ID</label>
-          <input type="text" value={wmsWarehouseId} onChange={(e) => setWmsWarehouseId(e.target.value)} required />
+          <label htmlFor="warehouseid_34">Warehouse ID</label>
+          <input id="warehouseid_34" type="text" value={wmsWarehouseId} onChange={(e) => setWmsWarehouseId(e.target.value)} required />
         </div>
         <div className="form-group">
-          <label>Warehouse Zone</label>
-          <input type="text" value={wmsZone} onChange={(e) => setWmsZone(e.target.value)} required />
+          <label htmlFor="warehousezone_35">Warehouse Zone</label>
+          <input id="warehousezone_35" type="text" value={wmsZone} onChange={(e) => setWmsZone(e.target.value)} required />
         </div>
         <div className="form-group">
-          <label>Max Weight Capacity (Grams)</label>
-          <input type="number" value={wmsMaxWeight} onChange={(e) => setWmsMaxWeight(Number(e.target.value))} required />
+          <label htmlFor="maxweightcapacitygrams_36">Max Weight Capacity (Grams)</label>
+          <input id="maxweightcapacitygrams_36" type="number" value={wmsMaxWeight} onChange={(e) => setWmsMaxWeight(Number(e.target.value))} required />
         </div>
         <div className="form-group">
-          <label>Max Volume Capacity (Cubic Meters)</label>
-          <input type="number" step="0.01" value={wmsMaxVolume} onChange={(e) => setWmsMaxVolume(Number(e.target.value))} required />
+          <label htmlFor="maxvolumecapacitycubicmeters_37">Max Volume Capacity (Cubic Meters)</label>
+          <input id="maxvolumecapacitycubicmeters_37" type="number" step="0.01" value={wmsMaxVolume} onChange={(e) => setWmsMaxVolume(Number(e.target.value))} required />
         </div>
         <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
           Configure Location
@@ -1594,12 +1594,12 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
         <h3 className="form-section-title">Get Putaway Recommendation</h3>
         <form onSubmit={handleGetPutawaySuggestions}>
           <div className="form-group">
-            <label>Product SKU</label>
-            <input type="text" value={putawaySku} onChange={(e) => setPutawaySku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
+            <label htmlFor="productsku_38">Product SKU</label>
+          <input id="productsku_38" type="text" value={putawaySku} onChange={(e) => setPutawaySku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
           </div>
           <div className="form-group">
-            <label>Incoming Quantity</label>
-            <input type="number" value={putawayQty} onChange={(e) => setPutawayQty(Number(e.target.value))} required />
+            <label htmlFor="incomingquantity_39">Incoming Quantity</label>
+          <input id="incomingquantity_39" type="number" value={putawayQty} onChange={(e) => setPutawayQty(Number(e.target.value))} required />
           </div>
           <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
             Suggest Bin Location
@@ -1657,8 +1657,8 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
         <h3 className="form-section-title">WMS Picking Route Optimization</h3>
         <form onSubmit={handleOptimizePickRoute}>
           <div className="form-group">
-            <label>List of SKUs to Pick (Comma separated)</label>
-            <input type="text" value={pickSkusInput} onChange={(e) => setPickSkusInput(e.target.value)} required placeholder="ROUTE-SKU, CHARGER-WRLS-BLK" />
+            <label htmlFor="listofskustopickcommaseparated_40">List of SKUs to Pick (Comma separated)</label>
+          <input id="listofskustopickcommaseparated_40" type="text" value={pickSkusInput} onChange={(e) => setPickSkusInput(e.target.value)} required placeholder="ROUTE-SKU, CHARGER-WRLS-BLK" />
           </div>
           <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
             Generate Optimal Pick Sequence
@@ -1710,8 +1710,8 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
       <h3 className="form-section-title">Subscribe Outbound Webhook</h3>
       <form onSubmit={handleCreateWebhook}>
         <div className="form-group">
-          <label>Target URL Endpoint</label>
-          <input type="url" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} required placeholder="https://api.thirdparty.com/webhook" />
+          <label htmlFor="targeturlendpoint_41">Target URL Endpoint</label>
+          <input id="targeturlendpoint_41" type="url" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} required placeholder="https://api.thirdparty.com/webhook" />
         </div>
         <div className="form-group">
           <label>Event Subscriptions</label>
@@ -1957,16 +1957,16 @@ export const RfidPanel: React.FC<{
           )}
           <form onSubmit={handleAssign} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="form-group">
-              <label>EPC ID (24-char Hex)</label>
-              <input type="text" value={epc} onChange={e => setEpc(e.target.value)} required placeholder="E28011302000762A17849C10" />
+              <label htmlFor="epcid24charhex_42">EPC ID (24-char Hex)</label>
+          <input id="epcid24charhex_42" type="text" value={epc} onChange={e => setEpc(e.target.value)} required placeholder="E28011302000762A17849C10" />
             </div>
             <div className="form-group">
-              <label>Item SKU</label>
-              <input type="text" value={sku} onChange={e => setSku(e.target.value)} required placeholder="SKU-GEN-SHIRT" />
+              <label htmlFor="itemsku_43">Item SKU</label>
+          <input id="itemsku_43" type="text" value={sku} onChange={e => setSku(e.target.value)} required placeholder="SKU-GEN-SHIRT" />
             </div>
             <div className="form-group">
-              <label>Serial Number</label>
-              <input type="text" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} required placeholder="SN-10002931" />
+              <label htmlFor="serialnumber_44">Serial Number</label>
+          <input id="serialnumber_44" type="text" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} required placeholder="SN-10002931" />
             </div>
             <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
               Register Mapping
@@ -1979,8 +1979,8 @@ export const RfidPanel: React.FC<{
           <h3 className="form-section-title">Simulate RFID Portal Scan</h3>
           <form onSubmit={handleSimulate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="form-group">
-              <label>Select Scanning Location</label>
-              <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} required>
+              <label htmlFor="selectscanninglocation_45">Select Scanning Location</label>
+          <select id="selectscanninglocation_45" value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} required>
                 <option value="">-- Select Location --</option>
                 {locations.map(loc => (
                   <option key={loc.id} value={loc.id}>
@@ -2013,8 +2013,8 @@ export const RfidPanel: React.FC<{
             </div>
 
             <div className="form-group">
-              <label>Unregistered/Arbitrary EPCs (one per line)</label>
-              <textarea 
+              <label htmlFor="unregisteredarbitraryepcsoneperline_46">Unregistered/Arbitrary EPCs (one per line)</label>
+          <textarea id="unregisteredarbitraryepcsoneperline_46"
                 rows={3} 
                 value={unregisteredTagsText} 
                 onChange={e => setUnregisteredTagsText(e.target.value)} 
@@ -2194,16 +2194,16 @@ export const LotManagementPanel = () => {
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="form-group">
-            <label>Lot Number</label>
-            <input type="text" value={lotNumber} onChange={e => setLotNumber(e.target.value)} />
+            <label htmlFor="lotnumber_47">Lot Number</label>
+          <input id="lotnumber_47" type="text" value={lotNumber} onChange={e => setLotNumber(e.target.value)} />
           </div>
           <div className="form-group">
-            <label>Variant ID / SKU</label>
-            <input type="text" value={variantId} onChange={e => setVariantId(e.target.value)} />
+            <label htmlFor="variantidsku_48">Variant ID / SKU</label>
+          <input id="variantidsku_48" type="text" value={variantId} onChange={e => setVariantId(e.target.value)} />
           </div>
           <div className="form-group">
-            <label>Reason / Notes</label>
-            <input type="text" value={reason} onChange={e => setReason(e.target.value)} />
+            <label htmlFor="reasonnotes_49">Reason / Notes</label>
+          <input id="reasonnotes_49" type="text" value={reason} onChange={e => setReason(e.target.value)} />
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -2237,16 +2237,16 @@ export const LotManagementPanel = () => {
         <h3 className="form-section-title">⚡ Dynamic Cross-Docking Evaluator</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="form-group">
-            <label>Purchase Order ID</label>
-            <input type="text" value={poId} onChange={e => setPoId(e.target.value)} />
+            <label htmlFor="purchaseorderid_50">Purchase Order ID</label>
+          <input id="purchaseorderid_50" type="text" value={poId} onChange={e => setPoId(e.target.value)} />
           </div>
           <div className="form-group">
-            <label>Inbound Items (JSON)</label>
-            <textarea rows={2} value={inboundJson} onChange={e => setInboundJson(e.target.value)} style={{ fontFamily: 'monospace' }} />
+            <label htmlFor="inbounditemsjson_51">Inbound Items (JSON)</label>
+          <textarea id="inbounditemsjson_51" rows={2} value={inboundJson} onChange={e => setInboundJson(e.target.value)} style={{ fontFamily: 'monospace' }} />
           </div>
           <div className="form-group">
-            <label>Matching Backorders (JSON)</label>
-            <textarea rows={2} value={backordersJson} onChange={e => setBackordersJson(e.target.value)} style={{ fontFamily: 'monospace' }} />
+            <label htmlFor="matchingbackordersjson_52">Matching Backorders (JSON)</label>
+          <textarea id="matchingbackordersjson_52" rows={2} value={backordersJson} onChange={e => setBackordersJson(e.target.value)} style={{ fontFamily: 'monospace' }} />
           </div>
           <button className="btn btn-primary" onClick={handleCrossDock}>
             Evaluate Dock-to-Dock Opportunities
