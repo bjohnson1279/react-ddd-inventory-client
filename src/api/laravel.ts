@@ -536,20 +536,24 @@ export class LaravelRESTAdapter implements InventoryClient {
 
       const idsSet = new Set(ids);
 
-      return allPos
-        .filter((po: any) => po && idsSet.has(po.id))
-        .map((po: any) => ({
-          id: po.id,
-          tenantId: po.tenant_id || po.tenantId,
-          supplier: po.supplier,
-          status: po.status,
-          createdAt: po.created_at || po.createdAt,
-          items: (po.items || []).map((i: any) => ({
-            sku: i.sku,
-            quantity: i.quantity,
-            unitCostCents: i.unit_cost_cents || i.unitCostCents || 0
-          }))
-        }));
+      // ⚡ Bolt: Replace O(2N) filter/map chain with single-pass reduce to prevent intermediate array allocation
+      return allPos.reduce((acc: any[], po: any) => {
+        if (po && idsSet.has(po.id)) {
+          acc.push({
+            id: po.id,
+            tenantId: po.tenant_id || po.tenantId,
+            supplier: po.supplier,
+            status: po.status,
+            createdAt: po.created_at || po.createdAt,
+            items: (po.items || []).map((i: any) => ({
+              sku: i.sku,
+              quantity: i.quantity,
+              unitCostCents: i.unit_cost_cents || i.unitCostCents || 0
+            }))
+          });
+        }
+        return acc;
+      }, []);
     } catch (err) {
       console.error('Failed to fetch POs in bulk', err);
       return [];
