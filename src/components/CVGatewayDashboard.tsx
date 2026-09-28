@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 const CVGatewayDashboard: React.FC = () => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [approving, setApproving] = useState(false);
   const [result, setResult] = useState<any>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,6 +64,7 @@ const CVGatewayDashboard: React.FC = () => {
 
   const handleApprove = async () => {
     if (!result) return;
+    setApproving(true);
     try {
       const response = await fetch('http://localhost:4000/graphql', {
         method: 'POST',
@@ -86,6 +88,8 @@ const CVGatewayDashboard: React.FC = () => {
       alert("Scan approved successfully!");
     } catch(err: any) {
       alert("Error: " + err.message);
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -142,9 +146,11 @@ const CVGatewayDashboard: React.FC = () => {
           {result.status === 'PENDING' && (
             <button 
               onClick={handleApprove}
-              className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              disabled={approving}
+              aria-busy={approving}
+              className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed"
             >
-              Approve Received Stock
+              {approving ? 'Approving...' : 'Approve Received Stock'}
             </button>
           )}
         </div>
