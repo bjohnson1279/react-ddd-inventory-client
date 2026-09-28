@@ -17,12 +17,14 @@ export const RFIDBulkScannerView: React.FC = () => {
     setTimeout(() => {
       const unique = Math.floor(scanCount * 0.94);
       const duplicates = scanCount - unique;
+      const randomValue =
+        window.crypto.getRandomValues(new Uint32Array(1))[0] / (0xffffffff + 1);
       setIngestionResult({
         totalScanned: scanCount,
         uniqueProcessed: unique,
         duplicatesDiscarded: duplicates,
         batchId: `rfid-batch-${Date.now()}`,
-        processingTimeMs: Math.round(12 + Math.random() * 18),
+        processingTimeMs: Math.round(12 + randomValue * 18),
       });
       setIsScanning(false);
     }, 400);
@@ -121,7 +123,14 @@ export const RFIDBulkScannerView: React.FC = () => {
             }}
           >
             {isScanning ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
                 <Spinner /> Processing Ingest...
               </div>
             ) : (
