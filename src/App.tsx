@@ -1293,6 +1293,7 @@ function App() {
   };
 
   const handleDeleteWmsLocation = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this warehouse location? This action cannot be undone.')) return;
     setLoading(true);
     try {
       await client.deleteWarehouseLocation(tenantId, id);
@@ -1355,6 +1356,7 @@ function App() {
   };
 
   const handleDeleteWebhook = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this webhook subscription? This action cannot be undone.')) return;
     setLoading(true);
     try {
       await client.deleteWebhook(tenantId, id);
