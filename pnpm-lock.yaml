@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       graphql-ws:
-        specifier: ^6.2.0
-        version: 6.2.1(graphql@17.0.2)
+        specifier: ^6.2.2
+        version: 6.2.2(graphql@17.0.2)
       lucide-react:
         specifier: ^1.43.0
         version: 1.43.0(react@19.2.8)
@@ -596,12 +596,12 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  graphql-ws@6.2.1:
-    resolution: {integrity: sha512-NMbPNeTwXpUOxmczdMtzEnynLNbbR267E9hRcJ81SSbQeIvZup3cMjbD1ZT3jpS2xkpxooisitvO7LZNOyz17Q==}
+  graphql-ws@6.2.2:
+    resolution: {integrity: sha512-QdZ4qhW2/efQZr40vme33cY78u1uqrYK9zY29acfD18aAmHfCMZsh5/4k9Ne99yOtdP9i4ilzmBDnczkTTXqkQ==}
     engines: {node: '>=20'}
     peerDependencies:
       '@fastify/websocket': ^10 || ^11
-      crossws: ~0.3
+      crossws: ~0.3 || ~0.4
       graphql: ^15.10.1 || ^16 || ^17
       ws: ^8
     peerDependenciesMeta:
@@ -1407,7 +1407,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  graphql-ws@6.2.1(graphql@17.0.2):
+  graphql-ws@6.2.2(graphql@17.0.2):
     dependencies:
       graphql: 17.0.2
 
