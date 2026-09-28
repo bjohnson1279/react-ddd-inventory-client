@@ -91,6 +91,9 @@ export const RoleManagementPanel: React.FC = () => {
     setSelectedPerms(role.permissions.map(p => p.id));
   };
 
+  // ⚡ Bolt: Memoize selected permissions into a Set for O(1) lookups inside the render loop, replacing O(N) Array.includes()
+  const selectedPermsSet = React.useMemo(() => new Set(selectedPerms), [selectedPerms]);
+
   // Organized permissions by resource
   // ⚡ Bolt: Memoize derived permissions mapping to prevent O(n) array traversal on every render
   const permsByResource = React.useMemo(() => {
@@ -186,7 +189,7 @@ export const RoleManagementPanel: React.FC = () => {
                       <label key={perm.id} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '13px', color: '#cbd5e1' }}>
                         <input
                           type="checkbox"
-                          checked={selectedPerms.includes(perm.id)}
+                          checked={selectedPermsSet.has(perm.id)}
                           onChange={() => togglePermission(perm.id)}
                           style={{ marginRight: '10px', accentColor: '#38bdf8', width: '16px', height: '16px' }}
                         />

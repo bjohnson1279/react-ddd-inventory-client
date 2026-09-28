@@ -1930,6 +1930,9 @@ export const RfidPanel: React.FC<{
     }
   };
 
+  // ⚡ Bolt: Memoize selected tags into a Set for O(1) lookups inside the render loop, replacing O(N) Array.includes()
+  const selectedTagsSet = React.useMemo(() => new Set(selectedTags), [selectedTags]);
+
   // Metrics
   const totalProcessedBatches = scanEvents.length;
   // ⚡ Bolt: Replace double O(N) .reduce() with a single-pass O(N) for-loop to calculate continuous stream metrics without callback overhead
@@ -2002,7 +2005,7 @@ export const RfidPanel: React.FC<{
                     <label key={t.epc} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal', fontSize: '0.85rem', cursor: 'pointer' }}>
                       <input 
                         type="checkbox" 
-                        checked={selectedTags.includes(t.epc)} 
+                        checked={selectedTagsSet.has(t.epc)}
                         onChange={e => handleTagCheck(t.epc, e.target.checked)} 
                       />
                       <code>{t.epc}</code> - {t.sku} (S/N: {t.serialNumber})
