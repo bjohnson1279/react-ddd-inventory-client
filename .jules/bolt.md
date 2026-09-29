@@ -106,3 +106,6 @@
 ## 2024-10-24 - Array.prototype.includes vs Set.has inside render loops
 **Learning:** Calling `Array.prototype.includes()` inside `.map()` or `.filter()` results in O(N*M) time complexity during render, which can cause frame drops and lag when dealing with many items, as the browser has to iterate through the entire array for each item.
 **Action:** Replace `Array.prototype.includes()` with `Set.has()` by memoizing the array into a Set outside the loop to achieve O(1) lookups, resolving O(N*M) bottlenecks.
+## 2024-11-20 - Batch N+1 HTTP Requests in LaravelRESTAdapter
+**Learning:** Found that `LaravelRESTAdapter.getProducts` was executing an un-chunked array of parallel `Promise.all` requests (launching an N+1 HTTP barrage for every product variant's barcode resolution).
+**Action:** Replaced the nested un-chunked maps with a single flat loop iterating over chunks (`CHUNK_SIZE = 10`) of `Promise.all` concurrent execution, storing results in an O(1) Map before final object assembly.

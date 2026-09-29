@@ -126,44 +126,47 @@ export class LaravelRESTAdapter implements InventoryClient {
     const rawProducts = prodData.products || [];
 
     // Resolve barcodes for each variant to complete model structure
-    return Promise.all(rawProducts.map(async (p: any) => {
-      const variants = await Promise.all((p.variants || []).map(async (v: any) => {
-        try {
-          const bcData = await this.request('GET', `/api/barcodes/variants/${v.id}`);
-          // Format assignments to match UI expectations
-          const assignments = (bcData.assignments || []).map((a: any) => ({
-            id: a.id,
-            sku: v.sku,
-            barcode: {
-              value: a.barcode_value || a.value,
-              symbology: a.symbology
-            },
-            source: a.source,
-            isPrimary: a.is_primary || a.isPrimary,
-            assignedAt: a.assigned_at || a.assignedAt
-          }));
-          return {
-            id: v.id,
-            sku: v.sku,
-            trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
-            attributes: v.attributes || [],
-            barcodes: assignments
-          };
-        } catch {
-          return {
-            id: v.id,
-            sku: v.sku,
-            trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
-            attributes: v.attributes || [],
-            barcodes: []
-          };
-        }
-      }));
-      return {
-        id: p.id,
-        name: p.name,
-        variants
-      };
+    const allVariants = rawProducts.flatMap((p: any) => p.variants || []);
+    const barcodeMap = new Map<string, any[]>();
+
+    // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
+    const CHUNK_SIZE = 10;
+    for (let i = 0; i < allVariants.length; i += CHUNK_SIZE) {
+      const chunk = allVariants.slice(i, i + CHUNK_SIZE);
+      await Promise.all(
+        chunk.map(async (v: any) => {
+          try {
+            const bcData = await this.request('GET', `/api/barcodes/variants/${v.id}`);
+            // Format assignments to match UI expectations
+            const assignments = (bcData.assignments || []).map((a: any) => ({
+              id: a.id,
+              sku: v.sku,
+              barcode: {
+                value: a.barcode_value || a.value,
+                symbology: a.symbology
+              },
+              source: a.source,
+              isPrimary: a.is_primary || a.isPrimary,
+              assignedAt: a.assigned_at || a.assignedAt
+            }));
+            barcodeMap.set(v.id, assignments);
+          } catch {
+            barcodeMap.set(v.id, []);
+          }
+        })
+      );
+    }
+
+    return rawProducts.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      variants: (p.variants || []).map((v: any) => ({
+        id: v.id,
+        sku: v.sku,
+        trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
+        attributes: v.attributes || [],
+        barcodes: barcodeMap.get(v.id) || []
+      }))
     }));
   }
 
