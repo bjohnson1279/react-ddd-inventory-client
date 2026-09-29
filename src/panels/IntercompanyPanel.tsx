@@ -162,7 +162,7 @@ export const IntercompanyPanel: React.FC<{ tenantId: string }> = ({ tenantId }) 
                     </span>
                   </td>
                   <td className="py-3 px-6">
-                    <a href="#" className="text-blue-600 hover:underline text-xs">View Journal</a>
+                    <a href="#" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">View Journal</a>
                   </td>
                 </tr>
               ))}

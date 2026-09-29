@@ -1641,7 +1641,7 @@ function App() {
             </div>
             <div className="form-group">
               <label htmlFor="login-password">Secure Key / Password</label>
-              <input id="login-password" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
+              <input id="login-password" type="password" autoComplete="current-password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
             </div>
             
             <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading} aria-busy={loading}>

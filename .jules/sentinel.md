@@ -79,3 +79,7 @@
 **Vulnerability:** Unencoded `tenantId` parameters in WebSocket connection URLs could allow URL injection or manipulation.
 **Learning:** String interpolation for URLs using untrusted or dynamic parameters without encoding is a common source of injection risks.
 **Prevention:** Always use `encodeURIComponent` when embedding dynamic variables as query parameters in URLs.
+## 2025-02-28 - Avoid Security Theater on Dummy Links
+**Vulnerability:** Attempted to add `rel="noopener noreferrer"` to a dummy placeholder link (`href="#"`) and incorrectly modified it to a dummy external URL.
+**Learning:** Forcing a fix on an invalid target (e.g. `href="#"`) or modifying the link's behavior to make it fit a security narrative creates a functional UX regression and represents "security theater."
+**Prevention:** Only apply targeted security fixes to legitimate, applicable targets. If none exist, implement a completely different, valid security enhancement rather than modifying intended functionality.

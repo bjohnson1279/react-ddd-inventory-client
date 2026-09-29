@@ -147,7 +147,7 @@ export const ShopifyPanel: React.FC<ShopifyPanelProps> = ({
         </div>
         <div className="form-group">
           <label htmlFor="shopifyapiaccesstoken_2">Shopify API Access Token</label>
-          <input id="shopifyapiaccesstoken_2" type="password" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
+          <input id="shopifyapiaccesstoken_2" type="password" autoComplete="off" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
         </div>
         <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
           {loading ? <Spinner /> : 'Connect Store'}
