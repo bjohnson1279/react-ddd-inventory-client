@@ -221,10 +221,11 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   async assignBarcode(sku: string, value: string, symbology: string, source: string, makePrimary: boolean): Promise<void> {
     // Lookup variantId first since Laravel assign endpoint requires it
-    const products = await this.getProducts();
+    const prodData = await this.request('GET', '/api/catalog/products');
+    const products = prodData.products || [];
     let variantId = '';
     for (const p of products) {
-      const found = p.variants.find(v => v.sku === sku);
+      const found = (p.variants || []).find((v: any) => v.sku === sku);
       if (found) {
         variantId = found.id;
         break;
@@ -754,7 +755,8 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]> {
     try {
       const valSummary = await this.request('GET', `/api/reports/valuation?tenantId=${tenantId}`);
-      const products = await this.getProducts();
+      const prodData = await this.request('GET', '/api/catalog/products');
+      const products = prodData.products || [];
       const items: ValuationItem[] = [];
       const chosenMethod = (method || 'FIFO').toUpperCase();
       const invItems = await this.getInventoryItems();
@@ -764,14 +766,14 @@ export class LaravelRESTAdapter implements InventoryClient {
       }
 
       for (const p of products) {
-        for (const v of p.variants) {
+        for (const v of (p.variants || [])) {
           const qty = inventoryBySku.get(v.sku) || 0;
           const unitCost = 1000;
           if (qty > 0) {
             items.push({
               variantId: v.id,
               sku: v.sku,
-              name: p.name + (v.attributes?.length ? ` (${v.attributes.map(a => a.value).join(', ')})` : ''),
+              name: p.name + (v.attributes?.length ? ` (${v.attributes.map((a: any) => a.value).join(', ')})` : ''),
               costingMethod: chosenMethod,
               totalQuantity: qty,
               totalValueCents: qty * unitCost,
