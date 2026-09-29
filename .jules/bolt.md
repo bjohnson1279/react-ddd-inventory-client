@@ -109,3 +109,6 @@
 ## 2024-11-20 - Batch N+1 HTTP Requests in LaravelRESTAdapter
 **Learning:** Found that `LaravelRESTAdapter.getProducts` was executing an un-chunked array of parallel `Promise.all` requests (launching an N+1 HTTP barrage for every product variant's barcode resolution).
 **Action:** Replaced the nested un-chunked maps with a single flat loop iterating over chunks (`CHUNK_SIZE = 10`) of `Promise.all` concurrent execution, storing results in an O(1) Map before final object assembly.
+## 2024-11-20 - Avoid N+1 bottlenecks in backend APIs fetching aggregate arrays
+**Learning:** In backend client adapters (like `LaravelRESTAdapter`), fetching full collections and triggering N+1 child lookups (like barcodes via `this.getProducts()`) is extremely slow and inefficient when the caller only needs high-level properties from the parent collection (e.g. matching a SKU to a variantId).
+**Action:** When mapping data or matching IDs, prefer fetching raw untransformed data points directly from backend listing endpoints (like `/api/catalog/products`) instead of reusing heavy aggregate collection methods that cascade multiple nested N+1 requests, significantly eliminating unnecessary network calls.
