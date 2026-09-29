@@ -71,28 +71,25 @@ describe('WarehousePanel', () => {
     expect(screen.getByText('WMS Picking Route Optimization')).toBeInTheDocument();
   });
 
-  it('handles input changes for configure location form', async () => {
-    const user = userEvent.setup();
+  it('handles input changes for configure location form', () => {
     render(<Wrapper {...defaultProps} />);
 
     const locIdInput = screen.getByPlaceholderText('e.g. LOC-CENTRAL');
-    await user.type(locIdInput, 'L');
+    fireEvent.change(locIdInput, { target: { value: 'L' } });
     expect(defaultProps.setWmsLocId).toHaveBeenCalledWith('L');
 
     const inputs = screen.getAllByRole('textbox');
-    await user.type(inputs[1], 'W1');
+    fireEvent.change(inputs[1], { target: { value: 'W' } });
     expect(defaultProps.setWmsWarehouseId).toHaveBeenCalledWith('W');
 
-    await user.type(inputs[2], 'Z1');
+    fireEvent.change(inputs[2], { target: { value: 'Z' } });
     expect(defaultProps.setWmsZone).toHaveBeenCalledWith('Z');
 
     const numberInputs = screen.getAllByRole('spinbutton');
-    await user.clear(numberInputs[0]);
-    await user.type(numberInputs[0], '100');
+    fireEvent.change(numberInputs[0], { target: { value: '100' } });
     expect(defaultProps.setWmsMaxWeight).toHaveBeenCalledWith(100);
 
-    await user.clear(numberInputs[1]);
-    await user.type(numberInputs[1], '10.5');
+    fireEvent.change(numberInputs[1], { target: { value: '10.5' } });
     expect(defaultProps.setWmsMaxVolume).toHaveBeenCalledWith(10.5);
   });
 
