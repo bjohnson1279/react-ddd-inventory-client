@@ -216,6 +216,7 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
                 }}
               >
                 <button
+                  disabled={loading} aria-busy={loading}
                   onClick={() => handleDecision(req.id, "APPROVED")} aria-label={`Approve request ${req.id}`}
                   style={{
                     padding: "10px 16px",
@@ -230,6 +231,7 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
                   Approve
                 </button>
                 <button
+                  disabled={loading} aria-busy={loading}
                   onClick={() => handleDecision(req.id, "REJECTED")} aria-label={`Reject request ${req.id}`}
                   style={{
                     padding: "10px 16px",

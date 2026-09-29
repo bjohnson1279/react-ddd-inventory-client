@@ -143,6 +143,7 @@ export const ApprovalWorkflowPanel: React.FC<ApprovalWorkflowPanelProps> = ({
                   {wf.triggerEvent}
                 </h3>
                 <button
+                  disabled={loading} aria-busy={loading}
                   onClick={() => handleToggle(wf.id)}
                   style={{
                     padding: "6px 12px",
