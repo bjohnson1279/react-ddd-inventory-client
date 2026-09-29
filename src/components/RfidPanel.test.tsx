@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RfidPanel } from './Panels';
@@ -49,11 +49,12 @@ describe('RfidPanel', () => {
     const epcInput = screen.getByPlaceholderText('E28011302000762A17849C10');
     const skuInput = screen.getByPlaceholderText('SKU-GEN-SHIRT');
     const snInput = screen.getByPlaceholderText('SN-10002931');
-    fireEvent.change(epcInput, { target: { value: 'NEW-EPC-123' } });
-    fireEvent.change(skuInput, { target: { value: 'NEW-SKU-123' } });
-    fireEvent.change(snInput, { target: { value: 'NEW-SN-123' } });
-
     const submitBtn = screen.getByRole('button', { name: /Register Mapping/i });
+
+    await user.type(epcInput, 'NEW-EPC-123');
+    await user.type(skuInput, 'NEW-SKU-123');
+    await user.type(snInput, 'NEW-SN-123');
+
     await user.click(submitBtn);
 
     expect(mockClient.assignRfidTag).toHaveBeenCalledWith(mockTenantId, 'NEW-EPC-123', 'NEW-SKU-123', 'NEW-SN-123');
@@ -71,14 +72,14 @@ describe('RfidPanel', () => {
     });
 
     const locationSelect = screen.getByRole('combobox');
-    fireEvent.change(locationSelect, { target: { value: 'loc-1' } });
+    await user.selectOptions(locationSelect, 'loc-1');
     expect(locationSelect).toHaveValue('loc-1');
 
     const tagCheckbox = screen.getByRole('checkbox');
     await user.click(tagCheckbox);
 
     const manualEpcTextarea = screen.getByPlaceholderText(/E28011302000000000000001/i);
-    fireEvent.change(manualEpcTextarea, { target: { value: 'MANUAL-EPC-1\nMANUAL-EPC-2' } });
+    await user.type(manualEpcTextarea, 'MANUAL-EPC-1\nMANUAL-EPC-2');
 
     const submitBtn = screen.getByRole('button', { name: /Simulate Scan Ingest/i });
     await user.click(submitBtn);

@@ -126,47 +126,44 @@ export class LaravelRESTAdapter implements InventoryClient {
     const rawProducts = prodData.products || [];
 
     // Resolve barcodes for each variant to complete model structure
-    const allVariants = rawProducts.flatMap((p: any) => p.variants || []);
-    const barcodeMap = new Map<string, any[]>();
-
-    // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
-    const CHUNK_SIZE = 10;
-    for (let i = 0; i < allVariants.length; i += CHUNK_SIZE) {
-      const chunk = allVariants.slice(i, i + CHUNK_SIZE);
-      await Promise.all(
-        chunk.map(async (v: any) => {
-          try {
-            const bcData = await this.request('GET', `/api/barcodes/variants/${v.id}`);
-            // Format assignments to match UI expectations
-            const assignments = (bcData.assignments || []).map((a: any) => ({
-              id: a.id,
-              sku: v.sku,
-              barcode: {
-                value: a.barcode_value || a.value,
-                symbology: a.symbology
-              },
-              source: a.source,
-              isPrimary: a.is_primary || a.isPrimary,
-              assignedAt: a.assigned_at || a.assignedAt
-            }));
-            barcodeMap.set(v.id, assignments);
-          } catch {
-            barcodeMap.set(v.id, []);
-          }
-        })
-      );
-    }
-
-    return rawProducts.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      variants: (p.variants || []).map((v: any) => ({
-        id: v.id,
-        sku: v.sku,
-        trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
-        attributes: v.attributes || [],
-        barcodes: barcodeMap.get(v.id) || []
-      }))
+    return Promise.all(rawProducts.map(async (p: any) => {
+      const variants = await Promise.all((p.variants || []).map(async (v: any) => {
+        try {
+          const bcData = await this.request('GET', `/api/barcodes/variants/${v.id}`);
+          // Format assignments to match UI expectations
+          const assignments = (bcData.assignments || []).map((a: any) => ({
+            id: a.id,
+            sku: v.sku,
+            barcode: {
+              value: a.barcode_value || a.value,
+              symbology: a.symbology
+            },
+            source: a.source,
+            isPrimary: a.is_primary || a.isPrimary,
+            assignedAt: a.assigned_at || a.assignedAt
+          }));
+          return {
+            id: v.id,
+            sku: v.sku,
+            trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
+            attributes: v.attributes || [],
+            barcodes: assignments
+          };
+        } catch {
+          return {
+            id: v.id,
+            sku: v.sku,
+            trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
+            attributes: v.attributes || [],
+            barcodes: []
+          };
+        }
+      }));
+      return {
+        id: p.id,
+        name: p.name,
+        variants
+      };
     }));
   }
 
@@ -221,11 +218,10 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   async assignBarcode(sku: string, value: string, symbology: string, source: string, makePrimary: boolean): Promise<void> {
     // Lookup variantId first since Laravel assign endpoint requires it
-    const prodData = await this.request('GET', '/api/catalog/products');
-    const products = prodData.products || [];
+    const products = await this.getProducts();
     let variantId = '';
     for (const p of products) {
-      const found = (p.variants || []).find((v: any) => v.sku === sku);
+      const found = p.variants.find(v => v.sku === sku);
       if (found) {
         variantId = found.id;
         break;
@@ -755,8 +751,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]> {
     try {
       const valSummary = await this.request('GET', `/api/reports/valuation?tenantId=${tenantId}`);
-      const prodData = await this.request('GET', '/api/catalog/products');
-      const products = prodData.products || [];
+      const products = await this.getProducts();
       const items: ValuationItem[] = [];
       const chosenMethod = (method || 'FIFO').toUpperCase();
       const invItems = await this.getInventoryItems();
@@ -766,14 +761,14 @@ export class LaravelRESTAdapter implements InventoryClient {
       }
 
       for (const p of products) {
-        for (const v of (p.variants || [])) {
+        for (const v of p.variants) {
           const qty = inventoryBySku.get(v.sku) || 0;
           const unitCost = 1000;
           if (qty > 0) {
             items.push({
               variantId: v.id,
               sku: v.sku,
-              name: p.name + (v.attributes?.length ? ` (${v.attributes.map((a: any) => a.value).join(', ')})` : ''),
+              name: p.name + (v.attributes?.length ? ` (${v.attributes.map(a => a.value).join(', ')})` : ''),
               costingMethod: chosenMethod,
               totalQuantity: qty,
               totalValueCents: qty * unitCost,

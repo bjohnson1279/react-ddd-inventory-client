@@ -103,12 +103,3 @@
 ## 2024-05-19 - Optimize hasPermission string splitting
 **Learning:** When evaluating authorization or permission checks repeatedly (like `hasPermission` inside `App.tsx` render cycle), inline string manipulations like `.split(':')` inside array `.some()` loops create significant allocation overhead. This was an O(N) check with dynamic allocations.
 **Action:** Use `useMemo` to pre-parse the permissions array into a fast O(1) `Map<string, Set<string>>` lookup dictionary. This ensures string splitting only occurs when the actual permissions array changes, drastically speeding up authorization checks across the app.
-## 2024-10-24 - Array.prototype.includes vs Set.has inside render loops
-**Learning:** Calling `Array.prototype.includes()` inside `.map()` or `.filter()` results in O(N*M) time complexity during render, which can cause frame drops and lag when dealing with many items, as the browser has to iterate through the entire array for each item.
-**Action:** Replace `Array.prototype.includes()` with `Set.has()` by memoizing the array into a Set outside the loop to achieve O(1) lookups, resolving O(N*M) bottlenecks.
-## 2024-11-20 - Batch N+1 HTTP Requests in LaravelRESTAdapter
-**Learning:** Found that `LaravelRESTAdapter.getProducts` was executing an un-chunked array of parallel `Promise.all` requests (launching an N+1 HTTP barrage for every product variant's barcode resolution).
-**Action:** Replaced the nested un-chunked maps with a single flat loop iterating over chunks (`CHUNK_SIZE = 10`) of `Promise.all` concurrent execution, storing results in an O(1) Map before final object assembly.
-## 2024-11-20 - Avoid N+1 bottlenecks in backend APIs fetching aggregate arrays
-**Learning:** In backend client adapters (like `LaravelRESTAdapter`), fetching full collections and triggering N+1 child lookups (like barcodes via `this.getProducts()`) is extremely slow and inefficient when the caller only needs high-level properties from the parent collection (e.g. matching a SKU to a variantId).
-**Action:** When mapping data or matching IDs, prefer fetching raw untransformed data points directly from backend listing endpoints (like `/api/catalog/products`) instead of reusing heavy aggregate collection methods that cascade multiple nested N+1 requests, significantly eliminating unnecessary network calls.

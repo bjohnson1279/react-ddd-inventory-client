@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { describe, it, expect, vi } from 'vitest';
@@ -43,22 +43,23 @@ describe('LedgerPanel', () => {
   });
 
   it('updates form inputs correctly', async () => {
+    const user = userEvent.setup();
     render(<TestWrapper />);
 
     const descInput = screen.getByPlaceholderText('e.g. Month-end adjustments');
-    fireEvent.change(descInput, { target: { value: 'Test Journal' } });
+    await user.type(descInput, 'Test Journal');
     expect(descInput).toHaveValue('Test Journal');
 
     const methodSelect = screen.getAllByRole('combobox')[0];
-    fireEvent.change(methodSelect, { target: { value: 'cash' } });
+    await user.selectOptions(methodSelect, 'cash');
     expect(methodSelect).toHaveValue('cash');
 
     const accountInput = screen.getByPlaceholderText('Account (e.g. 1000)');
-    fireEvent.change(accountInput, { target: { value: '1234' } });
+    await user.type(accountInput, '1234');
     expect(accountInput).toHaveValue('1234');
 
     const amountInput = screen.getByPlaceholderText('Amount (Cents)');
-    fireEvent.change(amountInput, { target: { value: '5000' } });
+    await user.type(amountInput, '5000');
     expect(amountInput).toHaveValue(5000);
   });
 

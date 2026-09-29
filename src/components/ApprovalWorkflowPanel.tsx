@@ -109,11 +109,26 @@ export const ApprovalWorkflowPanel: React.FC<ApprovalWorkflowPanelProps> = ({
             marginBottom: "16px",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center"
+            alignItems: "center",
           }}
         >
           <span>{error}</span>
-          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" title="Dismiss error" style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: '1.2rem', cursor: 'pointer', padding: '0 4px' }}>×</button>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label="Dismiss error"
+            title="Dismiss error"
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "inherit",
+              fontSize: "1.2rem",
+              cursor: "pointer",
+              padding: "0 4px",
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -143,7 +158,8 @@ export const ApprovalWorkflowPanel: React.FC<ApprovalWorkflowPanelProps> = ({
                   {wf.triggerEvent}
                 </h3>
                 <button
-                  disabled={loading} aria-busy={loading}
+                  disabled={loading}
+                  aria-busy={loading}
                   onClick={() => handleToggle(wf.id)}
                   style={{
                     padding: "6px 12px",

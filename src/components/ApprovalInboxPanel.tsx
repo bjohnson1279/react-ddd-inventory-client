@@ -9,7 +9,7 @@ interface ApprovalRequest {
   payload: any;
 }
 
-import { InventoryClient } from '../api/client';
+import { InventoryClient } from "../api/client";
 
 interface ApprovalInboxPanelProps {
   api: InventoryClient;
@@ -135,11 +135,26 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
             marginBottom: "16px",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center"
+            alignItems: "center",
           }}
         >
           <span>{error}</span>
-          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" title="Dismiss error" style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: '1.2rem', cursor: 'pointer', padding: '0 4px' }}>×</button>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label="Dismiss error"
+            title="Dismiss error"
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "inherit",
+              fontSize: "1.2rem",
+              cursor: "pointer",
+              padding: "0 4px",
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -216,8 +231,10 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
                 }}
               >
                 <button
-                  disabled={loading} aria-busy={loading}
-                  onClick={() => handleDecision(req.id, "APPROVED")} aria-label={`Approve request ${req.id}`}
+                  disabled={loading}
+                  aria-busy={loading}
+                  onClick={() => handleDecision(req.id, "APPROVED")}
+                  aria-label={`Approve request ${req.id}`}
                   style={{
                     padding: "10px 16px",
                     background: "#059669",
@@ -231,8 +248,10 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
                   Approve
                 </button>
                 <button
-                  disabled={loading} aria-busy={loading}
-                  onClick={() => handleDecision(req.id, "REJECTED")} aria-label={`Reject request ${req.id}`}
+                  disabled={loading}
+                  aria-busy={loading}
+                  onClick={() => handleDecision(req.id, "REJECTED")}
+                  aria-label={`Reject request ${req.id}`}
                   style={{
                     padding: "10px 16px",
                     background: "transparent",

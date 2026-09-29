@@ -1293,7 +1293,6 @@ function App() {
   };
 
   const handleDeleteWmsLocation = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this warehouse location? This action cannot be undone.')) return;
     setLoading(true);
     try {
       await client.deleteWarehouseLocation(tenantId, id);
@@ -1356,7 +1355,6 @@ function App() {
   };
 
   const handleDeleteWebhook = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this webhook subscription? This action cannot be undone.')) return;
     setLoading(true);
     try {
       await client.deleteWebhook(tenantId, id);
@@ -1641,7 +1639,7 @@ function App() {
             </div>
             <div className="form-group">
               <label htmlFor="login-password">Secure Key / Password</label>
-              <input id="login-password" type="password" autoComplete="current-password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
+              <input id="login-password" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
             </div>
             
             <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading} aria-busy={loading}>

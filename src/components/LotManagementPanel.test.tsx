@@ -27,12 +27,23 @@ describe('LotManagementPanel', () => {
     const inboundInput = lotNumberInputs[4];
     const backorderInput = lotNumberInputs[5];
 
-    fireEvent.change(lotInput, { target: { value: 'LOT-NEW-123' } });
-    fireEvent.change(variantInput, { target: { value: 'VAR-NEW-456' } });
-    fireEvent.change(reasonInput, { target: { value: 'Testing recall' } });
-    fireEvent.change(poInput, { target: { value: 'PO-NEW' } });
-    fireEvent.change(inboundInput, { target: { value: '[{"test": 1}]' } });
-    fireEvent.change(backorderInput, { target: { value: '[{"test": 2}]' } });
+    await user.clear(lotInput);
+    await user.type(lotInput, 'LOT-NEW-123');
+
+    await user.clear(variantInput);
+    await user.type(variantInput, 'VAR-NEW-456');
+
+    await user.clear(reasonInput);
+    await user.type(reasonInput, 'Testing recall');
+
+    await user.clear(poInput);
+    await user.type(poInput, 'PO-NEW');
+
+    await user.clear(inboundInput);
+    await user.type(inboundInput, '[[{{"test": 1}}]]'); // Escape [ and {
+
+    await user.clear(backorderInput);
+    await user.type(backorderInput, '[[{{"test": 2}}]]');
 
     await user.click(screen.getByRole('button', { name: /trigger lot recall/i }));
 

@@ -1,10 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { Item, JournalLine, RfidTag, RfidScanUpdate } from '../api/client';
+import React, { useState, useEffect } from "react";
+import { Item, JournalLine, RfidTag, RfidScanUpdate } from "../api/client";
 
 export const Spinner = () => (
-  <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle className="spinner-track" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25" />
-    <path className="spinner-head" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+  <svg
+    className="spinner"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle
+      className="spinner-track"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+      opacity="0.25"
+    />
+    <path
+      className="spinner-head"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    />
   </svg>
 );
 
@@ -23,90 +40,115 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
   shopifyConns,
   journals,
   loadDashboardData,
-  loading
+  loading,
 }) => {
   // ⚡ Bolt: Memoize derived data counts to prevent O(n) filtering on every render
-  const lowStockCount = React.useMemo(() => inventoryItems.filter(item => item.quantity < 10).length, [inventoryItems]);
-  const activeShopifyConns = React.useMemo(() => shopifyConns.filter(c => c.isActive).length, [shopifyConns]);
+  const lowStockCount = React.useMemo(
+    () => inventoryItems.filter((item) => item.quantity < 10).length,
+    [inventoryItems],
+  );
+  const activeShopifyConns = React.useMemo(
+    () => shopifyConns.filter((c) => c.isActive).length,
+    [shopifyConns],
+  );
 
   return (
-  <>
-    <div className="grid-cols-4">
-      <div className="stat-card">
-        <span className="stat-title">Catalog Inventory</span>
-        <span className="stat-value">{products.length}</span>
-        <span className="stat-desc">Unique Products Registered</span>
+    <>
+      <div className="grid-cols-4">
+        <div className="stat-card">
+          <span className="stat-title">Catalog Inventory</span>
+          <span className="stat-value">{products.length}</span>
+          <span className="stat-desc">Unique Products Registered</span>
+        </div>
+        <div className="stat-card accent">
+          <span className="stat-title">Low Stock SKUs</span>
+          <span className="stat-value">{lowStockCount}</span>
+          <span className="stat-desc">SKUs below safety threshold (10)</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-title">Platform Integrations</span>
+          <span className="stat-value">{activeShopifyConns}</span>
+          <span className="stat-desc">Active Shopify Connections</span>
+        </div>
+        <div className="stat-card accent">
+          <span className="stat-title">Double-Entry Ledger</span>
+          <span className="stat-value">{journals.length}</span>
+          <span className="stat-desc">Recorded Journal Entries</span>
+        </div>
       </div>
-      <div className="stat-card accent">
-        <span className="stat-title">Low Stock SKUs</span>
-        <span className="stat-value">
-          {lowStockCount}
-        </span>
-        <span className="stat-desc">SKUs below safety threshold (10)</span>
-      </div>
-      <div className="stat-card">
-        <span className="stat-title">Platform Integrations</span>
-        <span className="stat-value">{activeShopifyConns}</span>
-        <span className="stat-desc">Active Shopify Connections</span>
-      </div>
-      <div className="stat-card accent">
-        <span className="stat-title">Double-Entry Ledger</span>
-        <span className="stat-value">{journals.length}</span>
-        <span className="stat-desc">Recorded Journal Entries</span>
-      </div>
-    </div>
 
-    <div className="glass-panel">
-      <div className="flex-between">
-        <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>
-          Real-time Stock Levels
-        </h3>
-        <button className="btn btn-secondary" onClick={loadDashboardData} disabled={loading} aria-busy={loading}>
-          {loading ? <Spinner /> : 'Refresh Stock'}
-        </button>
-      </div>
-      <div className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>SKU Reference</th>
-              <th>Location</th>
-              <th>Stock Quantity</th>
-              <th>Version Lock</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {inventoryItems.length === 0 ? (
+      <div className="glass-panel">
+        <div className="flex-between">
+          <h3
+            className="form-section-title"
+            style={{ border: "none", marginBottom: 0 }}
+          >
+            Real-time Stock Levels
+          </h3>
+          <button
+            className="btn btn-secondary"
+            onClick={loadDashboardData}
+            disabled={loading}
+            aria-busy={loading}
+          >
+            {loading ? <Spinner /> : "Refresh Stock"}
+          </button>
+        </div>
+        <div className="table-wrapper">
+          <table>
+            <thead>
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No inventory stock records loaded.
-                </td>
+                <th>ID</th>
+                <th>SKU Reference</th>
+                <th>Location</th>
+                <th>Stock Quantity</th>
+                <th>Version Lock</th>
+                <th>Status</th>
               </tr>
-            ) : (
-              inventoryItems.map(item => (
-                <tr key={item.id}>
-                  <td><code>{item.id}</code></td>
-                  <td><code>{item.sku}</code></td>
-                  <td><code>{item.locationId}</code></td>
-                  <td><strong>{item.quantity} units</strong></td>
-                  <td><code>v{item.version}</code></td>
-                  <td>
-                    {item.quantity >= 10 ? (
-                      <span className="badge badge-success">Healthy</span>
-                    ) : (
-                      <span className="badge badge-warning">Low Stock</span>
-                    )}
+            </thead>
+            <tbody>
+              {inventoryItems.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    style={{ textAlign: "center", color: "var(--text-muted)" }}
+                  >
+                    No inventory stock records loaded.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                inventoryItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <code>{item.id}</code>
+                    </td>
+                    <td>
+                      <code>{item.sku}</code>
+                    </td>
+                    <td>
+                      <code>{item.locationId}</code>
+                    </td>
+                    <td>
+                      <strong>{item.quantity} units</strong>
+                    </td>
+                    <td>
+                      <code>v{item.version}</code>
+                    </td>
+                    <td>
+                      {item.quantity >= 10 ? (
+                        <span className="badge badge-success">Healthy</span>
+                      ) : (
+                        <span className="badge badge-warning">Low Stock</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  </>
+    </>
   );
 };
 
@@ -131,7 +173,7 @@ export const ShopifyPanel: React.FC<ShopifyPanelProps> = ({
   setNewShopifyToken,
   handleConnectShopify,
   shopifyConns,
-  loading
+  loading,
 }) => (
   <div className="grid-cols-2">
     <div className="glass-panel">
@@ -139,22 +181,50 @@ export const ShopifyPanel: React.FC<ShopifyPanelProps> = ({
       <form onSubmit={handleConnectShopify}>
         <div className="form-group">
           <label htmlFor="connectionnameid_0">Connection Name / ID</label>
-          <input id="connectionnameid_0" type="text" value={newShopifyId} onChange={(e) => setNewShopifyId(e.target.value)} required placeholder="e.g. shopify-store-1" />
+          <input
+            id="connectionnameid_0"
+            type="text"
+            value={newShopifyId}
+            onChange={(e) => setNewShopifyId(e.target.value)}
+            required
+            placeholder="e.g. shopify-store-1"
+          />
         </div>
         <div className="form-group">
           <label htmlFor="storedomain_1">Store Domain</label>
-          <input id="storedomain_1" type="text" value={newShopifyDomain} onChange={(e) => setNewShopifyDomain(e.target.value)} required placeholder="mystore.myshopify.com" />
+          <input
+            id="storedomain_1"
+            type="text"
+            value={newShopifyDomain}
+            onChange={(e) => setNewShopifyDomain(e.target.value)}
+            required
+            placeholder="mystore.myshopify.com"
+          />
         </div>
         <div className="form-group">
-          <label htmlFor="shopifyapiaccesstoken_2">Shopify API Access Token</label>
-          <input id="shopifyapiaccesstoken_2" type="password" autoComplete="off" value={newShopifyToken} onChange={(e) => setNewShopifyToken(e.target.value)} required placeholder="shpat_..." />
+          <label htmlFor="shopifyapiaccesstoken_2">
+            Shopify API Access Token
+          </label>
+          <input
+            id="shopifyapiaccesstoken_2"
+            type="password"
+            value={newShopifyToken}
+            onChange={(e) => setNewShopifyToken(e.target.value)}
+            required
+            placeholder="shpat_..."
+          />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-          {loading ? <Spinner /> : 'Connect Store'}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading}
+          aria-busy={loading}
+        >
+          {loading ? <Spinner /> : "Connect Store"}
         </button>
       </form>
     </div>
-    
+
     <div className="glass-panel">
       <h3 className="form-section-title">Connected Storefronts</h3>
       <div className="table-wrapper">
@@ -169,14 +239,19 @@ export const ShopifyPanel: React.FC<ShopifyPanelProps> = ({
           <tbody>
             {shopifyConns.length === 0 ? (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td
+                  colSpan={3}
+                  style={{ textAlign: "center", color: "var(--text-muted)" }}
+                >
                   No active store connections.
                 </td>
               </tr>
             ) : (
-              shopifyConns.map(conn => (
+              shopifyConns.map((conn) => (
                 <tr key={conn.id}>
-                  <td><code>{conn.storeDomain}</code></td>
+                  <td>
+                    <code>{conn.storeDomain}</code>
+                  </td>
                   <td>{conn.platform.toUpperCase()}</td>
                   <td>
                     {conn.isActive ? (
@@ -207,8 +282,8 @@ interface ProductsPanelProps {
   handleAddVariant: (e: React.FormEvent) => void;
   newVarSku: string;
   setNewVarSku: (v: string) => void;
-  newVarTracking: 'quantity' | 'serial' | 'lot';
-  setNewVarTracking: (v: 'quantity' | 'serial' | 'lot') => void;
+  newVarTracking: "quantity" | "serial" | "lot";
+  setNewVarTracking: (v: "quantity" | "serial" | "lot") => void;
   newVarAttrJSON: string;
   setNewVarAttrJSON: (v: string) => void;
   products: any[];
@@ -254,7 +329,7 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
   assignIsPrimary,
   setAssignIsPrimary,
   handleGenerateBarcode,
-  loading
+  loading,
 }) => (
   <div className="grid-cols-2">
     <div className="glass-panel">
@@ -262,48 +337,98 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
       <form onSubmit={handleCreateProduct}>
         <div className="form-group">
           <label htmlFor="productreferenceid_3">Product Reference ID</label>
-          <input id="productreferenceid_3" type="text" value={newProdId} onChange={(e) => setNewProdId(e.target.value)} required placeholder="e.g. prod-123" />
+          <input
+            id="productreferenceid_3"
+            type="text"
+            value={newProdId}
+            onChange={(e) => setNewProdId(e.target.value)}
+            required
+            placeholder="e.g. prod-123"
+          />
         </div>
         <div className="form-group">
           <label htmlFor="displayname_4">Display Name</label>
-          <input id="displayname_4" type="text" value={newProdName} onChange={(e) => setNewProdName(e.target.value)} required placeholder="e.g. Wireless Charger" />
+          <input
+            id="displayname_4"
+            type="text"
+            value={newProdName}
+            onChange={(e) => setNewProdName(e.target.value)}
+            required
+            placeholder="e.g. Wireless Charger"
+          />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-          {loading ? <Spinner /> : 'Register Product'}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading}
+          aria-busy={loading}
+        >
+          {loading ? <Spinner /> : "Register Product"}
         </button>
       </form>
 
       {selectedProduct && (
-        <div style={{ marginTop: '2.5rem' }}>
-          <h3 className="form-section-title">Add Variant to {selectedProduct.name}</h3>
+        <div style={{ marginTop: "2.5rem" }}>
+          <h3 className="form-section-title">
+            Add Variant to {selectedProduct.name}
+          </h3>
           <form onSubmit={handleAddVariant}>
             <div className="form-group">
               <label htmlFor="skureference_5">SKU Reference</label>
-          <input id="skureference_5" type="text" value={newVarSku} onChange={(e) => setNewVarSku(e.target.value)} required placeholder="e.g. CHARGER-WRLS-BLK" />
+              <input
+                id="skureference_5"
+                type="text"
+                value={newVarSku}
+                onChange={(e) => setNewVarSku(e.target.value)}
+                required
+                placeholder="e.g. CHARGER-WRLS-BLK"
+              />
             </div>
             <div className="form-group">
-              <label htmlFor="inventorytrackingmode_6">Inventory Tracking Mode</label>
-          <select id="inventorytrackingmode_6" value={newVarTracking} onChange={(e) => setNewVarTracking(e.target.value as any)}>
+              <label htmlFor="inventorytrackingmode_6">
+                Inventory Tracking Mode
+              </label>
+              <select
+                id="inventorytrackingmode_6"
+                value={newVarTracking}
+                onChange={(e) => setNewVarTracking(e.target.value as any)}
+              >
                 <option value="quantity">Quantity Tracking (Default)</option>
                 <option value="serial">Serial Number Tracking</option>
                 <option value="lot">Lot-Controlled Expiry Tracking</option>
               </select>
             </div>
             <div className="form-group">
-              <label htmlFor="attributesconfigurationjsonarray_7">Attributes Configuration (JSON Array)</label>
-          <input id="attributesconfigurationjsonarray_7" type="text" value={newVarAttrJSON} onChange={(e) => setNewVarAttrJSON(e.target.value)} placeholder='[{"name":"color","value":"black"}]' />
+              <label htmlFor="attributesconfigurationjsonarray_7">
+                Attributes Configuration (JSON Array)
+              </label>
+              <input
+                id="attributesconfigurationjsonarray_7"
+                type="text"
+                value={newVarAttrJSON}
+                onChange={(e) => setNewVarAttrJSON(e.target.value)}
+                placeholder='[{"name":"color","value":"black"}]'
+              />
             </div>
-            <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
-              {loading ? <Spinner /> : 'Add Product Variant'}
+            <button
+              type="submit"
+              className="btn btn-accent"
+              disabled={loading}
+              aria-busy={loading}
+            >
+              {loading ? <Spinner /> : "Add Product Variant"}
             </button>
           </form>
         </div>
       )}
     </div>
-    
+
     <div className="glass-panel">
       <h3 className="form-section-title">Product Registry & Barcode Mapping</h3>
-      <div className="table-wrapper" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+      <div
+        className="table-wrapper"
+        style={{ maxHeight: "420px", overflowY: "auto" }}
+      >
         <table>
           <thead>
             <tr>
@@ -314,41 +439,98 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
           <tbody>
             {products.length === 0 ? (
               <tr>
-                <td colSpan={2} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td
+                  colSpan={2}
+                  style={{ textAlign: "center", color: "var(--text-muted)" }}
+                >
                   No products registered in catalog.
                 </td>
               </tr>
             ) : (
-              products.map(p => (
-                <tr 
-                  key={p.id} 
-                  style={{ cursor: 'pointer', background: selectedProduct?.id === p.id ? 'rgba(var(--primary-rgb), 0.1)' : 'transparent' }}
+              products.map((p) => (
+                <tr
+                  key={p.id}
+                  style={{
+                    cursor: "pointer",
+                    background:
+                      selectedProduct?.id === p.id
+                        ? "rgba(var(--primary-rgb), 0.1)"
+                        : "transparent",
+                  }}
                   onClick={() => setSelectedProduct(p)}
                 >
                   <td>
                     <strong>{p.name}</strong>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}><code>{p.id}</code></div>
+                    <div
+                      style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}
+                    >
+                      <code>{p.id}</code>
+                    </div>
                   </td>
                   <td>
-                    {(!p.variants || p.variants.length === 0) ? (
-                      <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>No variants</span>
+                    {!p.variants || p.variants.length === 0 ? (
+                      <span
+                        style={{
+                          fontStyle: "italic",
+                          color: "var(--text-muted)",
+                        }}
+                      >
+                        No variants
+                      </span>
                     ) : (
                       p.variants.map((v: any) => (
-                        <div key={v.id} style={{ marginBottom: '0.5rem', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div><code>{v.sku}</code> <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--accent)' }}>({v.trackingMode})</span></div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.25rem' }}>
+                        <div
+                          key={v.id}
+                          style={{
+                            marginBottom: "0.5rem",
+                            paddingBottom: "0.5rem",
+                            borderBottom: "1px solid rgba(255,255,255,0.05)",
+                          }}
+                        >
+                          <div>
+                            <code>{v.sku}</code>{" "}
+                            <span
+                              style={{
+                                fontSize: "0.75rem",
+                                textTransform: "uppercase",
+                                color: "var(--accent)",
+                              }}
+                            >
+                              ({v.trackingMode})
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "0.25rem",
+                              marginTop: "0.25rem",
+                            }}
+                          >
                             {(v.barcodes || []).map((b: any) => (
-                              <span key={b.id} className="badge badge-success" style={{ fontSize: '0.7rem' }}>
-                                {b.barcode?.value || b.barcodeValue} ({b.barcode?.symbology || b.symbology})
+                              <span
+                                key={b.id}
+                                className="badge badge-success"
+                                style={{ fontSize: "0.7rem" }}
+                              >
+                                {b.barcode?.value || b.barcodeValue} (
+                                {b.barcode?.symbology || b.symbology})
                               </span>
                             ))}
                           </div>
-                          <button 
+                          <button
                             type="button"
                             aria-label={`Generate Internal Barcode for ${v.sku}`}
-                            className="btn btn-secondary" 
-                            style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', marginTop: '0.35rem' }} 
-                            onClick={(e) => { e.stopPropagation(); handleGenerateBarcode(v.sku); }}
+                            className="btn btn-secondary"
+                            style={{
+                              padding: "0.2rem 0.5rem",
+                              fontSize: "0.7rem",
+                              marginTop: "0.35rem",
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleGenerateBarcode(v.sku);
+                            }}
                           >
                             Generate Internal Barcode
                           </button>
@@ -363,20 +545,38 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
         </table>
       </div>
 
-      <div style={{ marginTop: '2.5rem' }}>
+      <div style={{ marginTop: "2.5rem" }}>
         <h3 className="form-section-title">Manual Barcode Assignment</h3>
         <form onSubmit={handleAssignBarcode}>
           <div className="form-group">
             <label htmlFor="productvariantsku_8">Product Variant SKU</label>
-          <input id="productvariantsku_8" type="text" value={assignSku} onChange={(e) => setAssignSku(e.target.value)} required placeholder="e.g. CHARGER-WRLS-BLK" />
+            <input
+              id="productvariantsku_8"
+              type="text"
+              value={assignSku}
+              onChange={(e) => setAssignSku(e.target.value)}
+              required
+              placeholder="e.g. CHARGER-WRLS-BLK"
+            />
           </div>
           <div className="form-group">
             <label htmlFor="barcodevalue_9">Barcode Value</label>
-          <input id="barcodevalue_9" type="text" value={assignVal} onChange={(e) => setAssignVal(e.target.value)} required placeholder="e.g. 750102030405" />
+            <input
+              id="barcodevalue_9"
+              type="text"
+              value={assignVal}
+              onChange={(e) => setAssignVal(e.target.value)}
+              required
+              placeholder="e.g. 750102030405"
+            />
           </div>
           <div className="form-group">
             <label htmlFor="symbologystandard_10">Symbology / Standard</label>
-          <select id="symbologystandard_10" value={assignSymbology} onChange={(e) => setAssignSymbology(e.target.value)}>
+            <select
+              id="symbologystandard_10"
+              value={assignSymbology}
+              onChange={(e) => setAssignSymbology(e.target.value)}
+            >
               <option value="upc_a">UPC-A (North American Retail)</option>
               <option value="ean_13">EAN-13 (Global Retail)</option>
               <option value="code_128">Code 128 (Logistics/Internal)</option>
@@ -385,19 +585,34 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({
           </div>
           <div className="form-group">
             <label htmlFor="sourcetype_11">Source Type</label>
-          <select id="sourcetype_11" value={assignSource} onChange={(e) => setAssignSource(e.target.value)}>
+            <select
+              id="sourcetype_11"
+              value={assignSource}
+              onChange={(e) => setAssignSource(e.target.value)}
+            >
               <option value="manufacturer">Manufacturer Barcode</option>
               <option value="internal">Internal Inventory Label</option>
               <option value="third_party">Third Party Registry</option>
             </select>
           </div>
           <div className="form-group checkbox">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <input type="checkbox" checked={assignIsPrimary} onChange={(e) => setAssignIsPrimary(e.target.checked)} />
+            <label
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              <input
+                type="checkbox"
+                checked={assignIsPrimary}
+                onChange={(e) => setAssignIsPrimary(e.target.checked)}
+              />
               Set as primary barcode for scanning resolution
             </label>
           </div>
-          <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loading}
+            aria-busy={loading}
+          >
             Assign Barcode Value
           </button>
         </form>
@@ -437,16 +652,32 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
   loading,
   isOnline,
   offlineQueueCount,
-  handleSyncQueue
+  handleSyncQueue,
 }) => (
   <div className="grid-cols-2">
     <div className="glass-panel">
-      <div className="flex-between" style={{ marginBottom: '1rem' }}>
-        <h3 className="form-section-title" style={{ margin: 0, border: 'none' }}>Barcode Scanning Simulator</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span className={`badge ${isOnline ? 'badge-success' : 'badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isOnline ? '#00e676' : '#ff9100' }}></span>
-            {isOnline ? 'ONLINE' : 'OFFLINE MODE'}
+      <div className="flex-between" style={{ marginBottom: "1rem" }}>
+        <h3
+          className="form-section-title"
+          style={{ margin: 0, border: "none" }}
+        >
+          Barcode Scanning Simulator
+        </h3>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <span
+            className={`badge ${isOnline ? "badge-success" : "badge-warning"}`}
+            style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+          >
+            <span
+              style={{
+                display: "inline-block",
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                backgroundColor: isOnline ? "#00e676" : "#ff9100",
+              }}
+            ></span>
+            {isOnline ? "ONLINE" : "OFFLINE MODE"}
           </span>
           {offlineQueueCount > 0 && (
             <span className="badge badge-accent">
@@ -457,15 +688,45 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
       </div>
 
       {!isOnline && (
-        <div role="alert" aria-live="assertive" className="alert-box alert-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-          <strong>Industrial Dead Zone Alert:</strong> Connection lost. Scans will be buffered locally in IndexedDB and synchronized automatically once network is restored.
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="alert-box alert-warning"
+          style={{ marginBottom: "1.5rem", fontSize: "0.85rem" }}
+        >
+          <strong>Industrial Dead Zone Alert:</strong> Connection lost. Scans
+          will be buffered locally in IndexedDB and synchronized automatically
+          once network is restored.
         </div>
       )}
 
       {offlineQueueCount > 0 && isOnline && (
-        <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
-          <span><strong>Buffered Scans:</strong> You have {offlineQueueCount} scan(s) waiting in IndexedDB queue.</span>
-          <button className="btn btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', marginLeft: '1rem' }} onClick={handleSyncQueue} disabled={loading} aria-busy={loading}>
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="alert-box alert-success"
+          style={{
+            marginBottom: "1.5rem",
+            display: "flex",
+            justifyContent: "between",
+            alignItems: "center",
+          }}
+        >
+          <span>
+            <strong>Buffered Scans:</strong> You have {offlineQueueCount}{" "}
+            scan(s) waiting in IndexedDB queue.
+          </span>
+          <button
+            className="btn btn-primary"
+            style={{
+              padding: "0.25rem 0.75rem",
+              fontSize: "0.8rem",
+              marginLeft: "1rem",
+            }}
+            onClick={handleSyncQueue}
+            disabled={loading}
+            aria-busy={loading}
+          >
             Sync Queue Now
           </button>
         </div>
@@ -474,26 +735,61 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
       <form onSubmit={handleDispatchScan}>
         <div className="form-group">
           <label htmlFor="scannedbarcodevalue_12">Scanned Barcode Value</label>
-          <input id="scannedbarcodevalue_12" type="text" value={scanVal} onChange={(e) => setScanVal(e.target.value)} required placeholder="Scan label or input value..." />
+          <input
+            id="scannedbarcodevalue_12"
+            type="text"
+            value={scanVal}
+            onChange={(e) => setScanVal(e.target.value)}
+            required
+            placeholder="Scan label or input value..."
+          />
         </div>
         <div className="form-group">
-          <label htmlFor="fulfillmentroutingcontext_13">Fulfillment/Routing Context</label>
-          <select id="fulfillmentroutingcontext_13" value={scanContext} onChange={(e) => setScanContext(e.target.value)}>
+          <label htmlFor="fulfillmentroutingcontext_13">
+            Fulfillment/Routing Context
+          </label>
+          <select
+            id="fulfillmentroutingcontext_13"
+            value={scanContext}
+            onChange={(e) => setScanContext(e.target.value)}
+          >
             <option value="receive">Receive Inventory (Replenishment)</option>
-            <option value="dispatch">Dispatch Inventory (Sales Fulfillment)</option>
+            <option value="dispatch">
+              Dispatch Inventory (Sales Fulfillment)
+            </option>
             <option value="audit">Store Count / Cycle Audit</option>
           </select>
         </div>
         <div className="form-group">
-          <label htmlFor="scannedpackageincrementquantity_14">Scanned Package Increment Quantity</label>
-          <input id="scannedpackageincrementquantity_14" type="number" value={scanAmount || ''} onChange={(e) => setScanAmount(Number(e.target.value))} required />
+          <label htmlFor="scannedpackageincrementquantity_14">
+            Scanned Package Increment Quantity
+          </label>
+          <input
+            id="scannedpackageincrementquantity_14"
+            type="number"
+            value={scanAmount || ""}
+            onChange={(e) => setScanAmount(Number(e.target.value))}
+            required
+          />
         </div>
         <div className="form-group">
-          <label htmlFor="actualstorecountauditcontextonly_15">Actual Store Count (Audit Context Only)</label>
-          <input id="actualstorecountauditcontextonly_15" type="number" value={scanActualQty || ''} onChange={(e) => setScanActualQty(Number(e.target.value))} />
+          <label htmlFor="actualstorecountauditcontextonly_15">
+            Actual Store Count (Audit Context Only)
+          </label>
+          <input
+            id="actualstorecountauditcontextonly_15"
+            type="number"
+            value={scanActualQty || ""}
+            onChange={(e) => setScanActualQty(Number(e.target.value))}
+          />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-          {isOnline ? 'Dispatch Barcode Scan' : 'Buffer Barcode Offline'}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading}
+          aria-busy={loading}
+        >
+          {isOnline ? "Dispatch Barcode Scan" : "Buffer Barcode Offline"}
         </button>
       </form>
     </div>
@@ -513,7 +809,10 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
           <tbody>
             {scanHistory.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td
+                  colSpan={4}
+                  style={{ textAlign: "center", color: "var(--text-muted)" }}
+                >
                   No active scans recorded in this session.
                 </td>
               </tr>
@@ -521,10 +820,12 @@ export const ScanningPanel: React.FC<ScanningPanelProps> = ({
               scanHistory.map((h, idx) => (
                 <tr key={idx}>
                   <td>{h.time}</td>
-                  <td><code>{h.scan}</code></td>
+                  <td>
+                    <code>{h.scan}</code>
+                  </td>
                   <td>{h.context.toUpperCase()}</td>
                   <td>
-                    {h.status.startsWith('Success') ? (
+                    {h.status.startsWith("Success") ? (
                       <span className="badge badge-success">SUCCESS</span>
                     ) : (
                       <span className="badge badge-error">{h.status}</span>
@@ -559,13 +860,23 @@ export const OnboardingPanel: React.FC<OnboardingPanelProps> = ({
   setOnboardingItems,
   handleCreateOnboarding,
   handleSubmitOnboarding,
-  loading
+  loading,
 }) => (
   <div className="grid-cols-2">
     <div className="glass-panel">
       <div className="flex-between">
-        <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>Stock Onboarding Sheets</h3>
-        <button className="btn btn-primary" onClick={handleCreateOnboarding} disabled={loading} aria-busy={loading}>
+        <h3
+          className="form-section-title"
+          style={{ border: "none", marginBottom: 0 }}
+        >
+          Stock Onboarding Sheets
+        </h3>
+        <button
+          className="btn btn-primary"
+          onClick={handleCreateOnboarding}
+          disabled={loading}
+          aria-busy={loading}
+        >
           + Create Draft Sheet
         </button>
       </div>
@@ -582,18 +893,37 @@ export const OnboardingPanel: React.FC<OnboardingPanelProps> = ({
           <tbody>
             {onboardings.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td
+                  colSpan={4}
+                  style={{ textAlign: "center", color: "var(--text-muted)" }}
+                >
                   No onboarding sheets registered.
                 </td>
               </tr>
             ) : (
-              onboardings.map(o => (
-                <tr key={o.id} onClick={() => setSelectedOnboarding(o)} style={{ cursor: 'pointer', background: selectedOnboarding?.id === o.id ? 'rgba(var(--primary-rgb), 0.1)' : 'transparent' }}>
-                  <td><code>{o.id}</code></td>
-                  <td><code>{o.locationId}</code></td>
+              onboardings.map((o) => (
+                <tr
+                  key={o.id}
+                  onClick={() => setSelectedOnboarding(o)}
+                  style={{
+                    cursor: "pointer",
+                    background:
+                      selectedOnboarding?.id === o.id
+                        ? "rgba(var(--primary-rgb), 0.1)"
+                        : "transparent",
+                  }}
+                >
+                  <td>
+                    <code>{o.id}</code>
+                  </td>
+                  <td>
+                    <code>{o.locationId}</code>
+                  </td>
                   <td>{new Date(o.asOfDate).toLocaleDateString()}</td>
                   <td>
-                    <span className={`badge badge-${o.status === 'submitted' ? 'success' : 'warning'}`}>
+                    <span
+                      className={`badge badge-${o.status === "submitted" ? "success" : "warning"}`}
+                    >
                       {o.status.toUpperCase()}
                     </span>
                   </td>
@@ -608,19 +938,46 @@ export const OnboardingPanel: React.FC<OnboardingPanelProps> = ({
     <div className="glass-panel">
       <h3 className="form-section-title">Sheet Line Items Editor</h3>
       {!selectedOnboarding ? (
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0' }}>
+        <div
+          style={{
+            textAlign: "center",
+            color: "var(--text-muted)",
+            padding: "2rem 0",
+          }}
+        >
           Select an onboarding sheet on the left to edit or post ledger items.
         </div>
       ) : (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "1.5rem",
+            }}
+          >
             <div>
-              <div><strong>Sheet Reference:</strong> <code>{selectedOnboarding.id}</code></div>
-              <div><strong>Status:</strong> <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>{selectedOnboarding.status}</span></div>
+              <div>
+                <strong>Sheet Reference:</strong>{" "}
+                <code>{selectedOnboarding.id}</code>
+              </div>
+              <div>
+                <strong>Status:</strong>{" "}
+                <span
+                  style={{ textTransform: "uppercase", fontWeight: "bold" }}
+                >
+                  {selectedOnboarding.status}
+                </span>
+              </div>
             </div>
-            {selectedOnboarding.status === 'draft' && (
-              <button className="btn btn-accent" onClick={() => handleSubmitOnboarding(selectedOnboarding.id)} disabled={loading} aria-busy={loading}>
-                {loading ? 'Initializing...' : 'Lock & Post Sheet'}
+            {selectedOnboarding.status === "draft" && (
+              <button
+                className="btn btn-accent"
+                onClick={() => handleSubmitOnboarding(selectedOnboarding.id)}
+                disabled={loading}
+                aria-busy={loading}
+              >
+                {loading ? "Initializing..." : "Lock & Post Sheet"}
               </button>
             )}
           </div>
@@ -635,14 +992,25 @@ export const OnboardingPanel: React.FC<OnboardingPanelProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {(!selectedOnboarding.items || selectedOnboarding.items.length === 0) ? (
+                {!selectedOnboarding.items ||
+                selectedOnboarding.items.length === 0 ? (
                   <tr>
-                    <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No items.</td>
+                    <td
+                      colSpan={3}
+                      style={{
+                        textAlign: "center",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      No items.
+                    </td>
                   </tr>
                 ) : (
                   selectedOnboarding.items.map((it: any, idx: number) => (
                     <tr key={idx}>
-                      <td><code>{it.variantId}</code></td>
+                      <td>
+                        <code>{it.variantId}</code>
+                      </td>
                       <td>{it.quantity} units</td>
                       <td>${(it.unitCostCents / 100).toFixed(2)}</td>
                     </tr>
@@ -662,8 +1030,8 @@ interface LedgerPanelProps {
   journals: any[];
   newJournalDesc: string;
   setNewJournalDesc: (v: string) => void;
-  newJournalMethod: 'cash' | 'accrual';
-  setNewJournalMethod: (v: 'cash' | 'accrual') => void;
+  newJournalMethod: "cash" | "accrual";
+  setNewJournalMethod: (v: "cash" | "accrual") => void;
   newJournalLines: JournalLine[];
   setNewJournalLines: (lines: JournalLine[]) => void;
   handlePostJournal: (e: React.FormEvent) => void;
@@ -678,7 +1046,7 @@ export const LedgerPanel: React.FC<LedgerPanelProps> = ({
   newJournalLines,
   setNewJournalLines,
   handlePostJournal,
-  loading
+  loading,
 }) => (
   <div className="grid-cols-2">
     <div className="glass-panel">
@@ -686,11 +1054,22 @@ export const LedgerPanel: React.FC<LedgerPanelProps> = ({
       <form onSubmit={handlePostJournal}>
         <div className="form-group">
           <label htmlFor="journaldescription_16">Journal Description</label>
-          <input id="journaldescription_16" type="text" value={newJournalDesc} onChange={(e) => setNewJournalDesc(e.target.value)} required placeholder="e.g. Month-end adjustments" />
+          <input
+            id="journaldescription_16"
+            type="text"
+            value={newJournalDesc}
+            onChange={(e) => setNewJournalDesc(e.target.value)}
+            required
+            placeholder="e.g. Month-end adjustments"
+          />
         </div>
         <div className="form-group">
           <label htmlFor="accountingmethod_17">Accounting Method</label>
-          <select id="accountingmethod_17" value={newJournalMethod} onChange={(e) => setNewJournalMethod(e.target.value as any)}>
+          <select
+            id="accountingmethod_17"
+            value={newJournalMethod}
+            onChange={(e) => setNewJournalMethod(e.target.value as any)}
+          >
             <option value="accrual">Accrual Accounting (GAAP Compliant)</option>
             <option value="cash">Cash Accounting</option>
           </select>
@@ -699,31 +1078,34 @@ export const LedgerPanel: React.FC<LedgerPanelProps> = ({
         <div className="form-group">
           <label>Double-Entry Rows</label>
           {newJournalLines.map((line, idx) => (
-            <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <input 
-                type="text" 
-                placeholder="Account (e.g. 1000)" 
-                value={line.accountCode} 
+            <div
+              key={idx}
+              style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}
+            >
+              <input
+                type="text"
+                placeholder="Account (e.g. 1000)"
+                value={line.accountCode}
                 onChange={(e) => {
                   const updated = [...newJournalLines];
                   updated[idx].accountCode = e.target.value;
                   setNewJournalLines(updated);
-                }} 
-                required 
+                }}
+                required
               />
-              <input 
-                type="number" 
-                placeholder="Amount (Cents)" 
-                value={line.amountCents || ''} 
+              <input
+                type="number"
+                placeholder="Amount (Cents)"
+                value={line.amountCents || ""}
                 onChange={(e) => {
                   const updated = [...newJournalLines];
                   updated[idx].amountCents = Number(e.target.value);
                   setNewJournalLines(updated);
-                }} 
-                required 
+                }}
+                required
               />
-              <select 
-                value={line.type} 
+              <select
+                value={line.type}
                 onChange={(e) => {
                   const updated = [...newJournalLines];
                   updated[idx].type = e.target.value as any;
@@ -735,18 +1117,28 @@ export const LedgerPanel: React.FC<LedgerPanelProps> = ({
               </select>
             </div>
           ))}
-          <button 
-            type="button" 
-            className="btn btn-secondary" 
-            style={{ padding: '0.3rem 0.75rem', fontSize: '0.8rem' }}
-            onClick={() => setNewJournalLines([...newJournalLines, { accountCode: '', amountCents: 0, type: 'credit', memo: '' }])}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+            onClick={() =>
+              setNewJournalLines([
+                ...newJournalLines,
+                { accountCode: "", amountCents: 0, type: "credit", memo: "" },
+              ])
+            }
           >
             + Add Line row
           </button>
         </div>
 
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-          {loading ? <Spinner /> : 'Post General Ledger Entry'}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading}
+          aria-busy={loading}
+        >
+          {loading ? <Spinner /> : "Post General Ledger Entry"}
         </button>
       </form>
     </div>
@@ -766,23 +1158,40 @@ export const LedgerPanel: React.FC<LedgerPanelProps> = ({
           <tbody>
             {journals.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td
+                  colSpan={4}
+                  style={{ textAlign: "center", color: "var(--text-muted)" }}
+                >
                   No journal entries posted yet.
                 </td>
               </tr>
             ) : (
-              journals.map(entry => (
+              journals.map((entry) => (
                 <tr key={entry.id}>
-                  <td>{new Date(entry.date || new Date()).toLocaleDateString()}</td>
+                  <td>
+                    {new Date(entry.date || new Date()).toLocaleDateString()}
+                  </td>
                   <td>
                     <strong>{entry.description}</strong>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted-dark)' }}><code>Ref: {entry.referenceId || entry.id}</code></div>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "var(--text-muted-dark)",
+                      }}
+                    >
+                      <code>Ref: {entry.referenceId || entry.id}</code>
+                    </div>
                   </td>
                   <td>{entry.method.toUpperCase()}</td>
                   <td>
                     {entry.lines.map((l: any, idx: number) => (
-                      <div key={idx} style={{ fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                        <code>{l.accountCode}</code>: {l.type === 'debit' ? 'DR' : 'CR'} ${(l.amountCents / 100).toFixed(2)}
+                      <div
+                        key={idx}
+                        style={{ fontSize: "0.85rem", marginBottom: "0.25rem" }}
+                      >
+                        <code>{l.accountCode}</code>:{" "}
+                        {l.type === "debit" ? "DR" : "CR"} $
+                        {(l.amountCents / 100).toFixed(2)}
                       </div>
                     ))}
                   </td>
@@ -809,7 +1218,7 @@ export const SerialsPanel: React.FC<SerialsPanelProps> = ({
   setTraceSerialNum,
   tracedItem,
   handleTraceSerial,
-  loading
+  loading,
 }) => (
   <div className="grid-cols-2">
     <div className="glass-panel">
@@ -817,23 +1226,53 @@ export const SerialsPanel: React.FC<SerialsPanelProps> = ({
       <form onSubmit={handleTraceSerial}>
         <div className="form-group">
           <label htmlFor="itemserialnumber_18">Item Serial Number</label>
-          <input id="itemserialnumber_18" type="text" value={traceSerialNum} onChange={(e) => setTraceSerialNum(e.target.value)} required placeholder="Enter unique serial number..." />
+          <input
+            id="itemserialnumber_18"
+            type="text"
+            value={traceSerialNum}
+            onChange={(e) => setTraceSerialNum(e.target.value)}
+            required
+            placeholder="Enter unique serial number..."
+          />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading}
+          aria-busy={loading}
+        >
           Trace Serial History
         </button>
       </form>
 
       {tracedItem && (
-        <div style={{ marginTop: '2rem' }}>
+        <div style={{ marginTop: "2rem" }}>
           <h3 className="form-section-title">Item Properties</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem' }}>
-            <div><strong>Serial Number:</strong> <code>{tracedItem.serialNumber}</code></div>
-            <div><strong>Variant ID:</strong> <code>{tracedItem.variantId}</code></div>
-            <div><strong>Warehouse Location:</strong> <code>{tracedItem.locationId}</code></div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5rem",
+              fontSize: "0.9rem",
+            }}
+          >
             <div>
-              <strong>Tracking Status:</strong> 
-              <span className="badge badge-success" style={{ marginLeft: '0.5rem' }}>
+              <strong>Serial Number:</strong>{" "}
+              <code>{tracedItem.serialNumber}</code>
+            </div>
+            <div>
+              <strong>Variant ID:</strong> <code>{tracedItem.variantId}</code>
+            </div>
+            <div>
+              <strong>Warehouse Location:</strong>{" "}
+              <code>{tracedItem.locationId}</code>
+            </div>
+            <div>
+              <strong>Tracking Status:</strong>
+              <span
+                className="badge badge-success"
+                style={{ marginLeft: "0.5rem" }}
+              >
                 {tracedItem.status.toUpperCase()}
               </span>
             </div>
@@ -845,21 +1284,42 @@ export const SerialsPanel: React.FC<SerialsPanelProps> = ({
     <div className="glass-panel">
       <h3 className="form-section-title">Serial Custody & Location Timeline</h3>
       <div className="timeline">
-        {!tracedItem || !tracedItem.history || tracedItem.history.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0' }}>
+        {!tracedItem ||
+        !tracedItem.history ||
+        tracedItem.history.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              color: "var(--text-muted)",
+              padding: "2rem 0",
+            }}
+          >
             Enter a serial number to trace custody and location transitions.
           </div>
         ) : (
           tracedItem.history.map((hist: any, idx: number) => (
             <div key={idx} className="timeline-item success">
               <div className="timeline-header">
-                <span>Status Transition: {hist.from} → {hist.to}</span>
-                <span>{new Date(hist.occurredAt || new Date()).toLocaleTimeString()}</span>
+                <span>
+                  Status Transition: {hist.from} → {hist.to}
+                </span>
+                <span>
+                  {new Date(hist.occurredAt || new Date()).toLocaleTimeString()}
+                </span>
               </div>
               <div className="timeline-body">
-                <div><strong>Reason:</strong> {hist.reason}</div>
-                <div><strong>Actor:</strong> <code>{hist.actor}</code></div>
-                {hist.referenceId && <div><strong>Reference ID:</strong> <code>{hist.referenceId}</code></div>}
+                <div>
+                  <strong>Reason:</strong> {hist.reason}
+                </div>
+                <div>
+                  <strong>Actor:</strong> <code>{hist.actor}</code>
+                </div>
+                {hist.referenceId && (
+                  <div>
+                    <strong>Reference ID:</strong>{" "}
+                    <code>{hist.referenceId}</code>
+                  </div>
+                )}
               </div>
             </div>
           ))
@@ -926,256 +1386,413 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
   setRecallLotNum,
   recallResult,
   handleTraceRecall,
-  loading
+  loading,
 }) => {
   // ⚡ Bolt: Memoize derived data count to prevent O(n) filtering on every render
-  const urgentActionsCount = React.useMemo(() => forecastingReport.filter(item => item.currentStock <= item.suggestedROP).length, [forecastingReport]);
+  const urgentActionsCount = React.useMemo(
+    () =>
+      forecastingReport.filter((item) => item.currentStock <= item.suggestedROP)
+        .length,
+    [forecastingReport],
+  );
 
   return (
-  <>
-    <div className="grid-cols-3">
-      <div className="stat-card">
-        <span className="stat-title">Products Monitored</span>
-        <span className="stat-value">{forecastingReport.length}</span>
-        <span className="stat-desc">SKUs Evaluated under forecasting</span>
-      </div>
-      <div className="stat-card accent">
-        <span className="stat-title">Urgent Actions</span>
-        <span className="stat-value">
-          {urgentActionsCount}
-        </span>
-        <span className="stat-desc">SKUs below recommended Reorder Point</span>
-      </div>
-      <div className="stat-card">
-        <span className="stat-title">Target Location</span>
-        <span className="stat-value"><code>{locationId.toUpperCase()}</code></span>
-        <span className="stat-desc">Active demand evaluation location</span>
-      </div>
-    </div>
-
-    <div className="grid-cols-2" style={{ marginTop: '2rem' }}>
-      <div className="glass-panel">
-        <h3 className="form-section-title">Configure Reorder Policy (ROP/EOQ)</h3>
-        <form onSubmit={handleSaveReorderPolicy}>
-          <div className="form-group">
-            <label htmlFor="productsku_19">Product SKU</label>
-          <input id="productsku_19" type="text" value={policySku} onChange={(e) => setPolicySku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
-          </div>
-          <div className="form-group">
-            <label htmlFor="locationid_20">Location ID</label>
-          <input id="locationid_20" type="text" value={policyLoc} onChange={(e) => setPolicyLoc(e.target.value)} required placeholder="e.g. LOC-EAST" />
-          </div>
-          <div className="form-group">
-            <label htmlFor="reorderpointunits_21">Reorder Point (Units)</label>
-          <input id="reorderpointunits_21" type="number" value={policyRop} onChange={(e) => setPolicyRop(Number(e.target.value))} required />
-          </div>
-          <div className="form-group">
-            <label htmlFor="safetystockunits_22">Safety Stock (Units)</label>
-          <input id="safetystockunits_22" type="number" value={policySafety} onChange={(e) => setPolicySafety(Number(e.target.value))} required />
-          </div>
-          <div className="form-group">
-            <label htmlFor="economicorderquantityeoq_23">Economic Order Quantity (EOQ)</label>
-          <input id="economicorderquantityeoq_23" type="number" value={policyEoq} onChange={(e) => setPolicyEoq(Number(e.target.value))} required />
-          </div>
-          <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-            Save Policy
-          </button>
-        </form>
-      </div>
-
-      <div className="glass-panel">
-        <div className="flex-between">
-          <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>Active Reorder Policies</h3>
-          <button className="btn btn-accent" onClick={handleEvaluateReorderPolicies} disabled={loading} aria-busy={loading}>
-            Evaluate Policies
-          </button>
+    <>
+      <div className="grid-cols-3">
+        <div className="stat-card">
+          <span className="stat-title">Products Monitored</span>
+          <span className="stat-value">{forecastingReport.length}</span>
+          <span className="stat-desc">SKUs Evaluated under forecasting</span>
         </div>
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>SKU</th>
-                <th>Location</th>
-                <th>ROP / Safety</th>
-                <th>EOQ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reorderPolicies.length === 0 ? (
-                <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No custom reorder policies saved.
-                  </td>
-                </tr>
-              ) : (
-                reorderPolicies.map((p, idx) => (
-                  <tr key={idx}>
-                    <td><code>{p.sku}</code></td>
-                    <td><code>{p.locationId}</code></td>
-                    <td>{p.reorderPoint} / {p.safetyStock} units</td>
-                    <td>{p.economicOrderQuantity} units</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="stat-card accent">
+          <span className="stat-title">Urgent Actions</span>
+          <span className="stat-value">{urgentActionsCount}</span>
+          <span className="stat-desc">
+            SKUs below recommended Reorder Point
+          </span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-title">Target Location</span>
+          <span className="stat-value">
+            <code>{locationId.toUpperCase()}</code>
+          </span>
+          <span className="stat-desc">Active demand evaluation location</span>
         </div>
       </div>
-    </div>
 
-    <div className="grid-cols-2" style={{ marginTop: '2rem' }}>
-      <div className="glass-panel">
-        <h3 className="form-section-title">FEFO Expiry Pick Suggestions</h3>
-        <form onSubmit={handleGetFefoSuggestions}>
-          <div className="form-group">
-            <label htmlFor="productsku_24">Product SKU</label>
-          <input id="productsku_24" type="text" value={fefoSku} onChange={(e) => setFefoSku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
-          </div>
-          <div className="form-group">
-            <label htmlFor="fulfillmentquantity_25">Fulfillment Quantity</label>
-          <input id="fulfillmentquantity_25" type="number" value={fefoQty} onChange={(e) => setFefoQty(Number(e.target.value))} required />
-          </div>
-          <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-            Get Expiring Stock Layers
-          </button>
-        </form>
-
-        {fefoResult.length > 0 && (
-          <div style={{ marginTop: '1rem' }}>
-            <h4>Recommended Pick Order</h4>
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Lot Number</th>
-                    <th>Expiration</th>
-                    <th>Suggested Quantity</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fefoResult.map((layer, idx) => (
-                    <tr key={idx}>
-                      <td><code>{layer.lotNumber}</code></td>
-                      <td>{new Date(layer.expirationDate).toLocaleDateString()}</td>
-                      <td><strong>{layer.quantityToPick} units</strong></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <div className="grid-cols-2" style={{ marginTop: "2rem" }}>
+        <div className="glass-panel">
+          <h3 className="form-section-title">
+            Configure Reorder Policy (ROP/EOQ)
+          </h3>
+          <form onSubmit={handleSaveReorderPolicy}>
+            <div className="form-group">
+              <label htmlFor="productsku_19">Product SKU</label>
+              <input
+                id="productsku_19"
+                type="text"
+                value={policySku}
+                onChange={(e) => setPolicySku(e.target.value)}
+                required
+                placeholder="e.g. ROUTE-SKU"
+              />
             </div>
+            <div className="form-group">
+              <label htmlFor="locationid_20">Location ID</label>
+              <input
+                id="locationid_20"
+                type="text"
+                value={policyLoc}
+                onChange={(e) => setPolicyLoc(e.target.value)}
+                required
+                placeholder="e.g. LOC-EAST"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="reorderpointunits_21">
+                Reorder Point (Units)
+              </label>
+              <input
+                id="reorderpointunits_21"
+                type="number"
+                value={policyRop}
+                onChange={(e) => setPolicyRop(Number(e.target.value))}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="safetystockunits_22">Safety Stock (Units)</label>
+              <input
+                id="safetystockunits_22"
+                type="number"
+                value={policySafety}
+                onChange={(e) => setPolicySafety(Number(e.target.value))}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="economicorderquantityeoq_23">
+                Economic Order Quantity (EOQ)
+              </label>
+              <input
+                id="economicorderquantityeoq_23"
+                type="number"
+                value={policyEoq}
+                onChange={(e) => setPolicyEoq(Number(e.target.value))}
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+              aria-busy={loading}
+            >
+              Save Policy
+            </button>
+          </form>
+        </div>
+
+        <div className="glass-panel">
+          <div className="flex-between">
+            <h3
+              className="form-section-title"
+              style={{ border: "none", marginBottom: 0 }}
+            >
+              Active Reorder Policies
+            </h3>
+            <button
+              className="btn btn-accent"
+              onClick={handleEvaluateReorderPolicies}
+              disabled={loading}
+              aria-busy={loading}
+            >
+              Evaluate Policies
+            </button>
           </div>
-        )}
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Location</th>
+                  <th>ROP / Safety</th>
+                  <th>EOQ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reorderPolicies.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      style={{
+                        textAlign: "center",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      No custom reorder policies saved.
+                    </td>
+                  </tr>
+                ) : (
+                  reorderPolicies.map((p, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <code>{p.sku}</code>
+                      </td>
+                      <td>
+                        <code>{p.locationId}</code>
+                      </td>
+                      <td>
+                        {p.reorderPoint} / {p.safetyStock} units
+                      </td>
+                      <td>{p.economicOrderQuantity} units</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      <div className="glass-panel">
-        <h3 className="form-section-title">Lot Recall Tracing Reports</h3>
-        <form onSubmit={handleTraceRecall}>
-          <div className="form-group">
-            <label htmlFor="targetlotnumber_26">Target Lot Number</label>
-          <input id="targetlotnumber_26" type="text" value={recallLotNum} onChange={(e) => setRecallLotNum(e.target.value)} required placeholder="e.g. LOT-A-1" />
-          </div>
-          <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
-            Compile Recall Report
-          </button>
-        </form>
+      <div className="grid-cols-2" style={{ marginTop: "2rem" }}>
+        <div className="glass-panel">
+          <h3 className="form-section-title">FEFO Expiry Pick Suggestions</h3>
+          <form onSubmit={handleGetFefoSuggestions}>
+            <div className="form-group">
+              <label htmlFor="productsku_24">Product SKU</label>
+              <input
+                id="productsku_24"
+                type="text"
+                value={fefoSku}
+                onChange={(e) => setFefoSku(e.target.value)}
+                required
+                placeholder="e.g. ROUTE-SKU"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="fulfillmentquantity_25">
+                Fulfillment Quantity
+              </label>
+              <input
+                id="fulfillmentquantity_25"
+                type="number"
+                value={fefoQty}
+                onChange={(e) => setFefoQty(Number(e.target.value))}
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+              aria-busy={loading}
+            >
+              Get Expiring Stock Layers
+            </button>
+          </form>
 
-        {recallResult && (
-          <div style={{ marginTop: '1rem' }}>
-            <h4>Dispatched Lot Transactions</h4>
-            {recallResult.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)' }}>No units from this lot have been dispatched to customers.</p>
-            ) : (
+          {fefoResult.length > 0 && (
+            <div style={{ marginTop: "1rem" }}>
+              <h4>Recommended Pick Order</h4>
               <div className="table-wrapper">
                 <table>
                   <thead>
                     <tr>
-                      <th>SKU Reference</th>
-                      <th>Quantity</th>
                       <th>Lot Number</th>
+                      <th>Expiration</th>
+                      <th>Suggested Quantity</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {recallResult.map((disp: any, idx: number) => (
+                    {fefoResult.map((layer, idx) => (
                       <tr key={idx}>
-                        <td><code>{disp.sku}</code></td>
-                        <td>{disp.quantity} units</td>
-                        <td><code>{disp.lotNumber}</code></td>
+                        <td>
+                          <code>{layer.lotNumber}</code>
+                        </td>
+                        <td>
+                          {new Date(layer.expirationDate).toLocaleDateString()}
+                        </td>
+                        <td>
+                          <strong>{layer.quantityToPick} units</strong>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+            </div>
+          )}
+        </div>
 
-    <div className="glass-panel" style={{ marginTop: '2rem' }}>
-      <div className="flex-between">
-        <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>
-          Demand Planning & ROP Safety Stock Recommendations
-        </h3>
-        <button className="btn btn-secondary" onClick={loadForecastingReport} disabled={loading} aria-busy={loading}>
-          {loading ? <Spinner /> : 'Recalculate ROP'}
-        </button>
+        <div className="glass-panel">
+          <h3 className="form-section-title">Lot Recall Tracing Reports</h3>
+          <form onSubmit={handleTraceRecall}>
+            <div className="form-group">
+              <label htmlFor="targetlotnumber_26">Target Lot Number</label>
+              <input
+                id="targetlotnumber_26"
+                type="text"
+                value={recallLotNum}
+                onChange={(e) => setRecallLotNum(e.target.value)}
+                required
+                placeholder="e.g. LOT-A-1"
+              />
+            </div>
+            <button
+              type="submit"
+              className="btn btn-accent"
+              disabled={loading}
+              aria-busy={loading}
+            >
+              Compile Recall Report
+            </button>
+          </form>
+
+          {recallResult && (
+            <div style={{ marginTop: "1rem" }}>
+              <h4>Dispatched Lot Transactions</h4>
+              {recallResult.length === 0 ? (
+                <p style={{ color: "var(--text-muted)" }}>
+                  No units from this lot have been dispatched to customers.
+                </p>
+              ) : (
+                <div className="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>SKU Reference</th>
+                        <th>Quantity</th>
+                        <th>Lot Number</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recallResult.map((disp: any, idx: number) => (
+                        <tr key={idx}>
+                          <td>
+                            <code>{disp.sku}</code>
+                          </td>
+                          <td>{disp.quantity} units</td>
+                          <td>
+                            <code>{disp.lotNumber}</code>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-      
-      <div className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Product SKU</th>
-              <th>Stock Level</th>
-              <th>7d/30d/90d Daily Velocity</th>
-              <th>30-Day Forecast</th>
-              <th>Safety Stock</th>
-              <th>Suggested ROP</th>
-              <th>Recommendation</th>
-            </tr>
-          </thead>
-          <tbody>
-            {forecastingReport.length === 0 ? (
+
+      <div className="glass-panel" style={{ marginTop: "2rem" }}>
+        <div className="flex-between">
+          <h3
+            className="form-section-title"
+            style={{ border: "none", marginBottom: 0 }}
+          >
+            Demand Planning & ROP Safety Stock Recommendations
+          </h3>
+          <button
+            className="btn btn-secondary"
+            onClick={loadForecastingReport}
+            disabled={loading}
+            aria-busy={loading}
+          >
+            {loading ? <Spinner /> : "Recalculate ROP"}
+          </button>
+        </div>
+
+        <div className="table-wrapper">
+          <table>
+            <thead>
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No demand forecasting items calculated. Make sure stock movement transactions exist in database.
-                </td>
+                <th>Product SKU</th>
+                <th>Stock Level</th>
+                <th>7d/30d/90d Daily Velocity</th>
+                <th>30-Day Forecast</th>
+                <th>Safety Stock</th>
+                <th>Suggested ROP</th>
+                <th>Recommendation</th>
               </tr>
-            ) : (
-              forecastingReport.map(item => {
-                const isReorderUrgent = item.currentStock <= item.suggestedROP;
-                const isReorderWarning = !isReorderUrgent && item.currentStock <= (item.suggestedROP + item.safetyStock);
-                
-                return (
-                  <tr key={item.sku}>
-                    <td><code>{item.sku}</code></td>
-                    <td><strong>{item.currentStock} units</strong></td>
-                    <td>
-                      <code>{Number(item.salesVelocity7d || 0).toFixed(1)}</code> / 
-                      <code> {Number(item.salesVelocity30d || 0).toFixed(1)}</code> / 
-                      <code> {Number(item.salesVelocity90d || 0).toFixed(1)}</code>
-                    </td>
-                    <td><strong>{item.forecastedDemand} units</strong></td>
-                    <td><code>{item.safetyStock} units</code></td>
-                    <td><code>{item.suggestedROP} units</code></td>
-                    <td>
-                      {isReorderUrgent ? (
-                        <span className="badge badge-error">🔴 REORDER URGENT</span>
-                      ) : isReorderWarning ? (
-                        <span className="badge badge-warning">🟡 MONITOR STOCKS</span>
-                      ) : (
-                        <span className="badge badge-success">🟢 STOCK HEALTHY</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {forecastingReport.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    style={{ textAlign: "center", color: "var(--text-muted)" }}
+                  >
+                    No demand forecasting items calculated. Make sure stock
+                    movement transactions exist in database.
+                  </td>
+                </tr>
+              ) : (
+                forecastingReport.map((item) => {
+                  const isReorderUrgent =
+                    item.currentStock <= item.suggestedROP;
+                  const isReorderWarning =
+                    !isReorderUrgent &&
+                    item.currentStock <= item.suggestedROP + item.safetyStock;
+
+                  return (
+                    <tr key={item.sku}>
+                      <td>
+                        <code>{item.sku}</code>
+                      </td>
+                      <td>
+                        <strong>{item.currentStock} units</strong>
+                      </td>
+                      <td>
+                        <code>
+                          {Number(item.salesVelocity7d || 0).toFixed(1)}
+                        </code>{" "}
+                        /
+                        <code>
+                          {" "}
+                          {Number(item.salesVelocity30d || 0).toFixed(1)}
+                        </code>{" "}
+                        /
+                        <code>
+                          {" "}
+                          {Number(item.salesVelocity90d || 0).toFixed(1)}
+                        </code>
+                      </td>
+                      <td>
+                        <strong>{item.forecastedDemand} units</strong>
+                      </td>
+                      <td>
+                        <code>{item.safetyStock} units</code>
+                      </td>
+                      <td>
+                        <code>{item.suggestedROP} units</code>
+                      </td>
+                      <td>
+                        {isReorderUrgent ? (
+                          <span className="badge badge-error">
+                            🔴 REORDER URGENT
+                          </span>
+                        ) : isReorderWarning ? (
+                          <span className="badge badge-warning">
+                            🟡 MONITOR STOCKS
+                          </span>
+                        ) : (
+                          <span className="badge badge-success">
+                            🟢 STOCK HEALTHY
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  </>
+    </>
   );
 };
 
@@ -1204,34 +1821,71 @@ export const RoutingPanel: React.FC<RoutingPanelProps> = ({
   setRoutingStrategy,
   routingPlan,
   handleComputeRoute,
-  loading
+  loading,
 }) => (
   <div className="grid-cols-2">
     <div className="glass-panel">
-      <h3 className="form-section-title">Intelligent Order Routing Optimizer</h3>
+      <h3 className="form-section-title">
+        Intelligent Order Routing Optimizer
+      </h3>
       <form onSubmit={handleComputeRoute}>
         <div className="form-group">
           <label htmlFor="productsku_27">Product SKU</label>
-          <input id="productsku_27" type="text" value={routingSku} onChange={(e) => setRoutingSku(e.target.value)} required />
+          <input
+            id="productsku_27"
+            type="text"
+            value={routingSku}
+            onChange={(e) => setRoutingSku(e.target.value)}
+            required
+          />
         </div>
         <div className="form-group">
           <label htmlFor="orderquantity_28">Order Quantity</label>
-          <input id="orderquantity_28" type="number" value={routingQuantity} onChange={(e) => setRoutingQuantity(Number(e.target.value))} required />
+          <input
+            id="orderquantity_28"
+            type="number"
+            value={routingQuantity}
+            onChange={(e) => setRoutingQuantity(Number(e.target.value))}
+            required
+          />
         </div>
         <div className="form-group">
-          <label htmlFor="destinationaddressgeocodelookup_29">Destination Address (Geocode Lookup)</label>
-          <input id="destinationaddressgeocodelookup_29" type="text" value={routingAddress} onChange={(e) => setRoutingAddress(e.target.value)} required />
+          <label htmlFor="destinationaddressgeocodelookup_29">
+            Destination Address (Geocode Lookup)
+          </label>
+          <input
+            id="destinationaddressgeocodelookup_29"
+            type="text"
+            value={routingAddress}
+            onChange={(e) => setRoutingAddress(e.target.value)}
+            required
+          />
         </div>
         <div className="form-group">
           <label htmlFor="routingstrategy_30">Routing Strategy</label>
-          <select id="routingstrategy_30" value={routingStrategy} onChange={(e) => setRoutingStrategy(e.target.value)}>
-            <option value="MINIMIZE_COST">Minimize Carrier Cost (Balanced splits)</option>
-            <option value="MINIMIZE_SPLITS">Minimize Splits (Fulfill from single location)</option>
-            <option value="MINIMIZE_DISTANCE">Minimize Distance (Nearest origin warehouse)</option>
+          <select
+            id="routingstrategy_30"
+            value={routingStrategy}
+            onChange={(e) => setRoutingStrategy(e.target.value)}
+          >
+            <option value="MINIMIZE_COST">
+              Minimize Carrier Cost (Balanced splits)
+            </option>
+            <option value="MINIMIZE_SPLITS">
+              Minimize Splits (Fulfill from single location)
+            </option>
+            <option value="MINIMIZE_DISTANCE">
+              Minimize Distance (Nearest origin warehouse)
+            </option>
           </select>
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-          {loading ? <Spinner /> : 'Compute Optimal Routing Plan'}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading}
+          aria-busy={loading}
+        >
+          {loading ? <Spinner /> : "Compute Optimal Routing Plan"}
         </button>
       </form>
     </div>
@@ -1239,29 +1893,45 @@ export const RoutingPanel: React.FC<RoutingPanelProps> = ({
     <div className="glass-panel">
       <h3 className="form-section-title">Optimal Fulfillment Plan</h3>
       {!routingPlan ? (
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem 0' }}>
+        <div
+          style={{
+            textAlign: "center",
+            color: "var(--text-muted)",
+            padding: "3rem 0",
+          }}
+        >
           Submit parameters on the left to resolve origin allocations.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
+        >
           <div className="stat-card accent">
             <span className="stat-title">Fulfillment Cost</span>
-            <span className="stat-value">${(routingPlan.totalCost / 100).toFixed(2)}</span>
-            <span className="stat-desc">Calculated shipping & split penalties</span>
+            <span className="stat-value">
+              ${(routingPlan.totalCost / 100).toFixed(2)}
+            </span>
+            <span className="stat-desc">
+              Calculated shipping & split penalties
+            </span>
           </div>
-          
-          <div className="grid-cols-2" style={{ gap: '1rem' }}>
+
+          <div className="grid-cols-2" style={{ gap: "1rem" }}>
             <div className="stat-card">
               <span className="stat-title">Total Distance</span>
-              <span className="stat-value">{Number(routingPlan.totalDistance).toFixed(1)} km</span>
+              <span className="stat-value">
+                {Number(routingPlan.totalDistance).toFixed(1)} km
+              </span>
             </div>
             <div className="stat-card">
               <span className="stat-title">Split Shipments</span>
-              <span className="stat-value">{routingPlan.splitCount} splits</span>
+              <span className="stat-value">
+                {routingPlan.splitCount} splits
+              </span>
             </div>
           </div>
 
-          <h4 style={{ margin: '1rem 0 0.5rem 0' }}>Warehouse Allocations</h4>
+          <h4 style={{ margin: "1rem 0 0.5rem 0" }}>Warehouse Allocations</h4>
           <div className="table-wrapper">
             <table>
               <thead>
@@ -1273,8 +1943,12 @@ export const RoutingPanel: React.FC<RoutingPanelProps> = ({
               <tbody>
                 {routingPlan.allocations.map((alloc: any, idx: number) => (
                   <tr key={idx}>
-                    <td><code>{alloc.locationId}</code></td>
-                    <td><strong>{alloc.quantity} units</strong></td>
+                    <td>
+                      <code>{alloc.locationId}</code>
+                    </td>
+                    <td>
+                      <strong>{alloc.quantity} units</strong>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1291,7 +1965,9 @@ interface ProcurementPanelProps {
   newPoSupplier: string;
   setNewPoSupplier: (v: string) => void;
   newPoLines: { sku: string; quantity: number; unitCostCents: number }[];
-  setNewPoLines: (lines: { sku: string; quantity: number; unitCostCents: number }[]) => void;
+  setNewPoLines: (
+    lines: { sku: string; quantity: number; unitCostCents: number }[],
+  ) => void;
   handleCreatePurchaseOrder: (e: React.FormEvent) => void;
   purchaseOrders: any[];
   receivePoId: string;
@@ -1317,194 +1993,281 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
   handleReceivePO,
   handleApprovePO,
   handleSendPO,
-  loading
+  loading,
 }) => {
   // ⚡ Bolt: Memoize filtered array to prevent O(n) filtering on every render
-  const sentPurchaseOrders = React.useMemo(() => purchaseOrders.filter(po => po.status === 'sent'), [purchaseOrders]);
+  const sentPurchaseOrders = React.useMemo(
+    () => purchaseOrders.filter((po) => po.status === "sent"),
+    [purchaseOrders],
+  );
 
   return (
-  <div className="grid-cols-2">
-    <div className="glass-panel">
-      <h3 className="form-section-title">Create Purchase Order (PO) Draft</h3>
-      <form onSubmit={handleCreatePurchaseOrder}>
-        <div className="form-group">
-          <label htmlFor="suppliername_31">Supplier Name</label>
-          <input id="suppliername_31" type="text" value={newPoSupplier} onChange={(e) => setNewPoSupplier(e.target.value)} required placeholder="e.g. Acme Supplies Ltd." />
-        </div>
-        
-        <div className="form-group">
-          <label>Line Items</label>
-          {newPoLines.map((line, idx) => (
-            <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <input 
-                type="text" 
-                placeholder="SKU" 
-                value={line.sku} 
-                onChange={(e) => {
-                  const updated = [...newPoLines];
-                  updated[idx].sku = e.target.value;
-                  setNewPoLines(updated);
-                }} 
-                required 
-              />
-              <input 
-                type="number" 
-                placeholder="Qty" 
-                value={line.quantity || ''} 
-                onChange={(e) => {
-                  const updated = [...newPoLines];
-                  updated[idx].quantity = Number(e.target.value);
-                  setNewPoLines(updated);
-                }} 
-                required 
-              />
-              <input 
-                type="number" 
-                placeholder="Unit Cost (Cents)" 
-                value={line.unitCostCents || ''} 
-                onChange={(e) => {
-                  const updated = [...newPoLines];
-                  updated[idx].unitCostCents = Number(e.target.value);
-                  setNewPoLines(updated);
-                }} 
-                required 
-              />
-            </div>
-          ))}
-          <button 
-            type="button" 
-            className="btn btn-secondary" 
-            style={{ padding: '0.3rem 0.75rem', fontSize: '0.8rem' }}
-            onClick={() => setNewPoLines([...newPoLines, { sku: '', quantity: 1, unitCostCents: 1000 }])}
-          >
-            + Add Item Row
-          </button>
-        </div>
-        
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-          {loading ? <Spinner /> : 'Draft Purchase Order'}
-        </button>
-      </form>
+    <div className="grid-cols-2">
+      <div className="glass-panel">
+        <h3 className="form-section-title">Create Purchase Order (PO) Draft</h3>
+        <form onSubmit={handleCreatePurchaseOrder}>
+          <div className="form-group">
+            <label htmlFor="suppliername_31">Supplier Name</label>
+            <input
+              id="suppliername_31"
+              type="text"
+              value={newPoSupplier}
+              onChange={(e) => setNewPoSupplier(e.target.value)}
+              required
+              placeholder="e.g. Acme Supplies Ltd."
+            />
+          </div>
 
-      {/* ⚡ Bolt: Replace O(N) .some() check with O(1) length check using the already memoized sentPurchaseOrders */}
-      {sentPurchaseOrders.length > 0 && (
-        <div style={{ marginTop: '2.5rem' }}>
-          <h3 className="form-section-title">Receive Purchase Order Inventory</h3>
-          <form onSubmit={handleReceivePO}>
-            <div className="form-group">
-              <label htmlFor="purchaseorderid_32">Purchase Order ID</label>
-          <select id="purchaseorderid_32"
-                value={receivePoId} 
-                onChange={(e) => {
-                  const id = e.target.value;
-                  setReceivePoId(id);
-                  // ⚡ Bolt: Use smaller pre-filtered sentPurchaseOrders array for O(N) search instead of full purchaseOrders array
-                  const po = sentPurchaseOrders.find(p => p.id === id);
-                  if (po) {
-                    setReceivePoLines(po.items.map((i: any) => ({ sku: i.sku, quantity: i.quantity })));
-                  }
+          <div className="form-group">
+            <label>Line Items</label>
+            {newPoLines.map((line, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  gap: "0.5rem",
+                  marginBottom: "0.5rem",
                 }}
-                required
               >
-                <option value="">-- Select Active PO --</option>
-                {sentPurchaseOrders.map(po => (
-                  <option key={po.id} value={po.id}>{po.id} ({po.supplier})</option>
-                ))}
-              </select>
-            </div>
-
-            {receivePoId && (
-              <div className="form-group">
-                <label>Receipt Quantities</label>
-                {receivePoLines.map((line, idx) => (
-                  <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                    <span><code>{line.sku}</code></span>
-                    <input 
-                      type="number" 
-                      value={line.quantity} 
-                      onChange={(e) => {
-                        const updated = [...receivePoLines];
-                        updated[idx].quantity = Number(e.target.value);
-                        setReceivePoLines(updated);
-                      }}
-                      required 
-                    />
-                  </div>
-                ))}
+                <input
+                  type="text"
+                  placeholder="SKU"
+                  value={line.sku}
+                  onChange={(e) => {
+                    const updated = [...newPoLines];
+                    updated[idx].sku = e.target.value;
+                    setNewPoLines(updated);
+                  }}
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Qty"
+                  value={line.quantity || ""}
+                  onChange={(e) => {
+                    const updated = [...newPoLines];
+                    updated[idx].quantity = Number(e.target.value);
+                    setNewPoLines(updated);
+                  }}
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Unit Cost (Cents)"
+                  value={line.unitCostCents || ""}
+                  onChange={(e) => {
+                    const updated = [...newPoLines];
+                    updated[idx].unitCostCents = Number(e.target.value);
+                    setNewPoLines(updated);
+                  }}
+                  required
+                />
               </div>
-            )}
-
-            <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
-              Fulfill PO & Receive Stock
+            ))}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+              onClick={() =>
+                setNewPoLines([
+                  ...newPoLines,
+                  { sku: "", quantity: 1, unitCostCents: 1000 },
+                ])
+              }
+            >
+              + Add Item Row
             </button>
-          </form>
-        </div>
-      )}
-    </div>
+          </div>
 
-    <div className="glass-panel">
-      <h3 className="form-section-title">Purchase Order Registry</h3>
-      <div className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>PO ID / Date</th>
-              <th>Supplier</th>
-              <th>Items</th>
-              <th>Status & Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {purchaseOrders.length === 0 ? (
-              <tr>
-                <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No Purchase Orders registered in local storage or backend.
-                </td>
-              </tr>
-            ) : (
-              purchaseOrders.map(po => (
-                <tr key={po.id}>
-                  <td>
-                    <code>{po.id}</code>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted-dark)' }}>
-                      {new Date(po.createdAt || new Date()).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td><strong>{po.supplier}</strong></td>
-                  <td>
-                    {po.items.map((i: any, idx: number) => (
-                      <div key={idx} style={{ fontSize: '0.85rem' }}>
-                        <code>{i.sku}</code>: x{i.quantity} (${((i.unitCostCents || 0) / 100).toFixed(2)})
-                      </div>
-                    ))}
-                  </td>
-                  <td>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <span className={`badge badge-${po.status === 'draft' ? 'warning' : po.status === 'approved' ? 'info' : po.status === 'sent' ? 'primary' : 'success'}`}>
-                        {po.status.toUpperCase()}
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loading}
+            aria-busy={loading}
+          >
+            {loading ? <Spinner /> : "Draft Purchase Order"}
+          </button>
+        </form>
+
+        {/* ⚡ Bolt: Replace O(N) .some() check with O(1) length check using the already memoized sentPurchaseOrders */}
+        {sentPurchaseOrders.length > 0 && (
+          <div style={{ marginTop: "2.5rem" }}>
+            <h3 className="form-section-title">
+              Receive Purchase Order Inventory
+            </h3>
+            <form onSubmit={handleReceivePO}>
+              <div className="form-group">
+                <label htmlFor="purchaseorderid_32">Purchase Order ID</label>
+                <select
+                  id="purchaseorderid_32"
+                  value={receivePoId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setReceivePoId(id);
+                    // ⚡ Bolt: Use smaller pre-filtered sentPurchaseOrders array for O(N) search instead of full purchaseOrders array
+                    const po = sentPurchaseOrders.find((p) => p.id === id);
+                    if (po) {
+                      setReceivePoLines(
+                        po.items.map((i: any) => ({
+                          sku: i.sku,
+                          quantity: i.quantity,
+                        })),
+                      );
+                    }
+                  }}
+                  required
+                >
+                  <option value="">-- Select Active PO --</option>
+                  {sentPurchaseOrders.map((po) => (
+                    <option key={po.id} value={po.id}>
+                      {po.id} ({po.supplier})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {receivePoId && (
+                <div className="form-group">
+                  <label>Receipt Quantities</label>
+                  {receivePoLines.map((line, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        gap: "0.5rem",
+                        marginBottom: "0.5rem",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span>
+                        <code>{line.sku}</code>
                       </span>
+                      <input
+                        type="number"
+                        value={line.quantity}
+                        onChange={(e) => {
+                          const updated = [...receivePoLines];
+                          updated[idx].quantity = Number(e.target.value);
+                          setReceivePoLines(updated);
+                        }}
+                        required
+                      />
                     </div>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      {po.status === 'draft' && (
-                        <button className="btn btn-primary" disabled={loading} aria-busy={loading} style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleApprovePO(po.id)} aria-label={`Approve purchase order ${po.id}`}>
-                          Approve
-                        </button>
-                      )}
-                      {po.status === 'approved' && (
-                        <button className="btn btn-accent" disabled={loading} aria-busy={loading} style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleSendPO(po.id)} aria-label={`Send PO ${po.id}`}>
-                          Send PO
-                        </button>
-                      )}
-                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="btn btn-accent"
+                disabled={loading}
+                aria-busy={loading}
+              >
+                Fulfill PO & Receive Stock
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+
+      <div className="glass-panel">
+        <h3 className="form-section-title">Purchase Order Registry</h3>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>PO ID / Date</th>
+                <th>Supplier</th>
+                <th>Items</th>
+                <th>Status & Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {purchaseOrders.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    style={{ textAlign: "center", color: "var(--text-muted)" }}
+                  >
+                    No Purchase Orders registered in local storage or backend.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                purchaseOrders.map((po) => (
+                  <tr key={po.id}>
+                    <td>
+                      <code>{po.id}</code>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "var(--text-muted-dark)",
+                        }}
+                      >
+                        {new Date(
+                          po.createdAt || new Date(),
+                        ).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td>
+                      <strong>{po.supplier}</strong>
+                    </td>
+                    <td>
+                      {po.items.map((i: any, idx: number) => (
+                        <div key={idx} style={{ fontSize: "0.85rem" }}>
+                          <code>{i.sku}</code>: x{i.quantity} ($
+                          {((i.unitCostCents || 0) / 100).toFixed(2)})
+                        </div>
+                      ))}
+                    </td>
+                    <td>
+                      <div style={{ marginBottom: "0.5rem" }}>
+                        <span
+                          className={`badge badge-${po.status === "draft" ? "warning" : po.status === "approved" ? "info" : po.status === "sent" ? "primary" : "success"}`}
+                        >
+                          {po.status.toUpperCase()}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", gap: "0.25rem" }}>
+                        {po.status === "draft" && (
+                          <button
+                            className="btn btn-primary"
+                            disabled={loading}
+                            aria-busy={loading}
+                            style={{
+                              padding: "0.25rem 0.5rem",
+                              fontSize: "0.75rem",
+                            }}
+                            onClick={() => handleApprovePO(po.id)}
+                            aria-label={`Approve purchase order ${po.id}`}
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {po.status === "approved" && (
+                          <button
+                            className="btn btn-accent"
+                            disabled={loading}
+                            aria-busy={loading}
+                            style={{
+                              padding: "0.25rem 0.5rem",
+                              fontSize: "0.75rem",
+                            }}
+                            onClick={() => handleSendPO(po.id)}
+                            aria-label={`Send PO ${po.id}`}
+                          >
+                            Send PO
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
   );
 };
 
@@ -1559,56 +2322,124 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
   setPickSkusInput,
   handleOptimizePickRoute,
   pickRouteResult,
-  loading
+  loading,
 }) => (
   <div className="grid-cols-2">
     <div className="glass-panel">
-      <h3 className="form-section-title">Configure Warehouse Location Layout</h3>
+      <h3 className="form-section-title">
+        Configure Warehouse Location Layout
+      </h3>
       <form onSubmit={handleCreateWmsLocation}>
         <div className="form-group">
           <label htmlFor="locationbinid_33">Location / Bin ID</label>
-          <input id="locationbinid_33" type="text" value={wmsLocId} onChange={(e) => setWmsLocId(e.target.value)} required placeholder="e.g. LOC-CENTRAL" />
+          <input
+            id="locationbinid_33"
+            type="text"
+            value={wmsLocId}
+            onChange={(e) => setWmsLocId(e.target.value)}
+            required
+            placeholder="e.g. LOC-CENTRAL"
+          />
         </div>
         <div className="form-group">
           <label htmlFor="warehouseid_34">Warehouse ID</label>
-          <input id="warehouseid_34" type="text" value={wmsWarehouseId} onChange={(e) => setWmsWarehouseId(e.target.value)} required />
+          <input
+            id="warehouseid_34"
+            type="text"
+            value={wmsWarehouseId}
+            onChange={(e) => setWmsWarehouseId(e.target.value)}
+            required
+          />
         </div>
         <div className="form-group">
           <label htmlFor="warehousezone_35">Warehouse Zone</label>
-          <input id="warehousezone_35" type="text" value={wmsZone} onChange={(e) => setWmsZone(e.target.value)} required />
+          <input
+            id="warehousezone_35"
+            type="text"
+            value={wmsZone}
+            onChange={(e) => setWmsZone(e.target.value)}
+            required
+          />
         </div>
         <div className="form-group">
-          <label htmlFor="maxweightcapacitygrams_36">Max Weight Capacity (Grams)</label>
-          <input id="maxweightcapacitygrams_36" type="number" value={wmsMaxWeight} onChange={(e) => setWmsMaxWeight(Number(e.target.value))} required />
+          <label htmlFor="maxweightcapacitygrams_36">
+            Max Weight Capacity (Grams)
+          </label>
+          <input
+            id="maxweightcapacitygrams_36"
+            type="number"
+            value={wmsMaxWeight}
+            onChange={(e) => setWmsMaxWeight(Number(e.target.value))}
+            required
+          />
         </div>
         <div className="form-group">
-          <label htmlFor="maxvolumecapacitycubicmeters_37">Max Volume Capacity (Cubic Meters)</label>
-          <input id="maxvolumecapacitycubicmeters_37" type="number" step="0.01" value={wmsMaxVolume} onChange={(e) => setWmsMaxVolume(Number(e.target.value))} required />
+          <label htmlFor="maxvolumecapacitycubicmeters_37">
+            Max Volume Capacity (Cubic Meters)
+          </label>
+          <input
+            id="maxvolumecapacitycubicmeters_37"
+            type="number"
+            step="0.01"
+            value={wmsMaxVolume}
+            onChange={(e) => setWmsMaxVolume(Number(e.target.value))}
+            required
+          />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading}
+          aria-busy={loading}
+        >
           Configure Location
         </button>
       </form>
 
-      <div style={{ marginTop: '2.5rem' }}>
+      <div style={{ marginTop: "2.5rem" }}>
         <h3 className="form-section-title">Get Putaway Recommendation</h3>
         <form onSubmit={handleGetPutawaySuggestions}>
           <div className="form-group">
             <label htmlFor="productsku_38">Product SKU</label>
-          <input id="productsku_38" type="text" value={putawaySku} onChange={(e) => setPutawaySku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
+            <input
+              id="productsku_38"
+              type="text"
+              value={putawaySku}
+              onChange={(e) => setPutawaySku(e.target.value)}
+              required
+              placeholder="e.g. ROUTE-SKU"
+            />
           </div>
           <div className="form-group">
             <label htmlFor="incomingquantity_39">Incoming Quantity</label>
-          <input id="incomingquantity_39" type="number" value={putawayQty} onChange={(e) => setPutawayQty(Number(e.target.value))} required />
+            <input
+              id="incomingquantity_39"
+              type="number"
+              value={putawayQty}
+              onChange={(e) => setPutawayQty(Number(e.target.value))}
+              required
+            />
           </div>
-          <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
+          <button
+            type="submit"
+            className="btn btn-accent"
+            disabled={loading}
+            aria-busy={loading}
+          >
             Suggest Bin Location
           </button>
         </form>
 
         {putawayResult.length > 0 && (
-          <div role="alert" aria-live="assertive" style={{ marginTop: '1rem' }} className="alert-box alert-success">
-            <strong>Suggested Bin:</strong> <code>{putawayResult[0].locationId}</code> (Fulfill: {putawayResult[0].suggestedQuantity} units)
+          <div
+            role="alert"
+            aria-live="assertive"
+            style={{ marginTop: "1rem" }}
+            className="alert-box alert-success"
+          >
+            <strong>Suggested Bin:</strong>{" "}
+            <code>{putawayResult[0].locationId}</code> (Fulfill:{" "}
+            {putawayResult[0].suggestedQuantity} units)
           </div>
         )}
       </div>
@@ -1630,19 +2461,33 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
           <tbody>
             {wmsLocations.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td
+                  colSpan={5}
+                  style={{ textAlign: "center", color: "var(--text-muted)" }}
+                >
                   No warehouse locations configured.
                 </td>
               </tr>
             ) : (
-              wmsLocations.map(loc => (
+              wmsLocations.map((loc) => (
                 <tr key={loc.id}>
-                  <td><code>{loc.id}</code></td>
-                  <td><code>Zone {loc.zone}</code></td>
+                  <td>
+                    <code>{loc.id}</code>
+                  </td>
+                  <td>
+                    <code>Zone {loc.zone}</code>
+                  </td>
                   <td>{loc.maxWeightGrams}g</td>
                   <td>{loc.maxVolumeCubicMeters}m³</td>
                   <td>
-                    <button className="btn btn-secondary" disabled={loading} aria-busy={loading} style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)} aria-label={`Delete warehouse location ${loc.id}`}>
+                    <button
+                      className="btn btn-secondary"
+                      disabled={loading}
+                      aria-busy={loading}
+                      style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem" }}
+                      onClick={() => handleDeleteWmsLocation(loc.id)}
+                      aria-label={`Delete warehouse location ${loc.id}`}
+                    >
                       Delete
                     </button>
                   </td>
@@ -1653,25 +2498,42 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
         </table>
       </div>
 
-      <div style={{ marginTop: '2.5rem' }}>
+      <div style={{ marginTop: "2.5rem" }}>
         <h3 className="form-section-title">WMS Picking Route Optimization</h3>
         <form onSubmit={handleOptimizePickRoute}>
           <div className="form-group">
-            <label htmlFor="listofskustopickcommaseparated_40">List of SKUs to Pick (Comma separated)</label>
-          <input id="listofskustopickcommaseparated_40" type="text" value={pickSkusInput} onChange={(e) => setPickSkusInput(e.target.value)} required placeholder="ROUTE-SKU, CHARGER-WRLS-BLK" />
+            <label htmlFor="listofskustopickcommaseparated_40">
+              List of SKUs to Pick (Comma separated)
+            </label>
+            <input
+              id="listofskustopickcommaseparated_40"
+              type="text"
+              value={pickSkusInput}
+              onChange={(e) => setPickSkusInput(e.target.value)}
+              required
+              placeholder="ROUTE-SKU, CHARGER-WRLS-BLK"
+            />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loading}
+            aria-busy={loading}
+          >
             Generate Optimal Pick Sequence
           </button>
         </form>
 
         {pickRouteResult.length > 0 && (
-          <div style={{ marginTop: '1rem' }}>
+          <div style={{ marginTop: "1rem" }}>
             <h4>Suggested Sequencing Path</h4>
-            <ol style={{ paddingLeft: '1.25rem', marginTop: '0.5rem' }}>
+            <ol style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
               {pickRouteResult.map((sku, idx) => (
-                <li key={idx} style={{ marginBottom: '0.25rem' }}>
-                  Collect SKU: <strong><code>{sku}</code></strong>
+                <li key={idx} style={{ marginBottom: "0.25rem" }}>
+                  Collect SKU:{" "}
+                  <strong>
+                    <code>{sku}</code>
+                  </strong>
                 </li>
               ))}
             </ol>
@@ -1703,7 +2565,7 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
   webhooks,
   handleDeleteWebhook,
   webhookDeliveries,
-  loading
+  loading,
 }) => (
   <div className="grid-cols-2">
     <div className="glass-panel">
@@ -1711,35 +2573,62 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
       <form onSubmit={handleCreateWebhook}>
         <div className="form-group">
           <label htmlFor="targeturlendpoint_41">Target URL Endpoint</label>
-          <input id="targeturlendpoint_41" type="url" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} required placeholder="https://api.thirdparty.com/webhook" />
+          <input
+            id="targeturlendpoint_41"
+            type="url"
+            value={webhookUrl}
+            onChange={(e) => setWebhookUrl(e.target.value)}
+            required
+            placeholder="https://api.thirdparty.com/webhook"
+          />
         </div>
         <div className="form-group">
           <label>Event Subscriptions</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {['StockReceived', 'StockDispatched', 'LowStockDetected', 'OnboardingSubmitted'].map(evt => (
-              <label key={evt} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal' }}>
-                <input 
-                  type="checkbox" 
-                  checked={webhookEvents.includes(evt)} 
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+          >
+            {[
+              "StockReceived",
+              "StockDispatched",
+              "LowStockDetected",
+              "OnboardingSubmitted",
+            ].map((evt) => (
+              <label
+                key={evt}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  fontWeight: "normal",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={webhookEvents.includes(evt)}
                   onChange={(e) => {
                     if (e.target.checked) {
                       setWebhookEvents([...webhookEvents, evt]);
                     } else {
-                      setWebhookEvents(webhookEvents.filter(x => x !== evt));
+                      setWebhookEvents(webhookEvents.filter((x) => x !== evt));
                     }
-                  }} 
+                  }}
                 />
                 <code>{evt}</code>
               </label>
             ))}
           </div>
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading}
+          aria-busy={loading}
+        >
           Create Webhook Subscription
         </button>
       </form>
 
-      <div style={{ marginTop: '2.5rem' }}>
+      <div style={{ marginTop: "2.5rem" }}>
         <h3 className="form-section-title">Webhook Subscriptions</h3>
         <div className="table-wrapper">
           <table>
@@ -1753,23 +2642,38 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
             <tbody>
               {webhooks.length === 0 ? (
                 <tr>
-                  <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td
+                    colSpan={3}
+                    style={{ textAlign: "center", color: "var(--text-muted)" }}
+                  >
                     No active webhook subscriptions configured.
                   </td>
                 </tr>
               ) : (
-                webhooks.map(w => (
+                webhooks.map((w) => (
                   <tr key={w.id}>
-                    <td style={{ maxWidth: '200px', wordBreak: 'break-all' }}>
+                    <td style={{ maxWidth: "200px", wordBreak: "break-all" }}>
                       <code>{w.url}</code>
                     </td>
                     <td>
                       {w.eventTypes.map((e: string) => (
-                        <div key={e} style={{ fontSize: '0.85rem' }}><code>{e}</code></div>
+                        <div key={e} style={{ fontSize: "0.85rem" }}>
+                          <code>{e}</code>
+                        </div>
                       ))}
                     </td>
                     <td>
-                      <button className="btn btn-secondary" disabled={loading} aria-busy={loading} style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)} aria-label={`Delete webhook ${w.id}`}>
+                      <button
+                        className="btn btn-secondary"
+                        disabled={loading}
+                        aria-busy={loading}
+                        style={{
+                          padding: "0.2rem 0.5rem",
+                          fontSize: "0.75rem",
+                        }}
+                        onClick={() => handleDeleteWebhook(w.id)}
+                        aria-label={`Delete webhook ${w.id}`}
+                      >
                         Delete
                       </button>
                     </td>
@@ -1796,20 +2700,31 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
           <tbody>
             {webhookDeliveries.length === 0 ? (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td
+                  colSpan={3}
+                  style={{ textAlign: "center", color: "var(--text-muted)" }}
+                >
                   No webhook deliveries recorded.
                 </td>
               </tr>
             ) : (
-              webhookDeliveries.map(log => (
+              webhookDeliveries.map((log) => (
                 <tr key={log.id}>
-                  <td><code>{log.eventName}</code></td>
                   <td>
-                    <span className={`badge badge-${log.statusCode && log.statusCode >= 200 && log.statusCode < 300 ? 'success' : 'error'}`}>
+                    <code>{log.eventName}</code>
+                  </td>
+                  <td>
+                    <span
+                      className={`badge badge-${log.statusCode && log.statusCode >= 200 && log.statusCode < 300 ? "success" : "error"}`}
+                    >
                       {log.statusCode || log.status}
                     </span>
                   </td>
-                  <td>{new Date(log.occurredOn || new Date()).toLocaleTimeString()}</td>
+                  <td>
+                    {new Date(
+                      log.occurredOn || new Date(),
+                    ).toLocaleTimeString()}
+                  </td>
                 </tr>
               ))
             )}
@@ -1826,35 +2741,41 @@ export const RfidPanel: React.FC<{
   locations: any[];
 }> = ({ tenantId, client, locations }) => {
   const [tags, setTags] = useState<RfidTag[]>([]);
-  const [epc, setEpc] = useState('');
-  const [sku, setSku] = useState('');
-  const [serialNumber, setSerialNumber] = useState('');
-  
-  const [selectedLocation, setSelectedLocation] = useState('');
+  const [epc, setEpc] = useState("");
+  const [sku, setSku] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
+
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [unregisteredTagsText, setUnregisteredTagsText] = useState('');
-  
+  const [unregisteredTagsText, setUnregisteredTagsText] = useState("");
+
   const [scanEvents, setScanEvents] = useState<RfidScanUpdate[]>([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [message, setMessage] = useState<{
+    text: string;
+    type: "success" | "error";
+  } | null>(null);
 
   const fetchTags = async () => {
     try {
       const list = await client.getRfidTags(tenantId);
       setTags(list);
     } catch (err: any) {
-      console.error('Failed to load RFID tags:', err);
+      console.error("Failed to load RFID tags:", err);
     }
   };
 
   useEffect(() => {
     fetchTags();
-    
+
     // Subscribe to live scan streams
-    const unsubscribe = client.subscribeRfidScans(tenantId, (event: RfidScanUpdate) => {
-      setScanEvents(prev => [event, ...prev]);
-      fetchTags(); // Refresh tags to update lastSeen/lastLocation status
-    });
+    const unsubscribe = client.subscribeRfidScans(
+      tenantId,
+      (event: RfidScanUpdate) => {
+        setScanEvents((prev) => [event, ...prev]);
+        fetchTags(); // Refresh tags to update lastSeen/lastLocation status
+      },
+    );
 
     return () => {
       unsubscribe();
@@ -1874,14 +2795,22 @@ export const RfidPanel: React.FC<{
     setLoading(true);
     setMessage(null);
     try {
-      await client.assignRfidTag(tenantId, epc.trim(), sku.trim(), serialNumber.trim());
-      setMessage({ text: 'RFID tag assigned successfully.', type: 'success' });
-      setEpc('');
-      setSku('');
-      setSerialNumber('');
+      await client.assignRfidTag(
+        tenantId,
+        epc.trim(),
+        sku.trim(),
+        serialNumber.trim(),
+      );
+      setMessage({ text: "RFID tag assigned successfully.", type: "success" });
+      setEpc("");
+      setSku("");
+      setSerialNumber("");
       fetchTags();
     } catch (err: any) {
-      setMessage({ text: err.message || 'Failed to assign RFID tag.', type: 'error' });
+      setMessage({
+        text: err.message || "Failed to assign RFID tag.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -1890,12 +2819,12 @@ export const RfidPanel: React.FC<{
   const handleSimulate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLocation) return;
-    
+
     // Combine checked registered tags with any arbitrary manual tags
     let epcsToScan = [...selectedTags];
     if (unregisteredTagsText.trim()) {
       // ⚡ Bolt: Replace consecutive .map() and .filter() calls with a single-pass reduce to eliminate redundant iterations and callback overhead
-      const manualEpcs = unregisteredTagsText.split('\n').reduce((acc, x) => {
+      const manualEpcs = unregisteredTagsText.split("\n").reduce((acc, x) => {
         const trimmed = x.trim();
         if (trimmed.length > 0) acc.push(trimmed);
         return acc;
@@ -1904,7 +2833,10 @@ export const RfidPanel: React.FC<{
     }
 
     if (epcsToScan.length === 0) {
-      setMessage({ text: 'Please select or enter at least one EPC tag to scan.', type: 'error' });
+      setMessage({
+        text: "Please select or enter at least one EPC tag to scan.",
+        type: "error",
+      });
       return;
     }
 
@@ -1912,11 +2844,14 @@ export const RfidPanel: React.FC<{
     setMessage(null);
     try {
       await client.simulateRfidScan(tenantId, selectedLocation, epcsToScan);
-      setMessage({ text: `Simulated scan of ${epcsToScan.length} tags at location ${selectedLocation}.`, type: 'success' });
-      setUnregisteredTagsText('');
+      setMessage({
+        text: `Simulated scan of ${epcsToScan.length} tags at location ${selectedLocation}.`,
+        type: "success",
+      });
+      setUnregisteredTagsText("");
       setSelectedTags([]);
     } catch (err: any) {
-      setMessage({ text: err.message || 'Simulation failed.', type: 'error' });
+      setMessage({ text: err.message || "Simulation failed.", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -1924,14 +2859,11 @@ export const RfidPanel: React.FC<{
 
   const handleTagCheck = (tagEpc: string, checked: boolean) => {
     if (checked) {
-      setSelectedTags(prev => [...prev, tagEpc]);
+      setSelectedTags((prev) => [...prev, tagEpc]);
     } else {
-      setSelectedTags(prev => prev.filter(x => x !== tagEpc));
+      setSelectedTags((prev) => prev.filter((x) => x !== tagEpc));
     }
   };
-
-  // ⚡ Bolt: Memoize selected tags into a Set for O(1) lookups inside the render loop, replacing O(N) Array.includes()
-  const selectedTagsSet = React.useMemo(() => new Set(selectedTags), [selectedTags]);
 
   // Metrics
   const totalProcessedBatches = scanEvents.length;
@@ -1943,35 +2875,78 @@ export const RfidPanel: React.FC<{
       matched += curr.matchedCount;
       scanned += curr.totalCount;
     }
-    const rate = scanned > 0 ? ((matched / scanned) * 100).toFixed(1) : '100.0';
-    return { totalMatched: matched, totalScanned: scanned, averageMatchRate: rate };
+    const rate = scanned > 0 ? ((matched / scanned) * 100).toFixed(1) : "100.0";
+    return {
+      totalMatched: matched,
+      totalScanned: scanned,
+      averageMatchRate: rate,
+    };
   }, [scanEvents]);
 
   return (
     <div className="grid-cols-2">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         {/* Assignment Form */}
         <div className="glass-panel">
           <h3 className="form-section-title">Register RFID Tag Mappings</h3>
           {message && (
-            <div role="alert" aria-live="assertive" className={`alert alert-${message.type}`} style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px', fontSize: '0.9rem' }}>
+            <div
+              role="alert"
+              aria-live="assertive"
+              className={`alert alert-${message.type}`}
+              style={{
+                marginBottom: "1rem",
+                padding: "0.75rem",
+                borderRadius: "4px",
+                fontSize: "0.9rem",
+              }}
+            >
               {message.text}
             </div>
           )}
-          <form onSubmit={handleAssign} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form
+            onSubmit={handleAssign}
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          >
             <div className="form-group">
               <label htmlFor="epcid24charhex_42">EPC ID (24-char Hex)</label>
-          <input id="epcid24charhex_42" type="text" value={epc} onChange={e => setEpc(e.target.value)} required placeholder="E28011302000762A17849C10" />
+              <input
+                id="epcid24charhex_42"
+                type="text"
+                value={epc}
+                onChange={(e) => setEpc(e.target.value)}
+                required
+                placeholder="E28011302000762A17849C10"
+              />
             </div>
             <div className="form-group">
               <label htmlFor="itemsku_43">Item SKU</label>
-          <input id="itemsku_43" type="text" value={sku} onChange={e => setSku(e.target.value)} required placeholder="SKU-GEN-SHIRT" />
+              <input
+                id="itemsku_43"
+                type="text"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                required
+                placeholder="SKU-GEN-SHIRT"
+              />
             </div>
             <div className="form-group">
               <label htmlFor="serialnumber_44">Serial Number</label>
-          <input id="serialnumber_44" type="text" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} required placeholder="SN-10002931" />
+              <input
+                id="serialnumber_44"
+                type="text"
+                value={serialNumber}
+                onChange={(e) => setSerialNumber(e.target.value)}
+                required
+                placeholder="SN-10002931"
+              />
             </div>
-            <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+              aria-busy={loading}
+            >
               Register Mapping
             </button>
           </form>
@@ -1980,33 +2955,74 @@ export const RfidPanel: React.FC<{
         {/* Simulation Controls */}
         <div className="glass-panel">
           <h3 className="form-section-title">Simulate RFID Portal Scan</h3>
-          <form onSubmit={handleSimulate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form
+            onSubmit={handleSimulate}
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          >
             <div className="form-group">
-              <label htmlFor="selectscanninglocation_45">Select Scanning Location</label>
-          <select id="selectscanninglocation_45" value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} required>
+              <label htmlFor="selectscanninglocation_45">
+                Select Scanning Location
+              </label>
+              <select
+                id="selectscanninglocation_45"
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+                required
+              >
                 <option value="">-- Select Location --</option>
-                {locations.map(loc => (
+                {locations.map((loc) => (
                   <option key={loc.id} value={loc.id}>
-                    {loc.name || loc.id} ({loc.zone || 'Zone A'})
+                    {loc.name || loc.id} ({loc.zone || "Zone A"})
                   </option>
                 ))}
               </select>
             </div>
-            
+
             <div className="form-group">
               <label>Select Tags to Scan</label>
-              <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '4px', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', background: 'rgba(0,0,0,0.1)' }}>
+              <div
+                style={{
+                  maxHeight: "150px",
+                  overflowY: "auto",
+                  border: "1px solid var(--border)",
+                  borderRadius: "4px",
+                  padding: "0.5rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.4rem",
+                  background: "rgba(0,0,0,0.1)",
+                }}
+              >
                 {tags.length === 0 ? (
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '1rem' }}>
+                  <div
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "0.9rem",
+                      textAlign: "center",
+                      padding: "1rem",
+                    }}
+                  >
                     No registered RFID tags. Use the form above to add tags.
                   </div>
                 ) : (
-                  tags.map(t => (
-                    <label key={t.epc} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal', fontSize: '0.85rem', cursor: 'pointer' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedTagsSet.has(t.epc)}
-                        onChange={e => handleTagCheck(t.epc, e.target.checked)} 
+                  tags.map((t) => (
+                    <label
+                      key={t.epc}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        fontWeight: "normal",
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTags.includes(t.epc)}
+                        onChange={(e) =>
+                          handleTagCheck(t.epc, e.target.checked)
+                        }
                       />
                       <code>{t.epc}</code> - {t.sku} (S/N: {t.serialNumber})
                     </label>
@@ -2016,64 +3032,169 @@ export const RfidPanel: React.FC<{
             </div>
 
             <div className="form-group">
-              <label htmlFor="unregisteredarbitraryepcsoneperline_46">Unregistered/Arbitrary EPCs (one per line)</label>
-          <textarea id="unregisteredarbitraryepcsoneperline_46"
-                rows={3} 
-                value={unregisteredTagsText} 
-                onChange={e => setUnregisteredTagsText(e.target.value)} 
+              <label htmlFor="unregisteredarbitraryepcsoneperline_46">
+                Unregistered/Arbitrary EPCs (one per line)
+              </label>
+              <textarea
+                id="unregisteredarbitraryepcsoneperline_46"
+                rows={3}
+                value={unregisteredTagsText}
+                onChange={(e) => setUnregisteredTagsText(e.target.value)}
                 placeholder="E28011302000000000000001&#10;E28011302000000000000002"
-                style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                style={{ fontFamily: "monospace", fontSize: "0.85rem" }}
               />
             </div>
 
-            <button type="submit" className="btn btn-secondary" disabled={loading || locations.length === 0} aria-busy={loading} title={locations.length === 0 ? "Requires at least one registered location" : undefined}>
+            <button
+              type="submit"
+              className="btn btn-secondary"
+              disabled={loading || locations.length === 0}
+              aria-busy={loading}
+              title={
+                locations.length === 0
+                  ? "Requires at least one registered location"
+                  : undefined
+              }
+            >
               Simulate Scan Ingest
             </button>
           </form>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         {/* Real-time Ingestion Stream */}
-        <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div
+          className="glass-panel"
+          style={{ flex: 1, display: "flex", flexDirection: "column" }}
+        >
           <h3 className="form-section-title">Live Ingestion Metrics</h3>
-          
-          <div className="grid-cols-3" style={{ marginBottom: '1.5rem', gap: '1rem' }}>
-            <div className="stat-card" style={{ padding: '0.75rem', textAlign: 'center' }}>
+
+          <div
+            className="grid-cols-3"
+            style={{ marginBottom: "1.5rem", gap: "1rem" }}
+          >
+            <div
+              className="stat-card"
+              style={{ padding: "0.75rem", textAlign: "center" }}
+            >
               <div className="stat-label">Batches Processed</div>
-              <div className="stat-value" style={{ fontSize: '1.5rem' }}>{totalProcessedBatches}</div>
+              <div className="stat-value" style={{ fontSize: "1.5rem" }}>
+                {totalProcessedBatches}
+              </div>
             </div>
-            <div className="stat-card" style={{ padding: '0.75rem', textAlign: 'center' }}>
+            <div
+              className="stat-card"
+              style={{ padding: "0.75rem", textAlign: "center" }}
+            >
               <div className="stat-label">Total Tags Scanned</div>
-              <div className="stat-value" style={{ fontSize: '1.5rem' }}>{totalScanned}</div>
+              <div className="stat-value" style={{ fontSize: "1.5rem" }}>
+                {totalScanned}
+              </div>
             </div>
-            <div className="stat-card" style={{ padding: '0.75rem', textAlign: 'center' }}>
+            <div
+              className="stat-card"
+              style={{ padding: "0.75rem", textAlign: "center" }}
+            >
               <div className="stat-label">Avg Match Rate</div>
-              <div className={`stat-value ${parseFloat(averageMatchRate) < 90 ? 'text-error' : 'text-success'}`} style={{ fontSize: '1.5rem' }}>
+              <div
+                className={`stat-value ${parseFloat(averageMatchRate) < 90 ? "text-error" : "text-success"}`}
+                style={{ fontSize: "1.5rem" }}
+              >
                 {averageMatchRate}%
               </div>
             </div>
           </div>
 
-          <h4 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: 'var(--text-bright)' }}>Real-time Event Stream</h4>
-          <div style={{ flex: 1, maxHeight: '350px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '4px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: '#090a0f', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+          <h4
+            style={{
+              fontSize: "1rem",
+              marginBottom: "0.5rem",
+              color: "var(--text-bright)",
+            }}
+          >
+            Real-time Event Stream
+          </h4>
+          <div
+            style={{
+              flex: 1,
+              maxHeight: "350px",
+              overflowY: "auto",
+              border: "1px solid var(--border)",
+              borderRadius: "4px",
+              padding: "0.75rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5rem",
+              background: "#090a0f",
+              fontFamily: "monospace",
+              fontSize: "0.85rem",
+            }}
+          >
             {scanEvents.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+              <div
+                style={{
+                  color: "var(--text-muted)",
+                  textAlign: "center",
+                  padding: "2rem",
+                }}
+              >
                 Waiting for scan events... Simulate a scan to trigger.
               </div>
             ) : (
-              scanEvents.map(evt => (
-                <div key={evt.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#61afef', marginBottom: '0.2rem' }}>
+              scanEvents.map((evt) => (
+                <div
+                  key={evt.id}
+                  style={{
+                    borderBottom: "1px solid rgba(255,255,255,0.05)",
+                    paddingBottom: "0.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      color: "#61afef",
+                      marginBottom: "0.2rem",
+                    }}
+                  >
                     <span>[BATCH: {evt.id.substring(evt.id.length - 8)}]</span>
-                    <span style={{ color: 'var(--text-muted)' }}>{new Date().toLocaleTimeString()}</span>
+                    <span style={{ color: "var(--text-muted)" }}>
+                      {new Date().toLocaleTimeString()}
+                    </span>
                   </div>
-                  <div>Location: <span style={{ color: '#abb2bf' }}>{evt.locationId}</span></div>
-                  <div>Scanned: <span style={{ color: '#abb2bf' }}>{evt.totalCount} tags</span></div>
-                  <div>Matched: <span style={{ color: '#98c379' }}>{evt.matchedCount}</span> | Unmatched: <span style={{ color: evt.unmatchedCount > 0 ? '#e06c75' : '#5c6370' }}>{evt.unmatchedCount}</span></div>
+                  <div>
+                    Location:{" "}
+                    <span style={{ color: "#abb2bf" }}>{evt.locationId}</span>
+                  </div>
+                  <div>
+                    Scanned:{" "}
+                    <span style={{ color: "#abb2bf" }}>
+                      {evt.totalCount} tags
+                    </span>
+                  </div>
+                  <div>
+                    Matched:{" "}
+                    <span style={{ color: "#98c379" }}>{evt.matchedCount}</span>{" "}
+                    | Unmatched:{" "}
+                    <span
+                      style={{
+                        color: evt.unmatchedCount > 0 ? "#e06c75" : "#5c6370",
+                      }}
+                    >
+                      {evt.unmatchedCount}
+                    </span>
+                  </div>
                   {evt.unmatchedEpcs.length > 0 && (
-                    <div style={{ color: '#e06c75', marginTop: '0.2rem', paddingLeft: '0.5rem', fontSize: '0.75rem' }}>
-                      Unregistered EPCs: {evt.unmatchedEpcs.join(', ')}
+                    <div
+                      style={{
+                        color: "#e06c75",
+                        marginTop: "0.2rem",
+                        paddingLeft: "0.5rem",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      Unregistered EPCs: {evt.unmatchedEpcs.join(", ")}
                     </div>
                   )}
                 </div>
@@ -2085,7 +3206,10 @@ export const RfidPanel: React.FC<{
         {/* Registered Tag Catalog */}
         <div className="glass-panel">
           <h3 className="form-section-title">RFID Tag Inventory Catalog</h3>
-          <div className="table-wrapper" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+          <div
+            className="table-wrapper"
+            style={{ maxHeight: "200px", overflowY: "auto" }}
+          >
             <table>
               <thead>
                 <tr>
@@ -2099,18 +3223,42 @@ export const RfidPanel: React.FC<{
               <tbody>
                 {tags.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <td
+                      colSpan={5}
+                      style={{
+                        textAlign: "center",
+                        color: "var(--text-muted)",
+                      }}
+                    >
                       No tags registered yet.
                     </td>
                   </tr>
                 ) : (
-                  tags.map(t => (
+                  tags.map((t) => (
                     <tr key={t.epc}>
-                      <td><code>{t.epc}</code></td>
+                      <td>
+                        <code>{t.epc}</code>
+                      </td>
                       <td>{t.sku}</td>
-                      <td><code>{t.serialNumber}</code></td>
-                      <td>{t.lastSeenAt ? new Date(t.lastSeenAt).toLocaleTimeString() : <span style={{ color: 'var(--text-muted)' }}>Never</span>}</td>
-                      <td>{t.lastLocation || <span style={{ color: 'var(--text-muted)' }}>N/A</span>}</td>
+                      <td>
+                        <code>{t.serialNumber}</code>
+                      </td>
+                      <td>
+                        {t.lastSeenAt ? (
+                          new Date(t.lastSeenAt).toLocaleTimeString()
+                        ) : (
+                          <span style={{ color: "var(--text-muted)" }}>
+                            Never
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {t.lastLocation || (
+                          <span style={{ color: "var(--text-muted)" }}>
+                            N/A
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -2124,40 +3272,53 @@ export const RfidPanel: React.FC<{
 };
 
 export const LotManagementPanel = () => {
-  const [lotNumber, setLotNumber] = useState('LOT-2026-X');
-  const [variantId, setVariantId] = useState('VAR-MED-100');
-  const [reason, setReason] = useState('Quality defect inspection');
-  const [statusMsg, setStatusMsg] = useState('');
+  const [lotNumber, setLotNumber] = useState("LOT-2026-X");
+  const [variantId, setVariantId] = useState("VAR-MED-100");
+  const [reason, setReason] = useState("Quality defect inspection");
+  const [statusMsg, setStatusMsg] = useState("");
   const [traceReport, setTraceReport] = useState<any>(null);
 
-  const [poId, setPoId] = useState('PO-9910');
-  const [inboundJson, setInboundJson] = useState('[{"variantId":"VAR-MED-100","quantity":50}]');
-  const [backordersJson, setBackordersJson] = useState('[{"orderId":"ORD-501","variantId":"VAR-MED-100","quantity":30,"priority":2}]');
+  const [poId, setPoId] = useState("PO-9910");
+  const [inboundJson, setInboundJson] = useState(
+    '[{"variantId":"VAR-MED-100","quantity":50}]',
+  );
+  const [backordersJson, setBackordersJson] = useState(
+    '[{"orderId":"ORD-501","variantId":"VAR-MED-100","quantity":30,"priority":2}]',
+  );
   const [crossDockResults, setCrossDockResults] = useState<any[]>([]);
 
-  const handleAction = async (action: 'quarantine' | 'recall' | 'release' | 'trace') => {
+  const handleAction = async (
+    action: "quarantine" | "recall" | "release" | "trace",
+  ) => {
     setStatusMsg(`Processing ${action}...`);
     try {
-      if (action === 'trace') {
-        const activeToken = localStorage.getItem('auth_token') || '';
-        const res = await fetch(`/api/lots/${encodeURIComponent(lotNumber)}/traceability?variantId=${variantId}`, {
-          headers: activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {}
-        });
+      if (action === "trace") {
+        const activeToken = localStorage.getItem("auth_token") || "";
+        const res = await fetch(
+          `/api/lots/${encodeURIComponent(lotNumber)}/traceability?variantId=${variantId}`,
+          {
+            headers: activeToken
+              ? { Authorization: `Bearer ${activeToken}` }
+              : {},
+          },
+        );
         const data = await res.json();
         setTraceReport(data);
-        setStatusMsg('Traceability report generated.');
+        setStatusMsg("Traceability report generated.");
       } else {
-        const activeToken = localStorage.getItem('auth_token') || '';
+        const activeToken = localStorage.getItem("auth_token") || "";
         const res = await fetch(`/api/lots/${action}`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+            "Content-Type": "application/json",
+            ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
           },
-          body: JSON.stringify({ lotNumber, variantId, reason })
+          body: JSON.stringify({ lotNumber, variantId, reason }),
         });
         const data = await res.json();
-        setStatusMsg(`Lot ${lotNumber} updated to ${data.status || action.toUpperCase()}`);
+        setStatusMsg(
+          `Lot ${lotNumber} updated to ${data.status || action.toUpperCase()}`,
+        );
       }
     } catch (e: any) {
       setStatusMsg(`Error: ${e.message}`);
@@ -2166,18 +3327,18 @@ export const LotManagementPanel = () => {
 
   const handleCrossDock = async () => {
     try {
-      const activeToken = localStorage.getItem('auth_token') || '';
-      const res = await fetch('/api/cross-dock/evaluate', {
-        method: 'POST',
+      const activeToken = localStorage.getItem("auth_token") || "";
+      const res = await fetch("/api/cross-dock/evaluate", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+          "Content-Type": "application/json",
+          ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
         },
         body: JSON.stringify({
           purchaseOrderId: poId,
-          inboundItems: JSON.parse(inboundJson || '[]'),
-          backorders: JSON.parse(backordersJson || '[]')
-        })
+          inboundItems: JSON.parse(inboundJson || "[]"),
+          backorders: JSON.parse(backordersJson || "[]"),
+        }),
       });
       const data = await res.json();
       setCrossDockResults(data);
@@ -2189,79 +3350,173 @@ export const LotManagementPanel = () => {
   return (
     <div className="grid-cols-2">
       <div className="glass-panel">
-        <h3 className="form-section-title">🛡️ Lot Quarantine & Recall Traceability</h3>
+        <h3 className="form-section-title">
+          🛡️ Lot Quarantine & Recall Traceability
+        </h3>
         {statusMsg && (
-          <div role="alert" aria-live="assertive" className="alert alert-info" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '4px' }}>
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="alert alert-info"
+            style={{
+              marginBottom: "1rem",
+              padding: "0.75rem",
+              borderRadius: "4px",
+            }}
+          >
             {statusMsg}
           </div>
         )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <div className="form-group">
             <label htmlFor="lotnumber_47">Lot Number</label>
-          <input id="lotnumber_47" type="text" value={lotNumber} onChange={e => setLotNumber(e.target.value)} />
+            <input
+              id="lotnumber_47"
+              type="text"
+              value={lotNumber}
+              onChange={(e) => setLotNumber(e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label htmlFor="variantidsku_48">Variant ID / SKU</label>
-          <input id="variantidsku_48" type="text" value={variantId} onChange={e => setVariantId(e.target.value)} />
+            <input
+              id="variantidsku_48"
+              type="text"
+              value={variantId}
+              onChange={(e) => setVariantId(e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label htmlFor="reasonnotes_49">Reason / Notes</label>
-          <input id="reasonnotes_49" type="text" value={reason} onChange={e => setReason(e.target.value)} />
+            <input
+              id="reasonnotes_49"
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button className="btn btn-warning" onClick={() => handleAction('quarantine')}>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <button
+              className="btn btn-warning"
+              onClick={() => handleAction("quarantine")}
+            >
               Quarantine Lot
             </button>
-            <button className="btn btn-danger" onClick={() => handleAction('recall')}>
+            <button
+              className="btn btn-danger"
+              onClick={() => handleAction("recall")}
+            >
               Trigger Lot Recall
             </button>
-            <button className="btn btn-secondary" onClick={() => handleAction('release')}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => handleAction("release")}
+            >
               Release Lot
             </button>
-            <button className="btn btn-primary" onClick={() => handleAction('trace')}>
+            <button
+              className="btn btn-primary"
+              onClick={() => handleAction("trace")}
+            >
               Generate Trace Report
             </button>
           </div>
 
           {traceReport && (
-            <div style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '6px' }}>
+            <div
+              style={{
+                marginTop: "1rem",
+                background: "rgba(0,0,0,0.2)",
+                padding: "1rem",
+                borderRadius: "6px",
+              }}
+            >
               <h4>Lot Lineage Traceability Report</h4>
-              <p><strong>Lot Number:</strong> {traceReport.lotNumber}</p>
-              <p><strong>Status:</strong> <span className={`badge badge-${traceReport.status}`}>{traceReport.status}</span></p>
-              <p><strong>Affected Orders:</strong> {traceReport.affectedOrders?.length || 0}</p>
-              <p><strong>Impacted Customers:</strong> {traceReport.affectedCustomers?.join(', ') || 'None'}</p>
+              <p>
+                <strong>Lot Number:</strong> {traceReport.lotNumber}
+              </p>
+              <p>
+                <strong>Status:</strong>{" "}
+                <span className={`badge badge-${traceReport.status}`}>
+                  {traceReport.status}
+                </span>
+              </p>
+              <p>
+                <strong>Affected Orders:</strong>{" "}
+                {traceReport.affectedOrders?.length || 0}
+              </p>
+              <p>
+                <strong>Impacted Customers:</strong>{" "}
+                {traceReport.affectedCustomers?.join(", ") || "None"}
+              </p>
             </div>
           )}
         </div>
       </div>
 
       <div className="glass-panel">
-        <h3 className="form-section-title">⚡ Dynamic Cross-Docking Evaluator</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <h3 className="form-section-title">
+          ⚡ Dynamic Cross-Docking Evaluator
+        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <div className="form-group">
             <label htmlFor="purchaseorderid_50">Purchase Order ID</label>
-          <input id="purchaseorderid_50" type="text" value={poId} onChange={e => setPoId(e.target.value)} />
+            <input
+              id="purchaseorderid_50"
+              type="text"
+              value={poId}
+              onChange={(e) => setPoId(e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label htmlFor="inbounditemsjson_51">Inbound Items (JSON)</label>
-          <textarea id="inbounditemsjson_51" rows={2} value={inboundJson} onChange={e => setInboundJson(e.target.value)} style={{ fontFamily: 'monospace' }} />
+            <textarea
+              id="inbounditemsjson_51"
+              rows={2}
+              value={inboundJson}
+              onChange={(e) => setInboundJson(e.target.value)}
+              style={{ fontFamily: "monospace" }}
+            />
           </div>
           <div className="form-group">
-            <label htmlFor="matchingbackordersjson_52">Matching Backorders (JSON)</label>
-          <textarea id="matchingbackordersjson_52" rows={2} value={backordersJson} onChange={e => setBackordersJson(e.target.value)} style={{ fontFamily: 'monospace' }} />
+            <label htmlFor="matchingbackordersjson_52">
+              Matching Backorders (JSON)
+            </label>
+            <textarea
+              id="matchingbackordersjson_52"
+              rows={2}
+              value={backordersJson}
+              onChange={(e) => setBackordersJson(e.target.value)}
+              style={{ fontFamily: "monospace" }}
+            />
           </div>
           <button className="btn btn-primary" onClick={handleCrossDock}>
             Evaluate Dock-to-Dock Opportunities
           </button>
 
           {crossDockResults.length > 0 && (
-            <div style={{ marginTop: '1rem' }}>
+            <div style={{ marginTop: "1rem" }}>
               <h4>Recommended Direct Transfers</h4>
               {crossDockResults.map((opp, idx) => (
-                <div key={idx} style={{ background: 'rgba(0,255,150,0.1)', padding: '0.75rem', borderRadius: '6px', marginBottom: '0.5rem', border: '1px solid rgba(0,255,150,0.3)' }}>
-                  <p><strong>Target Bay:</strong> <code>{opp.destinationBay}</code></p>
-                  <p><strong>Direct Cross-Dock Quantity:</strong> {opp.recommendedCrossDockQuantity} units</p>
+                <div
+                  key={idx}
+                  style={{
+                    background: "rgba(0,255,150,0.1)",
+                    padding: "0.75rem",
+                    borderRadius: "6px",
+                    marginBottom: "0.5rem",
+                    border: "1px solid rgba(0,255,150,0.3)",
+                  }}
+                >
+                  <p>
+                    <strong>Target Bay:</strong>{" "}
+                    <code>{opp.destinationBay}</code>
+                  </p>
+                  <p>
+                    <strong>Direct Cross-Dock Quantity:</strong>{" "}
+                    {opp.recommendedCrossDockQuantity} units
+                  </p>
                 </div>
               ))}
             </div>
@@ -2271,5 +3526,3 @@ export const LotManagementPanel = () => {
     </div>
   );
 };
-
-
