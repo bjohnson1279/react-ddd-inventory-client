@@ -126,45 +126,53 @@ export class LaravelRESTAdapter implements InventoryClient {
     const rawProducts = prodData.products || [];
 
     // Resolve barcodes for each variant to complete model structure
-    return Promise.all(rawProducts.map(async (p: any) => {
-      const variants = await Promise.all((p.variants || []).map(async (v: any) => {
-        try {
-          const bcData = await this.request('GET', `/api/barcodes/variants/${v.id}`);
-          // Format assignments to match UI expectations
-          const assignments = (bcData.assignments || []).map((a: any) => ({
-            id: a.id,
-            sku: v.sku,
-            barcode: {
-              value: a.barcode_value || a.value,
-              symbology: a.symbology
-            },
-            source: a.source,
-            isPrimary: a.is_primary || a.isPrimary,
-            assignedAt: a.assigned_at || a.assignedAt
-          }));
-          return {
-            id: v.id,
-            sku: v.sku,
-            trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
-            attributes: v.attributes || [],
-            barcodes: assignments
-          };
-        } catch {
-          return {
-            id: v.id,
-            sku: v.sku,
-            trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
-            attributes: v.attributes || [],
-            barcodes: []
-          };
-        }
+    // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
+    const allProducts = [];
+    const CHUNK_SIZE = 10;
+    for (let i = 0; i < rawProducts.length; i += CHUNK_SIZE) {
+      const chunk = rawProducts.slice(i, i + CHUNK_SIZE);
+      const chunkProducts = await Promise.all(chunk.map(async (p: any) => {
+        const variants = await Promise.all((p.variants || []).map(async (v: any) => {
+          try {
+            const bcData = await this.request('GET', `/api/barcodes/variants/${v.id}`);
+            // Format assignments to match UI expectations
+            const assignments = (bcData.assignments || []).map((a: any) => ({
+              id: a.id,
+              sku: v.sku,
+              barcode: {
+                value: a.barcode_value || a.value,
+                symbology: a.symbology
+              },
+              source: a.source,
+              isPrimary: a.is_primary || a.isPrimary,
+              assignedAt: a.assigned_at || a.assignedAt
+            }));
+            return {
+              id: v.id,
+              sku: v.sku,
+              trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
+              attributes: v.attributes || [],
+              barcodes: assignments
+            };
+          } catch {
+            return {
+              id: v.id,
+              sku: v.sku,
+              trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
+              attributes: v.attributes || [],
+              barcodes: []
+            };
+          }
+        }));
+        return {
+          id: p.id,
+          name: p.name,
+          variants
+        };
       }));
-      return {
-        id: p.id,
-        name: p.name,
-        variants
-      };
-    }));
+      allProducts.push(...chunkProducts);
+    }
+    return allProducts;
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
