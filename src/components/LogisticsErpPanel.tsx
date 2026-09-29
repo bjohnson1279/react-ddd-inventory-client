@@ -508,6 +508,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
               <label className="block text-xs font-medium text-slate-400 mb-1">API Key / Auth Token (Set to "mock" for fallback mode)</label>
               <input
                 type="password"
+                autoComplete="off"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"

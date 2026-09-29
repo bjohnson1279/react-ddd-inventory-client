@@ -149,6 +149,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
               <input
                 id="amazonAuthToken"
                 type="password"
+                autoComplete="off"
                 value={amazonAuthToken}
                 onChange={(e) => setAmazonAuthToken(e.target.value)}
                 className="w-full border rounded p-2 text-sm"
@@ -229,6 +230,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
               <input
                 id="wooSecret"
                 type="password"
+                autoComplete="off"
                 value={wooSecret}
                 onChange={(e) => setWooSecret(e.target.value)}
                 className="w-full border rounded p-2 text-sm"
@@ -277,6 +279,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
               <input
                 id="shopifyToken"
                 type="password"
+                autoComplete="off"
                 value={shopifyToken}
                 onChange={(e) => setShopifyToken(e.target.value)}
                 className="w-full border rounded p-2 text-sm"
