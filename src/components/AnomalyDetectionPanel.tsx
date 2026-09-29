@@ -51,7 +51,8 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({
         <button
           className="ai-panel-action-btn"
           onClick={fetchData}
-          disabled={loading} aria-busy={loading}
+          disabled={loading}
+          aria-busy={loading}
         >
           {loading ? "Analyzing..." : "Analyze Now"}
         </button>
@@ -71,7 +72,8 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({
             </button>
             <button
               onClick={() => setError(null)}
-              aria-label="Dismiss error" title="Dismiss error"
+              aria-label="Dismiss error"
+              title="Dismiss error"
               className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"
               style={{
                 background: "transparent",
@@ -231,7 +233,10 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({
                   {data.alerts?.map((alert: any, idx: number) => {
                     const time = new Date(alert.detectedAt).getHours();
                     const left = `${(time / 24) * 100}%`;
-                    const top = `${20 + Math.random() * 60}%`;
+                    const randomValue =
+                      window.crypto.getRandomValues(new Uint32Array(1))[0] /
+                      (0xffffffff + 1);
+                    const top = `${20 + randomValue * 60}%`;
                     const color =
                       alert.severity === "CRITICAL"
                         ? "#ef4444"

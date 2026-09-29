@@ -17,12 +17,23 @@ export const RFIDBulkScannerView: React.FC = () => {
     setTimeout(() => {
       const unique = Math.floor(scanCount * 0.94);
       const duplicates = scanCount - unique;
+      // CodeQL flags division/rounding on crypto randoms. Rejection sampling avoids bias.
+      const range = 19; // For Math.round(12 + rand * 18), possible values are 12 to 30 inclusive. Range size is 30 - 12 + 1 = 19
+      const maxValid = Math.floor(256 / range) * range;
+      let randInt;
+      const arr = new Uint8Array(1);
+      do {
+        window.crypto.getRandomValues(arr);
+        randInt = arr[0];
+      } while (randInt >= maxValid);
+      const processingTimeMs = 12 + (randInt % range);
+
       setIngestionResult({
         totalScanned: scanCount,
         uniqueProcessed: unique,
         duplicatesDiscarded: duplicates,
         batchId: `rfid-batch-${Date.now()}`,
-        processingTimeMs: Math.round(12 + Math.random() * 18),
+        processingTimeMs,
       });
       setIsScanning(false);
     }, 400);
@@ -121,7 +132,14 @@ export const RFIDBulkScannerView: React.FC = () => {
             }}
           >
             {isScanning ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
                 <Spinner /> Processing Ingest...
               </div>
             ) : (
