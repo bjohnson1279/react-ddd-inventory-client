@@ -65,7 +65,9 @@ describe('RfidPanel', () => {
       expect(mockClient.assignRfidTag).toHaveBeenCalledWith(tenantId, 'NEW-EPC', 'NEW-SKU', 'NEW-SN');
     });
 
-    expect(screen.getByText('RFID tag assigned successfully.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('RFID tag assigned successfully.')).toBeInTheDocument();
+    });
   });
 
   it('handles scan simulation', async () => {
