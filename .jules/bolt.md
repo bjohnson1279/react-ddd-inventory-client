@@ -103,7 +103,3 @@
 ## 2024-05-19 - Optimize hasPermission string splitting
 **Learning:** When evaluating authorization or permission checks repeatedly (like `hasPermission` inside `App.tsx` render cycle), inline string manipulations like `.split(':')` inside array `.some()` loops create significant allocation overhead. This was an O(N) check with dynamic allocations.
 **Action:** Use `useMemo` to pre-parse the permissions array into a fast O(1) `Map<string, Set<string>>` lookup dictionary. This ensures string splitting only occurs when the actual permissions array changes, drastically speeding up authorization checks across the app.
-
-## 2024-11-20 - Chunk Promise.all network requests
-**Learning:** In `src/api/laravel.ts` `getProducts`, an unbatched `Promise.all` was mapping over all products and their variants to fetch barcodes. For large catalogs, this causes a massive N+1 concurrency bottleneck that overwhelms the backend, leading to API timeouts or 429 Too Many Requests errors.
-**Action:** Always replace massive unbatched `Promise.all` network requests with a chunked execution loop (e.g. processing 10-20 items at a time). This limits concurrency, avoids network throttling, and keeps the application stable when processing large datasets.
