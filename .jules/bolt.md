@@ -103,3 +103,6 @@
 ## 2024-05-19 - Optimize hasPermission string splitting
 **Learning:** When evaluating authorization or permission checks repeatedly (like `hasPermission` inside `App.tsx` render cycle), inline string manipulations like `.split(':')` inside array `.some()` loops create significant allocation overhead. This was an O(N) check with dynamic allocations.
 **Action:** Use `useMemo` to pre-parse the permissions array into a fast O(1) `Map<string, Set<string>>` lookup dictionary. This ensures string splitting only occurs when the actual permissions array changes, drastically speeding up authorization checks across the app.
+## 2024-10-24 - Array.prototype.includes vs Set.has inside render loops
+**Learning:** Calling `Array.prototype.includes()` inside `.map()` or `.filter()` results in O(N*M) time complexity during render, which can cause frame drops and lag when dealing with many items, as the browser has to iterate through the entire array for each item.
+**Action:** Replace `Array.prototype.includes()` with `Set.has()` by memoizing the array into a Set outside the loop to achieve O(1) lookups, resolving O(N*M) bottlenecks.
