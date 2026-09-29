@@ -214,6 +214,7 @@ export const RoleManagementPanel: React.FC = () => {
             </button>
             <button
               type="submit"
+              disabled={loading} aria-busy={loading}
               style={{ background: 'linear-gradient(90deg, #10b981, #059669)', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
             >
               {isCreating ? 'Save New Role' : 'Update Permissions'}

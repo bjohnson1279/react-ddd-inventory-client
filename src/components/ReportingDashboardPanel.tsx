@@ -93,7 +93,8 @@ export const ReportingDashboardPanel: React.FC<Props> = ({ client, tenantId }) =
               <option value="AUDIT_DISCREPANCY">Audit Discrepancy</option>
             </select>
             <button 
-              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
+              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition disabled:opacity-50"
+              disabled={loading} aria-busy={loading}
               onClick={handleCreateReport}
             >
               Create
