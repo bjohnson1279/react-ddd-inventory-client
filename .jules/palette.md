@@ -1,0 +1,3 @@
+## 2026-10-01 - Missing aria-busy on Custom Async States
+**Learning:** Found instances where custom loading states (e.g., `loadingSlotting`, `verifyingLedger`, `reconstructingState`, `replayingAudit`) were bound to the `disabled` property of buttons to prevent duplicate submission, but the corresponding `aria-busy` attribute was omitted. Without `aria-busy`, assistive technologies fail to notify users that an async background operation is currently processing, reducing context and interactivity feedback.
+**Action:** When introducing or modifying custom async state hooks that control the interactivity of a submit or action button, ensure both `disabled` and `aria-busy` are bound to that specific state identifier.

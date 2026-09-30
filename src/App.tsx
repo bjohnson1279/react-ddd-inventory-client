@@ -3230,6 +3230,7 @@ function App() {
                   className="btn btn-secondary" 
                   style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
                   disabled={loadingSlotting}
+                  aria-busy={loadingSlotting}
                 >
                   {loadingSlotting ? 'Analyzing...' : '↻ Recalculate Bins'}
                 </button>
@@ -3442,6 +3443,7 @@ function App() {
                 onClick={handleVerifyComplianceLedger} 
                 className="btn btn-primary"
                 disabled={verifyingLedger}
+                aria-busy={verifyingLedger}
               >
                 {verifyingLedger ? 'Verifying Ledger Chains...' : 'Verify Compliance Ledger Integrity'}
               </button>
@@ -3495,6 +3497,7 @@ function App() {
                   onClick={handleReconstructState}
                   className="btn btn-primary"
                   disabled={reconstructingState}
+                  aria-busy={reconstructingState}
                   style={{ alignSelf: 'flex-end' }}
                 >
                   {reconstructingState ? 'Reconstructing State...' : 'Reconstruct Historical State'}
@@ -3503,6 +3506,7 @@ function App() {
                   onClick={handleReplayAudit}
                   className="btn btn-secondary"
                   disabled={replayingAudit}
+                  aria-busy={replayingAudit}
                   style={{ alignSelf: 'flex-end' }}
                 >
                   {replayingAudit ? 'Replaying Ledger...' : 'Replay Audit Timeline'}
