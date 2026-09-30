@@ -1,22 +1,58 @@
-import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidScanUpdate } from './client';
+import {
+  InventoryClient,
+  Role,
+  Permission,
+  InventoryItem,
+  Product,
+  StockOnboarding,
+  JournalEntry,
+  ShopifyConnection,
+  SerializedItem,
+  JournalLine,
+  Item,
+  ForecastingReportItem,
+  FulfillmentPlan,
+  ReorderPolicy,
+  WebhookSubscription,
+  WebhookDeliveryLog,
+  WarehouseLocation,
+  PutawaySuggestion,
+  PurchaseOrder,
+  PurchaseOrderItem,
+  User,
+  AuditDiscrepancy,
+  OutboxStats,
+  OutboxEvent,
+  TenantAccountingConfig,
+  QuarantinedItem,
+  ValuationItem,
+  RfidScanUpdate,
+} from "./client";
 
-const LARAVEL_BASE_URL = 'http://localhost:8000';
+const LARAVEL_BASE_URL = "http://localhost:8000";
 
 export class LaravelRESTAdapter implements InventoryClient {
   private getHeaders(customToken?: string): Record<string, string> {
-    const activeToken = customToken || localStorage.getItem('auth_token');
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (activeToken && activeToken !== 'NONE') {
-      headers['Authorization'] = `Bearer ${activeToken}`;
+    const activeToken = customToken || localStorage.getItem("auth_token");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (activeToken && activeToken !== "NONE") {
+      headers["Authorization"] = `Bearer ${activeToken}`;
     }
     return headers;
   }
 
-  private async request(method: string, path: string, body?: any, customToken?: string): Promise<any> {
+  private async request(
+    method: string,
+    path: string,
+    body?: any,
+    customToken?: string,
+  ): Promise<any> {
     try {
       const options: RequestInit = {
         method,
-        headers: this.getHeaders(customToken)
+        headers: this.getHeaders(customToken),
       };
       if (body) {
         options.body = JSON.stringify(body);
@@ -26,52 +62,86 @@ export class LaravelRESTAdapter implements InventoryClient {
       if (!response.ok) {
         const errorText = await response.text();
         let parsedError;
-        try { parsedError = JSON.parse(errorText); } catch { parsedError = { error: errorText }; }
+        try {
+          parsedError = JSON.parse(errorText);
+        } catch {
+          parsedError = { error: errorText };
+        }
         throw new Error(parsedError.error || `HTTP ${response.status} Error`);
       }
       return await response.json();
     } catch (err: any) {
-      console.error('Laravel REST Adapter Error:', err);
+      console.error("Laravel REST Adapter Error:", err);
       throw err;
     }
   }
 
-  async login(tenantId: string, actorId: string, role?: string, password?: string): Promise<string> {
+  async login(
+    tenantId: string,
+    actorId: string,
+    role?: string,
+    password?: string,
+  ): Promise<string> {
     if (!password) {
-      throw new Error('Authentication failed: Missing required password parameter.');
+      throw new Error(
+        "Authentication failed: Missing required password parameter.",
+      );
     }
 
     try {
       // Try logging in directly (accepts email or custom username)
-      const email = actorId.includes('@') ? actorId : `${actorId}@example.com`;
-      const data = await this.request('POST', '/api/auth/login', {
-        tenantId,
-        email,
-        password
-      }, 'NONE');
+      const email = actorId.includes("@") ? actorId : `${actorId}@example.com`;
+      const data = await this.request(
+        "POST",
+        "/api/auth/login",
+        {
+          tenantId,
+          email,
+          password,
+        },
+        "NONE",
+      );
       return data.token;
     } catch (err: any) {
       // If direct login fails, auto-run setup for seamless E2E experience
-      if (err.message.includes('credentials') || err.message.includes('401') || err.message.includes('404')) {
+      if (
+        err.message.includes("credentials") ||
+        err.message.includes("401") ||
+        err.message.includes("404")
+      ) {
         try {
-          const email = actorId.includes('@') ? actorId : `${actorId}@example.com`;
-          await this.request('POST', '/api/setup', {
-            orgName: `Organization ${tenantId}`,
-            tenantId,
-            adminName: actorId,
-            adminEmail: email,
-            adminPassword: password
-          }, 'NONE');
+          const email = actorId.includes("@")
+            ? actorId
+            : `${actorId}@example.com`;
+          await this.request(
+            "POST",
+            "/api/setup",
+            {
+              orgName: `Organization ${tenantId}`,
+              tenantId,
+              adminName: actorId,
+              adminEmail: email,
+              adminPassword: password,
+            },
+            "NONE",
+          );
 
           // Login again after successful setup
-          const data = await this.request('POST', '/api/auth/login', {
-            tenantId,
-            email,
-            password
-          }, 'NONE');
+          const data = await this.request(
+            "POST",
+            "/api/auth/login",
+            {
+              tenantId,
+              email,
+              password,
+            },
+            "NONE",
+          );
           return data.token;
         } catch (setupErr: any) {
-          throw new Error(`Login failed, and setup auto-recovery also failed: ${setupErr.message}`);
+          throw new Error(
+            `Login failed, and setup auto-recovery also failed: ${setupErr.message}`,
+          );
         }
       }
       throw err;
@@ -82,7 +152,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     // Laravel fetches inventory stock levels dynamically via catalog products
     // We fetch catalog products, then map their variants to stock items
     try {
-      const prodData = await this.request('GET', '/api/catalog/products');
+      const prodData = await this.request("GET", "/api/catalog/products");
       const productsList = prodData.products || [];
       const stockItems: InventoryItem[] = [];
       const variants = productsList.flatMap((p: any) => p.variants || []);
@@ -94,24 +164,27 @@ export class LaravelRESTAdapter implements InventoryClient {
         const chunkResults = await Promise.all(
           chunk.map(async (v: any) => {
             try {
-              const stockRes = await this.request('GET', `/api/inventory/${v.sku}/stock`);
+              const stockRes = await this.request(
+                "GET",
+                `/api/inventory/${v.sku}/stock`,
+              );
               return {
                 id: `${v.id}-stock`,
                 sku: v.sku,
-                locationId: stockRes.location_id || 'default',
+                locationId: stockRes.location_id || "default",
                 quantity: stockRes.available_quantity ?? stockRes.quantity ?? 0,
-                version: 1
+                version: 1,
               };
             } catch {
               return {
                 id: `${v.id}-stock`,
                 sku: v.sku,
-                locationId: 'default',
+                locationId: "default",
                 quantity: 0,
-                version: 1
+                version: 1,
               };
             }
-          })
+          }),
         );
         stockItems.push(...chunkResults);
       }
@@ -122,7 +195,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async getProducts(): Promise<Product[]> {
-    const prodData = await this.request('GET', '/api/catalog/products');
+    const prodData = await this.request("GET", "/api/catalog/products");
     const rawProducts = prodData.products || [];
 
     // Resolve barcodes for each variant to complete model structure
@@ -136,24 +209,27 @@ export class LaravelRESTAdapter implements InventoryClient {
       await Promise.all(
         chunk.map(async (v: any) => {
           try {
-            const bcData = await this.request('GET', `/api/barcodes/variants/${v.id}`);
+            const bcData = await this.request(
+              "GET",
+              `/api/barcodes/variants/${v.id}`,
+            );
             // Format assignments to match UI expectations
             const assignments = (bcData.assignments || []).map((a: any) => ({
               id: a.id,
               sku: v.sku,
               barcode: {
                 value: a.barcode_value || a.value,
-                symbology: a.symbology
+                symbology: a.symbology,
               },
               source: a.source,
               isPrimary: a.is_primary || a.isPrimary,
-              assignedAt: a.assigned_at || a.assignedAt
+              assignedAt: a.assigned_at || a.assignedAt,
             }));
             barcodeMap.set(v.id, assignments);
           } catch {
             barcodeMap.set(v.id, []);
           }
-        })
+        }),
       );
     }
 
@@ -163,23 +239,23 @@ export class LaravelRESTAdapter implements InventoryClient {
       variants: (p.variants || []).map((v: any) => ({
         id: v.id,
         sku: v.sku,
-        trackingMode: v.tracking_mode || v.trackingMode || 'quantity',
+        trackingMode: v.tracking_mode || v.trackingMode || "quantity",
         attributes: v.attributes || [],
-        barcodes: barcodeMap.get(v.id) || []
-      }))
+        barcodes: barcodeMap.get(v.id) || [],
+      })),
     }));
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
-    return this.request('GET', `/api/shopify/connections?tenantId=${tenantId}`);
+    return this.request("GET", `/api/shopify/connections?tenantId=${tenantId}`);
   }
 
   async getConnections(tenantId: string): Promise<any> {
-    return this.request('GET', `/api/integrations/connections`);
+    return this.request("GET", `/api/integrations/connections`);
   }
 
   async getJournalEntries(tenantId: string): Promise<JournalEntry[]> {
-    const data = await this.request('GET', '/api/journal/entries');
+    const data = await this.request("GET", "/api/journal/entries");
     const rawEntries = data.entries || [];
     return rawEntries.map((e: any) => ({
       id: e.id,
@@ -192,15 +268,18 @@ export class LaravelRESTAdapter implements InventoryClient {
         accountCode: l.account_code || l.accountCode,
         amountCents: l.amount_cents || l.amountCents || l.amount,
         type: l.type.toLowerCase(),
-        memo: l.memo
-      }))
+        memo: l.memo,
+      })),
     }));
   }
 
   async getStockOnboardings(tenantId: string): Promise<StockOnboarding[]> {
     // Onboardings in Laravel: return a list from the database if exists
     try {
-      const data = await this.request('GET', `/api/onboardings?tenantId=${tenantId}`);
+      const data = await this.request(
+        "GET",
+        `/api/onboardings?tenantId=${tenantId}`,
+      );
       return data || [];
     } catch {
       return [];
@@ -208,22 +287,33 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async createProduct(id: string, name: string): Promise<void> {
-    await this.request('POST', '/api/catalog/products', { id, name });
+    await this.request("POST", "/api/catalog/products", { id, name });
   }
 
-  async addProductVariant(productId: string, sku: string, trackingMode: string, attributes: { name: string; value: string }[]): Promise<void> {
-    await this.request('POST', `/api/catalog/products/${productId}/variants`, {
+  async addProductVariant(
+    productId: string,
+    sku: string,
+    trackingMode: string,
+    attributes: { name: string; value: string }[],
+  ): Promise<void> {
+    await this.request("POST", `/api/catalog/products/${productId}/variants`, {
       sku,
       trackingMode,
-      attributes
+      attributes,
     });
   }
 
-  async assignBarcode(sku: string, value: string, symbology: string, source: string, makePrimary: boolean): Promise<void> {
+  async assignBarcode(
+    sku: string,
+    value: string,
+    symbology: string,
+    source: string,
+    makePrimary: boolean,
+  ): Promise<void> {
     // Lookup variantId first since Laravel assign endpoint requires it
-    const prodData = await this.request('GET', '/api/catalog/products');
+    const prodData = await this.request("GET", "/api/catalog/products");
     const products = prodData.products || [];
-    let variantId = '';
+    let variantId = "";
     for (const p of products) {
       const found = (p.variants || []).find((v: any) => v.sku === sku);
       if (found) {
@@ -236,38 +326,59 @@ export class LaravelRESTAdapter implements InventoryClient {
       throw new Error(`Variant for SKU ${sku} not found.`);
     }
 
-    await this.request('POST', '/api/barcodes/assign', {
+    await this.request("POST", "/api/barcodes/assign", {
       variant_id: variantId,
       value,
       symbology,
       source,
-      is_primary: makePrimary
+      is_primary: makePrimary,
     });
   }
 
-  async generateInternalBarcode(sku: string, tenantId: string): Promise<string> {
+  async generateInternalBarcode(
+    sku: string,
+    tenantId: string,
+  ): Promise<string> {
+    const range = 900000000;
+    // Math.floor(4294967296 / 900000000) * 900000000
+    const maxValid = Math.floor(4294967296 / range) * range;
     const array = new Uint32Array(1);
-    window.crypto.getRandomValues(array);
-    const randomSuffix = (100000000 + (array[0] % 900000000)).toString();
+    let randInt;
+    do {
+      window.crypto.getRandomValues(array);
+      randInt = array[0];
+    } while (randInt >= maxValid);
+    const randomSuffix = (100000000 + (randInt % range)).toString();
     const barcodeValue = `INT-${sku}-${randomSuffix}`;
-    await this.assignBarcode(sku, barcodeValue, 'code_128', 'internal', true);
+    await this.assignBarcode(sku, barcodeValue, "code_128", "internal", true);
     return barcodeValue;
   }
 
-  async scanBarcode(value: string, context: string, amount: number, actualQuantity: number, tenantId: string, locationId: string, actorId: string): Promise<any> {
-    return this.request('POST', '/api/barcodes/scan', {
+  async scanBarcode(
+    value: string,
+    context: string,
+    amount: number,
+    actualQuantity: number,
+    tenantId: string,
+    locationId: string,
+    actorId: string,
+  ): Promise<any> {
+    return this.request("POST", "/api/barcodes/scan", {
       barcodeValue: value,
       context,
       scannedAmount: amount,
       actualQuantity,
       tenantId,
       locationId,
-      actorId
+      actorId,
     });
   }
 
   async traceSerialHistory(serialNumber: string): Promise<SerializedItem> {
-    const data = await this.request('GET', `/api/serials/trace/${serialNumber}`);
+    const data = await this.request(
+      "GET",
+      `/api/serials/trace/${serialNumber}`,
+    );
     return {
       id: data.id,
       variantId: data.variant_id,
@@ -280,43 +391,79 @@ export class LaravelRESTAdapter implements InventoryClient {
         to: h.to_status || h.to,
         reason: h.reason,
         actor: h.actor,
-        occurredAt: h.occurred_at || h.occurredAt
-      }))
+        occurredAt: h.occurred_at || h.occurredAt,
+      })),
     };
   }
 
-  async connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void> {
-    await this.request('POST', '/api/shopify/connect', { tenantId, storeDomain, accessToken });
-  }
-
-  async connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void> {
-    await this.request('POST', `/api/integrations/amazon/connect`, { sellerId, mwsAuthToken, marketplaceId });
-  }
-
-  async connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void> {
-    await this.request('POST', `/api/integrations/woocommerce/connect`, { storeUrl, consumerKey, consumerSecret });
-  }
-
-  async createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void> {
-    // Laravel accepts lines with 'account' and 'amount'
-    const formattedLines = lines.map(l => ({
-      account: l.accountCode,
-      amount: l.amountCents,
-      type: l.type.toLowerCase(),
-      memo: l.memo
-    }));
-    await this.request('POST', '/api/journal/entries', {
+  async connectShopify(
+    tenantId: string,
+    storeDomain: string,
+    accessToken: string,
+  ): Promise<void> {
+    await this.request("POST", "/api/shopify/connect", {
       tenantId,
-      description,
-      method: method.toLowerCase(),
-      lines: formattedLines
+      storeDomain,
+      accessToken,
     });
   }
 
-  async createStockOnboarding(tenantId: string, locationId: string, asOfDate: string, items: Item[]): Promise<void> {
-    const data = await this.request('POST', '/api/onboardings', {
+  async connectAmazon(
+    tenantId: string,
+    sellerId: string,
+    mwsAuthToken: string,
+    marketplaceId: string,
+  ): Promise<void> {
+    await this.request("POST", `/api/integrations/amazon/connect`, {
+      sellerId,
+      mwsAuthToken,
+      marketplaceId,
+    });
+  }
+
+  async connectWooCommerce(
+    tenantId: string,
+    storeUrl: string,
+    consumerKey: string,
+    consumerSecret: string,
+  ): Promise<void> {
+    await this.request("POST", `/api/integrations/woocommerce/connect`, {
+      storeUrl,
+      consumerKey,
+      consumerSecret,
+    });
+  }
+
+  async createJournalEntry(
+    tenantId: string,
+    description: string,
+    method: string,
+    lines: JournalLine[],
+  ): Promise<void> {
+    // Laravel accepts lines with 'account' and 'amount'
+    const formattedLines = lines.map((l) => ({
+      account: l.accountCode,
+      amount: l.amountCents,
+      type: l.type.toLowerCase(),
+      memo: l.memo,
+    }));
+    await this.request("POST", "/api/journal/entries", {
+      tenantId,
+      description,
+      method: method.toLowerCase(),
+      lines: formattedLines,
+    });
+  }
+
+  async createStockOnboarding(
+    tenantId: string,
+    locationId: string,
+    asOfDate: string,
+    items: Item[],
+  ): Promise<void> {
+    const data = await this.request("POST", "/api/onboardings", {
       location_id: locationId,
-      as_of_date: asOfDate
+      as_of_date: asOfDate,
     });
     const onboardingId = data.id;
 
@@ -324,21 +471,28 @@ export class LaravelRESTAdapter implements InventoryClient {
     const BATCH_SIZE = 10;
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
       const batch = items.slice(i, i + BATCH_SIZE);
-      const promises = batch.map(item => this.request('POST', `/api/onboardings/${onboardingId}/items`, {
-        variant_id: item.variantId,
-        quantity: item.quantity,
-        unit_cost_cents: item.unitCostCents
-      }));
+      const promises = batch.map((item) =>
+        this.request("POST", `/api/onboardings/${onboardingId}/items`, {
+          variant_id: item.variantId,
+          quantity: item.quantity,
+          unit_cost_cents: item.unitCostCents,
+        }),
+      );
       await Promise.all(promises);
     }
   }
 
   async submitStockOnboarding(onboardingId: string): Promise<void> {
-    await this.request('POST', `/api/onboardings/${onboardingId}/submit`);
+    await this.request("POST", `/api/onboardings/${onboardingId}/submit`);
   }
 
-  async getForecastingReport(locationId: string): Promise<ForecastingReportItem[]> {
-    const data = await this.request('GET', `/api/forecasting/report?locationId=${locationId}`);
+  async getForecastingReport(
+    locationId: string,
+  ): Promise<ForecastingReportItem[]> {
+    const data = await this.request(
+      "GET",
+      `/api/forecasting/report?locationId=${locationId}`,
+    );
     const rawReport = data || [];
     return rawReport.map((item: any) => ({
       sku: item.sku,
@@ -349,50 +503,64 @@ export class LaravelRESTAdapter implements InventoryClient {
       salesVelocity90d: item.salesVelocity90d || 0,
       forecastedDemand: item.forecastedDemand || 0,
       suggestedROP: item.suggestedROP || item.reorderPoint || 0,
-      safetyStock: item.safetyStock || 0
+      safetyStock: item.safetyStock || 0,
     }));
   }
 
-  subscribeBarcodeScans(tenantId: string, onScan: (scan: any) => void): () => void {
+  subscribeBarcodeScans(
+    tenantId: string,
+    onScan: (scan: any) => void,
+  ): () => void {
     // Laravel uses Server-Sent Events (SSE) for notifications
-    const activeToken = localStorage.getItem('auth_token') || '';
+    const activeToken = localStorage.getItem("auth_token") || "";
     const controller = new AbortController();
 
     fetch(`${LARAVEL_BASE_URL}/api/notifications/subscribe`, {
-      headers: { 'Accept': 'text/event-stream', 'Authorization': `Bearer ${activeToken}` },
-      signal: controller.signal
-    }).then(async (response) => {
-      const reader = response.body?.getReader();
-      if (!reader) return;
-      const decoder = new TextDecoder();
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.substring(6).trim());
-              // Map scan notifications if available
-              if (data.type === 'BarcodeScanned' || data.type === 'barcode_scanned') {
-                onScan({
-                  scanValue: data.scanValue || data.value,
-                  symbology: data.symbology,
-                  context: data.context,
-                  status: data.status || 'success',
-                  time: data.time || new Date().toISOString()
-                });
+      headers: {
+        Accept: "text/event-stream",
+        Authorization: `Bearer ${activeToken}`,
+      },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const reader = response.body?.getReader();
+        if (!reader) return;
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.substring(6).trim());
+                // Map scan notifications if available
+                if (
+                  data.type === "BarcodeScanned" ||
+                  data.type === "barcode_scanned"
+                ) {
+                  onScan({
+                    scanValue: data.scanValue || data.value,
+                    symbology: data.symbology,
+                    context: data.context,
+                    status: data.status || "success",
+                    time: data.time || new Date().toISOString(),
+                  });
+                }
+              } catch (err) {
+                console.error("Laravel SSE Parse Error:", err);
               }
-            } catch (err) {
-              console.error('Laravel SSE Parse Error:', err);
             }
           }
         }
-      }
-    }).catch(err => err.name !== 'AbortError' && console.error('Laravel SSE Error:', err));
+      })
+      .catch(
+        (err) =>
+          err.name !== "AbortError" && console.error("Laravel SSE Error:", err),
+      );
 
     return () => controller.abort();
   }
@@ -400,74 +568,101 @@ export class LaravelRESTAdapter implements InventoryClient {
   // --- Advanced Admin Operations for Laravel ---
 
   // Order Routing
-  async routeOrder(sku: string, quantity: number, destinationAddress: string, strategyName: string): Promise<FulfillmentPlan> {
-    return this.request('POST', '/api/shipping/route', { sku, quantity, destination_address: destinationAddress, strategy_name: strategyName });
+  async routeOrder(
+    sku: string,
+    quantity: number,
+    destinationAddress: string,
+    strategyName: string,
+  ): Promise<FulfillmentPlan> {
+    return this.request("POST", "/api/shipping/route", {
+      sku,
+      quantity,
+      destination_address: destinationAddress,
+      strategy_name: strategyName,
+    });
   }
 
   // Reorder Policies
   async getReorderPolicies(tenantId: string): Promise<ReorderPolicy[]> {
     try {
-      const data = await this.request('GET', `/api/reorder-policies?tenantId=${tenantId}`);
+      const data = await this.request(
+        "GET",
+        `/api/reorder-policies?tenantId=${tenantId}`,
+      );
       return (data || []).map((p: any) => ({
         sku: p.sku,
         locationId: p.location_id || p.locationId,
         reorderPoint: p.reorder_point || p.reorderPoint || 0,
         safetyStock: p.safety_stock || p.safetyStock || 0,
-        economicOrderQuantity: p.economic_order_quantity || p.economicOrderQuantity || 0
+        economicOrderQuantity:
+          p.economic_order_quantity || p.economicOrderQuantity || 0,
       }));
     } catch {
       return [];
     }
   }
 
-  async saveReorderPolicy(tenantId: string, policy: ReorderPolicy): Promise<void> {
-    await this.request('POST', '/api/reorder-policies', {
+  async saveReorderPolicy(
+    tenantId: string,
+    policy: ReorderPolicy,
+  ): Promise<void> {
+    await this.request("POST", "/api/reorder-policies", {
       tenantId,
       sku: policy.sku,
       location_id: policy.locationId,
       reorder_point: policy.reorderPoint,
       safety_stock: policy.safetyStock,
-      economic_order_quantity: policy.economicOrderQuantity
+      economic_order_quantity: policy.economicOrderQuantity,
     });
   }
 
   async evaluateReorderPolicies(tenantId: string): Promise<void> {
-    await this.request('POST', '/api/reorder-policies/evaluate', { tenantId });
+    await this.request("POST", "/api/reorder-policies/evaluate", { tenantId });
   }
 
   // Webhooks
   async getWebhooks(tenantId: string): Promise<WebhookSubscription[]> {
-    const data = await this.request('GET', `/api/webhooks?tenantId=${tenantId}`);
+    const data = await this.request(
+      "GET",
+      `/api/webhooks?tenantId=${tenantId}`,
+    );
     return (data || []).map((w: any) => ({
       id: w.id,
       tenantId: w.tenant_id || w.tenantId,
       url: w.url,
-      eventTypes: w.event_types || w.eventTypes || []
+      eventTypes: w.event_types || w.eventTypes || [],
     }));
   }
 
-  async createWebhook(tenantId: string, url: string, eventTypes: string[]): Promise<void> {
-    await this.request('POST', '/api/webhooks', {
+  async createWebhook(
+    tenantId: string,
+    url: string,
+    eventTypes: string[],
+  ): Promise<void> {
+    await this.request("POST", "/api/webhooks", {
       tenant_id: tenantId,
       url,
-      event_types: eventTypes
+      event_types: eventTypes,
     });
   }
 
   async deleteWebhook(tenantId: string, id: string): Promise<void> {
-    await this.request('DELETE', `/api/webhooks/${id}?tenantId=${tenantId}`);
+    await this.request("DELETE", `/api/webhooks/${id}?tenantId=${tenantId}`);
   }
 
   async getWebhookDeliveries(tenantId: string): Promise<WebhookDeliveryLog[]> {
     try {
-      const data = await this.request('GET', `/api/webhooks/deliveries?tenantId=${tenantId}`);
+      const data = await this.request(
+        "GET",
+        `/api/webhooks/deliveries?tenantId=${tenantId}`,
+      );
       return (data || []).map((d: any) => ({
         id: d.id,
         subscriptionId: d.subscription_id || d.subscriptionId,
         eventName: d.event_name || d.eventName,
         status: d.status,
         statusCode: d.status_code || d.statusCode,
-        occurredOn: d.occurred_on || d.occurredOn
+        occurredOn: d.occurred_on || d.occurredOn,
       }));
     } catch {
       return [];
@@ -476,47 +671,72 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   // WMS Layout
   async getWarehouseLocations(tenantId: string): Promise<WarehouseLocation[]> {
-    const data = await this.request('GET', `/api/warehouse-locations?tenantId=${tenantId}`);
+    const data = await this.request(
+      "GET",
+      `/api/warehouse-locations?tenantId=${tenantId}`,
+    );
     return (data || []).map((l: any) => ({
       id: l.id,
       warehouseId: l.warehouse_id || l.warehouseId,
       zone: l.zone,
       maxWeightGrams: l.max_weight_grams || l.maxWeightGrams || 0,
-      maxVolumeCubicMeters: l.max_volume_cubic_meters || l.maxVolumeCubicMeters || 0
+      maxVolumeCubicMeters:
+        l.max_volume_cubic_meters || l.maxVolumeCubicMeters || 0,
     }));
   }
 
-  async saveWarehouseLocation(tenantId: string, location: WarehouseLocation): Promise<void> {
-    await this.request('POST', '/api/warehouse-locations', {
+  async saveWarehouseLocation(
+    tenantId: string,
+    location: WarehouseLocation,
+  ): Promise<void> {
+    await this.request("POST", "/api/warehouse-locations", {
       tenantId,
       id: location.id,
       warehouse_id: location.warehouseId,
       zone: location.zone,
       max_weight_grams: location.maxWeightGrams,
-      max_volume_cubic_meters: location.maxVolumeCubicMeters
+      max_volume_cubic_meters: location.maxVolumeCubicMeters,
     });
   }
 
   async deleteWarehouseLocation(tenantId: string, id: string): Promise<void> {
-    await this.request('DELETE', `/api/warehouse-locations/${id}?tenantId=${tenantId}`);
+    await this.request(
+      "DELETE",
+      `/api/warehouse-locations/${id}?tenantId=${tenantId}`,
+    );
   }
 
-  async getPutawaySuggestions(tenantId: string, sku: string, quantity: number): Promise<PutawaySuggestion[]> {
-    const data = await this.request('POST', '/api/warehouse-locations/putaway-suggestions', { tenantId, sku, quantity });
+  async getPutawaySuggestions(
+    tenantId: string,
+    sku: string,
+    quantity: number,
+  ): Promise<PutawaySuggestion[]> {
+    const data = await this.request(
+      "POST",
+      "/api/warehouse-locations/putaway-suggestions",
+      { tenantId, sku, quantity },
+    );
     return (data || []).map((s: any) => ({
       locationId: s.location_id || s.locationId,
       sku: s.sku,
-      suggestedQuantity: s.suggested_quantity || s.suggestedQuantity || 0
+      suggestedQuantity: s.suggested_quantity || s.suggestedQuantity || 0,
     }));
   }
 
-  async getOptimizedPickRoute(tenantId: string, skus: string[]): Promise<string[]> {
-    return this.request('POST', '/api/warehouse-locations/optimize-pick-route', { tenantId, skus });
+  async getOptimizedPickRoute(
+    tenantId: string,
+    skus: string[],
+  ): Promise<string[]> {
+    return this.request(
+      "POST",
+      "/api/warehouse-locations/optimize-pick-route",
+      { tenantId, skus },
+    );
   }
 
   // Procurement (PO)
   async getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
-    const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
+    const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || "[]";
     const ids: string[] = JSON.parse(idsStr);
 
     if (ids.length === 0) {
@@ -530,11 +750,14 @@ export class LaravelRESTAdapter implements InventoryClient {
 
       for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
         const chunk = ids.slice(i, i + CHUNK_SIZE);
-        const response = await this.request('GET', `/api/purchase-orders?tenantId=${tenantId}&ids=${chunk.join(',')}`);
+        const response = await this.request(
+          "GET",
+          `/api/purchase-orders?tenantId=${tenantId}&ids=${chunk.join(",")}`,
+        );
 
-        const bulkData = (response?.data || response || []);
+        const bulkData = response?.data || response || [];
         if (Array.isArray(bulkData)) {
-           allPos.push(...bulkData);
+          allPos.push(...bulkData);
         }
       }
 
@@ -552,31 +775,35 @@ export class LaravelRESTAdapter implements InventoryClient {
             items: (po.items || []).map((i: any) => ({
               sku: i.sku,
               quantity: i.quantity,
-              unitCostCents: i.unit_cost_cents || i.unitCostCents || 0
-            }))
+              unitCostCents: i.unit_cost_cents || i.unitCostCents || 0,
+            })),
           });
         }
         return acc;
       }, []);
     } catch (err) {
-      console.error('Failed to fetch POs in bulk', err);
+      console.error("Failed to fetch POs in bulk", err);
       return [];
     }
   }
 
-  async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
-    const formattedItems = items.map(i => ({
+  async createPurchaseOrder(
+    tenantId: string,
+    supplier: string,
+    items: PurchaseOrderItem[],
+  ): Promise<void> {
+    const formattedItems = items.map((i) => ({
       sku: i.sku,
       quantity: i.quantity,
-      unit_cost_cents: i.unitCostCents
+      unit_cost_cents: i.unitCostCents,
     }));
-    const po = await this.request('POST', '/api/purchase-orders', {
+    const po = await this.request("POST", "/api/purchase-orders", {
       tenant_id: tenantId,
       supplier,
-      items: formattedItems
+      items: formattedItems,
     });
     if (po?.id) {
-      const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || '[]';
+      const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || "[]";
       const ids: string[] = JSON.parse(idsStr);
       if (!ids.includes(po.id)) {
         ids.push(po.id);
@@ -586,92 +813,148 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async approvePurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request('POST', `/api/purchase-orders/${id}/approve`, { tenantId });
+    await this.request("POST", `/api/purchase-orders/${id}/approve`, {
+      tenantId,
+    });
   }
 
   async sendPurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request('POST', `/api/purchase-orders/${id}/send`, { tenantId });
+    await this.request("POST", `/api/purchase-orders/${id}/send`, { tenantId });
   }
 
-  async receivePurchaseOrder(tenantId: string, id: string, items: { sku: string; quantity: number }[]): Promise<void> {
-    const formattedItems = items.map(i => ({
+  async receivePurchaseOrder(
+    tenantId: string,
+    id: string,
+    items: { sku: string; quantity: number }[],
+  ): Promise<void> {
+    const formattedItems = items.map((i) => ({
       sku: i.sku,
-      quantity: i.quantity
+      quantity: i.quantity,
     }));
-    await this.request('POST', `/api/purchase-orders/${id}/receive`, {
+    await this.request("POST", `/api/purchase-orders/${id}/receive`, {
       tenantId,
-      items: formattedItems
+      items: formattedItems,
     });
   }
 
   // FEFO & Recall
-  async getFefoPickSuggestions(tenantId: string, sku: string, quantity: number): Promise<any[]> {
-    return this.request('GET', `/api/inventory/fefo-pick?sku=${sku}&quantity=${quantity}&tenantId=${tenantId}`);
+  async getFefoPickSuggestions(
+    tenantId: string,
+    sku: string,
+    quantity: number,
+  ): Promise<any[]> {
+    return this.request(
+      "GET",
+      `/api/inventory/fefo-pick?sku=${sku}&quantity=${quantity}&tenantId=${tenantId}`,
+    );
   }
 
   async traceRecall(tenantId: string, lotNumber: string): Promise<any> {
-    return this.request('GET', `/api/inventory/reports/recall/${lotNumber}?tenantId=${tenantId}`);
+    return this.request(
+      "GET",
+      `/api/inventory/reports/recall/${lotNumber}?tenantId=${tenantId}`,
+    );
   }
 
   // --- Unified Admin Portal Operations for Laravel ---
   async getUsers(tenantId: string): Promise<User[]> {
-    const res = await this.request('GET', `/api/users?tenantId=${tenantId}`);
+    const res = await this.request("GET", `/api/users?tenantId=${tenantId}`);
     return res?.users || [];
   }
 
-  async inviteUser(tenantId: string, email: string, role: string): Promise<{ userId: string; temporaryPassword?: string }> {
-    const res = await this.request('POST', `/api/users`, { tenantId, email, role });
+  async inviteUser(
+    tenantId: string,
+    email: string,
+    role: string,
+  ): Promise<{ userId: string; temporaryPassword?: string }> {
+    const res = await this.request("POST", `/api/users`, {
+      tenantId,
+      email,
+      role,
+    });
     return {
       userId: res?.user_id,
-      temporaryPassword: res?.temporary_password
+      temporaryPassword: res?.temporary_password,
     };
   }
 
-  async updateUserRole(tenantId: string, userId: string, role: string): Promise<void> {
-    await this.request('PATCH', `/api/users/${userId}/role`, { tenantId, role });
+  async updateUserRole(
+    tenantId: string,
+    userId: string,
+    role: string,
+  ): Promise<void> {
+    await this.request("PATCH", `/api/users/${userId}/role`, {
+      tenantId,
+      role,
+    });
   }
 
   // RBAC
   async getRoles(tenantId: string): Promise<Role[]> {
-    return this.request('GET', `/api/roles?tenantId=${tenantId}`);
+    return this.request("GET", `/api/roles?tenantId=${tenantId}`);
   }
 
   async getPermissions(): Promise<Permission[]> {
-    return this.request('GET', `/api/roles/permissions`);
+    return this.request("GET", `/api/roles/permissions`);
   }
 
-  async createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role> {
-    return this.request('POST', `/api/roles`, { tenantId, name, description, permissionIds });
+  async createRole(
+    tenantId: string,
+    name: string,
+    description: string,
+    permissionIds: string[],
+  ): Promise<Role> {
+    return this.request("POST", `/api/roles`, {
+      tenantId,
+      name,
+      description,
+      permissionIds,
+    });
   }
 
-  async updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
-    await this.request('PUT', `/api/roles/${roleId}/permissions`, { permissionIds });
+  async updateRolePermissions(
+    roleId: string,
+    permissionIds: string[],
+  ): Promise<void> {
+    await this.request("PUT", `/api/roles/${roleId}/permissions`, {
+      permissionIds,
+    });
   }
 
   async deleteRole(roleId: string): Promise<void> {
-    await this.request('DELETE', `/api/roles/${roleId}`);
+    await this.request("DELETE", `/api/roles/${roleId}`);
   }
 
   async runAudit(tenantId: string): Promise<any> {
-    return this.request('POST', `/api/audit/run`, { tenantId });
+    return this.request("POST", `/api/audit/run`, { tenantId });
   }
 
   async getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]> {
-    const res = await this.request('GET', `/api/audit/discrepancies?tenantId=${tenantId}`);
+    const res = await this.request(
+      "GET",
+      `/api/audit/discrepancies?tenantId=${tenantId}`,
+    );
     return res || [];
   }
 
-  async resolveDiscrepancy(tenantId: string, id: string, notes: string): Promise<void> {
-    await this.request('POST', `/api/audit/discrepancies/${id}/resolve`, { tenantId, notes });
+  async resolveDiscrepancy(
+    tenantId: string,
+    id: string,
+    notes: string,
+  ): Promise<void> {
+    await this.request("POST", `/api/audit/discrepancies/${id}/resolve`, {
+      tenantId,
+      notes,
+    });
   }
 
   async getOutboxStats(): Promise<OutboxStats> {
     try {
-      const stats = await this.request('GET', `/api/outbox/stats`);
+      const stats = await this.request("GET", `/api/outbox/stats`);
       return {
         pendingCount: stats?.pending || 0,
         publishedCount: stats?.published || 0,
-        failedCount: stats?.failed || 0
+        failedCount: stats?.failed || 0,
       };
     } catch {
       return { pendingCount: 0, publishedCount: 0, failedCount: 0 };
@@ -680,14 +963,18 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   async getDeadLetterEvents(limit?: number): Promise<OutboxEvent[]> {
     try {
-      const res = await this.request('GET', `/api/outbox/dead-letter${limit ? `?limit=${limit}` : ''}`);
+      const res = await this.request(
+        "GET",
+        `/api/outbox/dead-letter${limit ? `?limit=${limit}` : ""}`,
+      );
       return (res || []).map((e: any) => ({
         id: e.id,
-        eventType: e.eventType || e.type || 'UnknownEvent',
-        payload: typeof e.payload === 'string' ? e.payload : JSON.stringify(e.payload),
-        error: e.error || e.errorMessage || '',
-        status: e.status || 'Failed',
-        occurredAt: e.occurredAt || e.createdAt || new Date().toISOString()
+        eventType: e.eventType || e.type || "UnknownEvent",
+        payload:
+          typeof e.payload === "string" ? e.payload : JSON.stringify(e.payload),
+        error: e.error || e.errorMessage || "",
+        status: e.status || "Failed",
+        occurredAt: e.occurredAt || e.createdAt || new Date().toISOString(),
       }));
     } catch {
       return [];
@@ -695,7 +982,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async retryOutboxEvent(id: string): Promise<void> {
-    await this.request('POST', `/api/outbox/${id}/retry`);
+    await this.request("POST", `/api/outbox/${id}/retry`);
   }
 
   async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
@@ -705,79 +992,137 @@ export class LaravelRESTAdapter implements InventoryClient {
     }
     return {
       tenantId,
-      accountingMethod: 'ACCRUAL',
-      costingMethod: 'FIFO',
-      currencyCode: 'USD',
-      fiscalYearStart: '01-01'
+      accountingMethod: "ACCRUAL",
+      costingMethod: "FIFO",
+      currencyCode: "USD",
+      fiscalYearStart: "01-01",
     };
   }
 
-  async saveTenantConfig(tenantId: string, config: { accountingMethod: string; costingMethod: string }): Promise<void> {
+  async saveTenantConfig(
+    tenantId: string,
+    config: { accountingMethod: string; costingMethod: string },
+  ): Promise<void> {
     const fullConfig = {
       tenantId,
       accountingMethod: config.accountingMethod as any,
       costingMethod: config.costingMethod as any,
-      currencyCode: 'USD',
-      fiscalYearStart: '01-01'
+      currencyCode: "USD",
+      fiscalYearStart: "01-01",
     };
-    localStorage.setItem(`tenant_config_${tenantId}`, JSON.stringify(fullConfig));
+    localStorage.setItem(
+      `tenant_config_${tenantId}`,
+      JSON.stringify(fullConfig),
+    );
   }
 
-  async assembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void> {
-    await this.request('POST', `/api/kits/assemble`, { tenantId, locationId, kitSku, quantity, actorId, referenceId });
+  async assembleKit(
+    tenantId: string,
+    locationId: string,
+    kitSku: string,
+    quantity: number,
+    actorId: string,
+    referenceId: string,
+  ): Promise<void> {
+    await this.request("POST", `/api/kits/assemble`, {
+      tenantId,
+      locationId,
+      kitSku,
+      quantity,
+      actorId,
+      referenceId,
+    });
   }
 
-  async disassembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void> {
-    await this.request('POST', `/api/kits/disassemble`, { tenantId, locationId, kitSku, quantity, actorId, referenceId });
+  async disassembleKit(
+    tenantId: string,
+    locationId: string,
+    kitSku: string,
+    quantity: number,
+    actorId: string,
+    referenceId: string,
+  ): Promise<void> {
+    await this.request("POST", `/api/kits/disassemble`, {
+      tenantId,
+      locationId,
+      kitSku,
+      quantity,
+      actorId,
+      referenceId,
+    });
   }
 
   async getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]> {
     try {
-      const res = await this.request('GET', `/api/returns/quarantine?tenantId=${tenantId}`);
+      const res = await this.request(
+        "GET",
+        `/api/returns/quarantine?tenantId=${tenantId}`,
+      );
       return (res || []).map((q: any) => ({
         id: q.id,
-        sku: q.sku || q.variantId || '',
-        locationId: q.locationId || '',
+        sku: q.sku || q.variantId || "",
+        locationId: q.locationId || "",
         quantity: q.quantity || 0,
-        reason: q.reason || '',
-        status: q.status || 'Quarantined',
-        createdAt: q.createdAt || new Date().toISOString()
+        reason: q.reason || "",
+        status: q.status || "Quarantined",
+        createdAt: q.createdAt || new Date().toISOString(),
       }));
     } catch {
       return [];
     }
   }
 
-  async resolveQuarantine(tenantId: string, id: string, resolution: string): Promise<void> {
-    await this.request('POST', `/api/returns/quarantine/${id}/resolve`, { tenantId, resolution });
+  async resolveQuarantine(
+    tenantId: string,
+    id: string,
+    resolution: string,
+  ): Promise<void> {
+    await this.request("POST", `/api/returns/quarantine/${id}/resolve`, {
+      tenantId,
+      resolution,
+    });
   }
 
-  async getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]> {
+  async getValuationReport(
+    tenantId: string,
+    locationId?: string,
+    method?: string,
+  ): Promise<ValuationItem[]> {
     try {
-      const valSummary = await this.request('GET', `/api/reports/valuation?tenantId=${tenantId}`);
-      const prodData = await this.request('GET', '/api/catalog/products');
+      const valSummary = await this.request(
+        "GET",
+        `/api/reports/valuation?tenantId=${tenantId}`,
+      );
+      const prodData = await this.request("GET", "/api/catalog/products");
       const products = prodData.products || [];
       const items: ValuationItem[] = [];
-      const chosenMethod = (method || 'FIFO').toUpperCase();
+      const chosenMethod = (method || "FIFO").toUpperCase();
       const invItems = await this.getInventoryItems();
       const inventoryBySku = new Map<string, number>();
       for (const item of invItems) {
-        inventoryBySku.set(item.sku, (inventoryBySku.get(item.sku) || 0) + item.quantity);
+        inventoryBySku.set(
+          item.sku,
+          (inventoryBySku.get(item.sku) || 0) + item.quantity,
+        );
       }
 
       for (const p of products) {
-        for (const v of (p.variants || [])) {
+        for (const v of p.variants || []) {
           const qty = inventoryBySku.get(v.sku) || 0;
           const unitCost = 1000;
           if (qty > 0) {
             items.push({
               variantId: v.id,
               sku: v.sku,
-              name: p.name + (v.attributes?.length ? ` (${v.attributes.map((a: any) => a.value).join(', ')})` : ''),
+              name:
+                p.name +
+                (v.attributes?.length
+                  ? ` (${v.attributes.map((a: any) => a.value).join(", ")})`
+                  : ""),
               costingMethod: chosenMethod,
               totalQuantity: qty,
               totalValueCents: qty * unitCost,
-              unitCostCents: unitCost
+              unitCostCents: unitCost,
             });
           } else {
             items.push({
@@ -787,7 +1132,7 @@ export class LaravelRESTAdapter implements InventoryClient {
               costingMethod: chosenMethod,
               totalQuantity: 0,
               totalValueCents: 0,
-              unitCostCents: 0
+              unitCostCents: 0,
             });
           }
         }
@@ -799,199 +1144,351 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async getSlottingSuggestions(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/api/warehouse-locations/slotting-suggestions?tenantId=${tenantId}`);
+    return await this.request(
+      "GET",
+      `/api/warehouse-locations/slotting-suggestions?tenantId=${tenantId}`,
+    );
   }
 
   async getComplianceLedger(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/api/compliance/ledger?tenantId=${tenantId}`);
+    return await this.request(
+      "GET",
+      `/api/compliance/ledger?tenantId=${tenantId}`,
+    );
   }
 
-  async verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }> {
-    return await this.request('POST', `/api/compliance/verify?tenantId=${tenantId}`);
+  async verifyComplianceLedger(
+    tenantId: string,
+  ): Promise<{
+    isValid: boolean;
+    failedSequenceNumber?: number;
+    reason?: string;
+  }> {
+    return await this.request(
+      "POST",
+      `/api/compliance/verify?tenantId=${tenantId}`,
+    );
   }
 
   async reconstructState(tenantId: string, timestamp?: string): Promise<any> {
-    const url = timestamp ? `/api/compliance/reconstruct?tenantId=${tenantId}&timestamp=${encodeURIComponent(timestamp)}` : `/api/compliance/reconstruct?tenantId=${tenantId}`;
-    return await this.request('GET', url);
+    const url = timestamp
+      ? `/api/compliance/reconstruct?tenantId=${tenantId}&timestamp=${encodeURIComponent(timestamp)}`
+      : `/api/compliance/reconstruct?tenantId=${tenantId}`;
+    return await this.request("GET", url);
   }
 
   async replayAudit(tenantId: string, upToTimestamp?: string): Promise<any[]> {
-    const url = upToTimestamp ? `/api/compliance/replay?tenantId=${tenantId}&timestamp=${encodeURIComponent(upToTimestamp)}` : `/api/compliance/replay?tenantId=${tenantId}`;
-    return await this.request('GET', url);
+    const url = upToTimestamp
+      ? `/api/compliance/replay?tenantId=${tenantId}&timestamp=${encodeURIComponent(upToTimestamp)}`
+      : `/api/compliance/replay?tenantId=${tenantId}`;
+    return await this.request("GET", url);
   }
 
-  async getCacheStats(): Promise<{ hits: number; misses: number; hitRatio: number; invalidations: number; activeKeysCount: number }> {
-    return await this.request('GET', `/api/admin/cache/stats`);
+  async getCacheStats(): Promise<{
+    hits: number;
+    misses: number;
+    hitRatio: number;
+    invalidations: number;
+    activeKeysCount: number;
+  }> {
+    return await this.request("GET", `/api/admin/cache/stats`);
   }
 
-  async clearCache(tenantId?: string): Promise<{ success: boolean; clearedKeysCount: number }> {
-    const url = tenantId ? `/api/admin/cache/clear?tenantId=${tenantId}` : `/api/admin/cache/clear`;
-    return await this.request('POST', url);
+  async clearCache(
+    tenantId?: string,
+  ): Promise<{ success: boolean; clearedKeysCount: number }> {
+    const url = tenantId
+      ? `/api/admin/cache/clear?tenantId=${tenantId}`
+      : `/api/admin/cache/clear`;
+    return await this.request("POST", url);
   }
-
 
   async getRfidTags(tenantId: string): Promise<any[]> {
-    const res = await this.request('GET', `/api/rfid/tags?tenantId=${tenantId}`);
+    const res = await this.request(
+      "GET",
+      `/api/rfid/tags?tenantId=${tenantId}`,
+    );
     return res.tags || [];
   }
 
-  async assignRfidTag(tenantId: string, epc: string, sku: string, serialNumber: string): Promise<void> {
-    await this.request('POST', `/api/rfid/assign?tenantId=${tenantId}`, { epc, sku, serialNumber });
+  async assignRfidTag(
+    tenantId: string,
+    epc: string,
+    sku: string,
+    serialNumber: string,
+  ): Promise<void> {
+    await this.request("POST", `/api/rfid/assign?tenantId=${tenantId}`, {
+      epc,
+      sku,
+      serialNumber,
+    });
   }
 
-  async simulateRfidScan(tenantId: string, locationId: string, tags: string[]): Promise<void> {
-    await this.request('POST', `/api/rfid/simulate-scan?tenantId=${tenantId}`, { locationId, tags });
+  async simulateRfidScan(
+    tenantId: string,
+    locationId: string,
+    tags: string[],
+  ): Promise<void> {
+    await this.request("POST", `/api/rfid/simulate-scan?tenantId=${tenantId}`, {
+      locationId,
+      tags,
+    });
   }
 
-  subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
-    const activeToken = localStorage.getItem('auth_token') || '';
+  subscribeRfidScans(
+    tenantId: string,
+    onScanProcessed: (event: any) => void,
+  ): () => void {
+    const activeToken = localStorage.getItem("auth_token") || "";
     const controller = new AbortController();
 
     fetch(`${LARAVEL_BASE_URL}/api/notifications/subscribe`, {
-      headers: { 'Accept': 'text/event-stream', 'Authorization': `Bearer ${activeToken}` },
-      signal: controller.signal
-    }).then(async (response) => {
-      const reader = response.body?.getReader();
-      if (!reader) return;
-      const decoder = new TextDecoder();
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.substring(6).trim());
-              if (data.type === 'rfid_scan_processed') {
-                const payload = typeof data.message === 'string' ? JSON.parse(data.message) : data;
-                onScanProcessed({
-                  id: payload.id,
-                  tenantId: payload.tenantId,
-                  locationId: payload.locationId,
-                  totalCount: payload.totalCount,
-                  matchedCount: payload.matchedCount,
-                  unmatchedCount: payload.unmatchedCount,
-                  unmatchedEpcs: payload.unmatchedEpcs
-                });
+      headers: {
+        Accept: "text/event-stream",
+        Authorization: `Bearer ${activeToken}`,
+      },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const reader = response.body?.getReader();
+        if (!reader) return;
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.substring(6).trim());
+                if (data.type === "rfid_scan_processed") {
+                  const payload =
+                    typeof data.message === "string"
+                      ? JSON.parse(data.message)
+                      : data;
+                  onScanProcessed({
+                    id: payload.id,
+                    tenantId: payload.tenantId,
+                    locationId: payload.locationId,
+                    totalCount: payload.totalCount,
+                    matchedCount: payload.matchedCount,
+                    unmatchedCount: payload.unmatchedCount,
+                    unmatchedEpcs: payload.unmatchedEpcs,
+                  });
+                }
+              } catch (err) {
+                console.error("Laravel SSE Rfid Parse Error:", err);
               }
-            } catch (err) {
-              console.error('Laravel SSE Rfid Parse Error:', err);
             }
           }
         }
-      }
-    }).catch(err => err.name !== 'AbortError' && console.error('Laravel SSE Rfid Error:', err));
+      })
+      .catch(
+        (err) =>
+          err.name !== "AbortError" &&
+          console.error("Laravel SSE Rfid Error:", err),
+      );
 
     return () => controller.abort();
   }
 
-  async analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any> {
+  async analyzeInventoryAnomalies(
+    tenantId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<any> {
     const params = new URLSearchParams({ tenantId });
-    if (startDate) params.set('startDate', startDate);
-    if (endDate) params.set('endDate', endDate);
-    return await this.request('GET', `/api/anomaly-detection/analyze?${params.toString()}`);
+    if (startDate) params.set("startDate", startDate);
+    if (endDate) params.set("endDate", endDate);
+    return await this.request(
+      "GET",
+      `/api/anomaly-detection/analyze?${params.toString()}`,
+    );
   }
 
   async getRebalanceMatrix(tenantId: string): Promise<any> {
-    return await this.request('GET', `/api/rebalance/matrix?tenantId=${tenantId}`);
+    return await this.request(
+      "GET",
+      `/api/rebalance/matrix?tenantId=${tenantId}`,
+    );
   }
 
   // Approvals
   async getApprovalWorkflows(): Promise<any[]> {
-    return await this.request('GET', '/api/approvals/workflows');
+    return await this.request("GET", "/api/approvals/workflows");
   }
 
   async toggleApprovalWorkflow(id: string): Promise<any> {
-    return await this.request('POST', `/api/approvals/workflows/${id}/toggle`);
+    return await this.request("POST", `/api/approvals/workflows/${id}/toggle`);
   }
 
   async getPendingApprovals(): Promise<any[]> {
-    return await this.request('GET', '/api/approvals/pending');
+    return await this.request("GET", "/api/approvals/pending");
   }
 
-  async submitApprovalDecision(id: string, decision: 'APPROVED' | 'REJECTED' | 'REQUEST_MORE_INFO', notes?: string): Promise<any> {
-    return await this.request('POST', `/api/approvals/${id}/decide`, { decision, notes });
+  async submitApprovalDecision(
+    id: string,
+    decision: "APPROVED" | "REJECTED" | "REQUEST_MORE_INFO",
+    notes?: string,
+  ): Promise<any> {
+    return await this.request("POST", `/api/approvals/${id}/decide`, {
+      decision,
+      notes,
+    });
   }
 
   async getApprovalHistory(requestId: string): Promise<any[]> {
-    const data = await this.request('GET', `/api/approvals/${requestId}`);
+    const data = await this.request("GET", `/api/approvals/${requestId}`);
     return data.decisions || [];
   }
 
   // Reporting & Analytics
   async getReportDefinitions(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/api/reports?tenantId=${tenantId}`);
+    return await this.request("GET", `/api/reports?tenantId=${tenantId}`);
   }
 
   async createReportDefinition(tenantId: string, payload: any): Promise<any> {
-    return await this.request('POST', `/api/reports`, { ...payload, tenantId });
+    return await this.request("POST", `/api/reports`, { ...payload, tenantId });
   }
 
-  async scheduleReport(tenantId: string, reportId: string, cronExpression: string, deliveryMethod: string): Promise<any> {
-    return await this.request('POST', `/api/reports/${reportId}/schedule`, { tenantId, cronExpression, deliveryMethod });
+  async scheduleReport(
+    tenantId: string,
+    reportId: string,
+    cronExpression: string,
+    deliveryMethod: string,
+  ): Promise<any> {
+    return await this.request("POST", `/api/reports/${reportId}/schedule`, {
+      tenantId,
+      cronExpression,
+      deliveryMethod,
+    });
   }
 
-  async executeReport(tenantId: string, reportId: string, format: string): Promise<any> {
-    return await this.request('POST', `/api/reports/${reportId}/execute`, { tenantId, format });
+  async executeReport(
+    tenantId: string,
+    reportId: string,
+    format: string,
+  ): Promise<any> {
+    return await this.request("POST", `/api/reports/${reportId}/execute`, {
+      tenantId,
+      format,
+    });
   }
 
   async getDashboardWidgets(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/api/widgets?tenantId=${tenantId}`);
+    return await this.request("GET", `/api/widgets?tenantId=${tenantId}`);
   }
 
   async saveDashboardWidget(tenantId: string, widget: any): Promise<any> {
-    return await this.request('POST', `/api/widgets`, { ...widget, tenantId });
+    return await this.request("POST", `/api/widgets`, { ...widget, tenantId });
   }
 
   // --- Item 15: Operational Depth ---
-  async startCycleCount(tenantId: string, name: string, isBlindCount: boolean, abcClass?: string, zone?: string): Promise<any> {
-    return await this.request('POST', '/api/cycle-count/start', { tenantId, name, isBlindCount, abcClass, zone });
+  async startCycleCount(
+    tenantId: string,
+    name: string,
+    isBlindCount: boolean,
+    abcClass?: string,
+    zone?: string,
+  ): Promise<any> {
+    return await this.request("POST", "/api/cycle-count/start", {
+      tenantId,
+      name,
+      isBlindCount,
+      abcClass,
+      zone,
+    });
   }
   async submitCycleCount(id: string, countedLines: any): Promise<void> {
-    await this.request('POST', `/api/cycle-count/${id}/submit`, { countedLines });
+    await this.request("POST", `/api/cycle-count/${id}/submit`, {
+      countedLines,
+    });
   }
   async getCycleCounts(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/api/cycle-count?tenantId=${tenantId}`);
-  }
-  
-  async submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any> {
-    return await this.request('POST', '/api/supplier/asn', { tenantId, poId, supplierId, expectedArrivalDate, lines });
-  }
-  async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
-    return await this.request('GET', `/api/supplier/asn?tenantId=${tenantId}&supplierId=${supplierId}`);
-  }
-  
-  async getNotifications(tenantId: string, userId: string): Promise<any[]> {
-    return await this.request('GET', `/api/notifications?tenantId=${tenantId}&userId=${userId}`);
-  }
-  async markNotificationRead(id: string): Promise<void> {
-    await this.request('POST', `/api/notifications/${id}/read`);
-  }
-  
-  async generateAgingReport(tenantId: string): Promise<any> {
-    return await this.request('GET', `/api/aging/report?tenantId=${tenantId}`);
+    return await this.request("GET", `/api/cycle-count?tenantId=${tenantId}`);
   }
 
-  async createLegalEntity(tenantId: string, name: string, baseCurrency: string, taxIdentifier?: string): Promise<any> {
-    return await this.request('POST', `/api/intercompany/entities`, { tenantId, name, baseCurrency, taxIdentifier });
+  async submitASN(
+    tenantId: string,
+    poId: string,
+    supplierId: string,
+    expectedArrivalDate: string,
+    lines: any[],
+  ): Promise<any> {
+    return await this.request("POST", "/api/supplier/asn", {
+      tenantId,
+      poId,
+      supplierId,
+      expectedArrivalDate,
+      lines,
+    });
+  }
+  async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
+    return await this.request(
+      "GET",
+      `/api/supplier/asn?tenantId=${tenantId}&supplierId=${supplierId}`,
+    );
+  }
+
+  async getNotifications(tenantId: string, userId: string): Promise<any[]> {
+    return await this.request(
+      "GET",
+      `/api/notifications?tenantId=${tenantId}&userId=${userId}`,
+    );
+  }
+  async markNotificationRead(id: string): Promise<void> {
+    await this.request("POST", `/api/notifications/${id}/read`);
+  }
+
+  async generateAgingReport(tenantId: string): Promise<any> {
+    return await this.request("GET", `/api/aging/report?tenantId=${tenantId}`);
+  }
+
+  async createLegalEntity(
+    tenantId: string,
+    name: string,
+    baseCurrency: string,
+    taxIdentifier?: string,
+  ): Promise<any> {
+    return await this.request("POST", `/api/intercompany/entities`, {
+      tenantId,
+      name,
+      baseCurrency,
+      taxIdentifier,
+    });
   }
 
   async getLegalEntities(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/api/intercompany/entities?tenantId=${tenantId}`);
+    return await this.request(
+      "GET",
+      `/api/intercompany/entities?tenantId=${tenantId}`,
+    );
   }
 
-  async executeIntercompanyTransfer(dto: { tenantId: string, fromEntityId: string, toEntityId: string, sku: string, quantity: number, unitCostCents: number, markupPercentage: number, dutyCents?: number }): Promise<any> {
-    return await this.request('POST', `/api/intercompany/transfers`, dto);
+  async executeIntercompanyTransfer(dto: {
+    tenantId: string;
+    fromEntityId: string;
+    toEntityId: string;
+    sku: string;
+    quantity: number;
+    unitCostCents: number;
+    markupPercentage: number;
+    dutyCents?: number;
+  }): Promise<any> {
+    return await this.request("POST", `/api/intercompany/transfers`, dto);
   }
 
   async getIntercompanyTransfers(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/api/intercompany/transfers?tenantId=${tenantId}`);
+    return await this.request(
+      "GET",
+      `/api/intercompany/transfers?tenantId=${tenantId}`,
+    );
   }
 
   async getApiUsageMetrics(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/api/usage?tenantId=${tenantId}`);
+    return await this.request("GET", `/api/usage?tenantId=${tenantId}`);
   }
 }

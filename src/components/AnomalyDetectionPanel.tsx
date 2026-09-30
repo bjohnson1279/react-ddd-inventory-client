@@ -233,9 +233,15 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({
                   {data.alerts?.map((alert: any, idx: number) => {
                     const time = new Date(alert.detectedAt).getHours();
                     const left = `${(time / 24) * 100}%`;
-                    const randomValue =
-                      window.crypto.getRandomValues(new Uint32Array(1))[0] /
-                      (0xffffffff + 1);
+                    const range = 101;
+                    const maxValid = Math.floor(4294967296 / range) * range;
+                    const array = new Uint32Array(1);
+                    let randInt;
+                    do {
+                      window.crypto.getRandomValues(array);
+                      randInt = array[0];
+                    } while (randInt >= maxValid);
+                    const randomValue = (randInt % range) / 100;
                     const top = `${20 + randomValue * 60}%`;
                     const color =
                       alert.severity === "CRITICAL"
