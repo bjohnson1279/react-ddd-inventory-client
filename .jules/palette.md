@@ -84,3 +84,8 @@
 ## 2026-10-01 - Missing aria-busy on Custom Async States
 **Learning:** Found instances where custom loading states (e.g., `loadingSlotting`, `verifyingLedger`, `reconstructingState`, `replayingAudit`) were bound to the `disabled` property of buttons to prevent duplicate submission, but the corresponding `aria-busy` attribute was omitted. Without `aria-busy`, assistive technologies fail to notify users that an async background operation is currently processing, reducing context and interactivity feedback.
 **Action:** When introducing or modifying custom async state hooks that control the interactivity of a submit or action button, ensure both `disabled` and `aria-busy` are bound to that specific state identifier.
+
+## Additive Documentation & Scratch Cleanliness Directives
+- **Strictly Additive Journal Updates**: When updating `.jules/*.md`, strictly append new dated entries (`## YYYY-MM-DD - Title`). NEVER delete, truncate, or overwrite historical learnings or previous entries.
+- **Substantive Code Diff Requirement**: Pull requests must include substantive code changes in `src/`, `app/`, `lib/`, or `tests/`. Never open PRs that modify only `.jules/*.md` journals or root scratch scripts.
+- **Zero Scratch File Commits**: Never commit `*.diff`, `*.patch`, `test_*.ts`, `test_*.js`, `test.cjs`, `fix_*.php`, or `patch_*.py` files. Always remove temporary debugging or verification scripts prior to committing.

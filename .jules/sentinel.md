@@ -107,3 +107,8 @@
 **Vulnerability:** Biased distribution of random numbers when applying modulo or division to `window.crypto.getRandomValues()` output.
 **Learning:** Using raw division or modulo on crypto random numbers introduces a slight distribution bias because the range of `Uint32` is rarely perfectly divisible by arbitrary numbers, triggering CodeQL security warnings.
 **Prevention:** Use a rejection sampling loop (e.g. `do { ... } while(val >= maxValid)`) to discard values in the remainder range, guaranteeing perfectly unbiased selection within target bounds.
+
+## Additive Documentation & Scratch Cleanliness Directives
+- **Strictly Additive Journal Updates**: When updating `.jules/*.md`, strictly append new dated entries (`## YYYY-MM-DD - Title`). NEVER delete, truncate, or overwrite historical learnings or previous entries.
+- **Substantive Code Diff Requirement**: Pull requests must include substantive code changes in `src/`, `app/`, `lib/`, or `tests/`. Never open PRs that modify only `.jules/*.md` journals or root scratch scripts.
+- **Zero Scratch File Commits**: Never commit `*.diff`, `*.patch`, `test_*.ts`, `test_*.js`, `test.cjs`, `fix_*.php`, or `patch_*.py` files. Always remove temporary debugging or verification scripts prior to committing.
