@@ -134,7 +134,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getConnections(tenantId: string): Promise<any> {
-    return this.request('GET', `/integrations/connections?tenantId=${tenantId}`);
+    return this.request('GET', `/integrations/connections?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
@@ -150,13 +150,13 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getJournalEntries(tenantId: string): Promise<JournalEntry[]> {
-    const data = await this.request('GET', `/accounting/ledger?tenantId=${tenantId}`);
+    const data = await this.request('GET', `/accounting/ledger?tenantId=${encodeURIComponent(tenantId)}`);
     return data || [];
   }
 
   async getStockOnboardings(tenantId: string): Promise<StockOnboarding[]> {
     try {
-      const data = await this.request('GET', `/onboarding?tenantId=${tenantId}`);
+      const data = await this.request('GET', `/onboarding?tenantId=${encodeURIComponent(tenantId)}`);
       return data || [];
     } catch {
       return [];
@@ -315,7 +315,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   // Reorder Policies
   async getReorderPolicies(tenantId: string): Promise<ReorderPolicy[]> {
     try {
-      const data = await this.request('GET', `/reorder-policies?tenantId=${tenantId}`);
+      const data = await this.request('GET', `/reorder-policies?tenantId=${encodeURIComponent(tenantId)}`);
       return data || [];
     } catch {
       return [];
@@ -332,7 +332,7 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   // Webhooks
   async getWebhooks(tenantId: string): Promise<WebhookSubscription[]> {
-    const data = await this.request('GET', `/webhooks?tenantId=${tenantId}`);
+    const data = await this.request('GET', `/webhooks?tenantId=${encodeURIComponent(tenantId)}`);
     return data || [];
   }
 
@@ -341,12 +341,12 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async deleteWebhook(tenantId: string, id: string): Promise<void> {
-    await this.request('DELETE', `/webhooks/${id}?tenantId=${tenantId}`);
+    await this.request('DELETE', `/webhooks/${id}?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async getWebhookDeliveries(tenantId: string): Promise<WebhookDeliveryLog[]> {
     try {
-      const data = await this.request('GET', `/webhooks/deliveries?tenantId=${tenantId}`);
+      const data = await this.request('GET', `/webhooks/deliveries?tenantId=${encodeURIComponent(tenantId)}`);
       return data || [];
     } catch {
       return [];
@@ -355,7 +355,7 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   // WMS Layout
   async getWarehouseLocations(tenantId: string): Promise<WarehouseLocation[]> {
-    const data = await this.request('GET', `/warehouse-locations?tenantId=${tenantId}`);
+    const data = await this.request('GET', `/warehouse-locations?tenantId=${encodeURIComponent(tenantId)}`);
     return data || [];
   }
 
@@ -364,7 +364,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async deleteWarehouseLocation(tenantId: string, id: string): Promise<void> {
-    await this.request('DELETE', `/warehouse-locations/${id}?tenantId=${tenantId}`);
+    await this.request('DELETE', `/warehouse-locations/${id}?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async getPutawaySuggestions(tenantId: string, sku: string, quantity: number): Promise<PutawaySuggestion[]> {
@@ -392,7 +392,7 @@ export class ExpressRESTAdapter implements InventoryClient {
 
     try {
       // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
-      const response = await this.request('GET', `/purchase-orders?tenantId=${tenantId}&ids=${ids.join(',')}`);
+      const response = await this.request('GET', `/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&ids=${ids.join(',')}`);
 
       const bulkData = (response?.data || response || []);
       const allPos = Array.isArray(bulkData) ? bulkData : [];
@@ -431,16 +431,16 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   // FEFO & Recall
   async getFefoPickSuggestions(tenantId: string, sku: string, quantity: number): Promise<any[]> {
-    return this.request('GET', `/inventory/fefo-pick?sku=${sku}&quantity=${quantity}&tenantId=${tenantId}`);
+    return this.request('GET', `/inventory/fefo-pick?sku=${sku}&quantity=${quantity}&tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async traceRecall(tenantId: string, lotNumber: string): Promise<any> {
-    return this.request('GET', `/inventory/reports/recall/${lotNumber}?tenantId=${tenantId}`);
+    return this.request('GET', `/inventory/reports/recall/${lotNumber}?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   // --- Unified Admin Portal Operations for Express ---
   async getUsers(tenantId: string): Promise<User[]> {
-    const res = await this.request('GET', `/users?tenantId=${tenantId}`);
+    const res = await this.request('GET', `/users?tenantId=${encodeURIComponent(tenantId)}`);
     return res?.users || [];
   }
 
@@ -454,7 +454,7 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   // RBAC
   async getRoles(tenantId: string): Promise<Role[]> {
-    return this.request('GET', `/roles?tenantId=${tenantId}`);
+    return this.request('GET', `/roles?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async getPermissions(): Promise<Permission[]> {
@@ -478,7 +478,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]> {
-    const res = await this.request('GET', `/audit/discrepancies?tenantId=${tenantId}`);
+    const res = await this.request('GET', `/audit/discrepancies?tenantId=${encodeURIComponent(tenantId)}`);
     return res || [];
   }
 
@@ -537,7 +537,7 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   async getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]> {
     try {
-      const res = await this.request('GET', `/returns/quarantine?tenantId=${tenantId}`);
+      const res = await this.request('GET', `/returns/quarantine?tenantId=${encodeURIComponent(tenantId)}`);
       return (res || []).map((q: any) => ({
         id: q.id,
         sku: q.sku || q.variantId || '',
@@ -577,7 +577,7 @@ export class ExpressRESTAdapter implements InventoryClient {
 
           if (qty > 0) {
             promises.push(
-              this.request('GET', `/accounting/valuation/${v.id}?tenantId=${tenantId}&quantity=${qty}${method ? `&method=${method}` : ''}`)
+              this.request('GET', `/accounting/valuation/${v.id}?tenantId=${encodeURIComponent(tenantId)}&quantity=${qty}${method ? `&method=${method}` : ''}`)
                 .then((val) => ({
                   variantId: v.id,
                   sku: v.sku,
@@ -619,24 +619,24 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getSlottingSuggestions(tenantId: string): Promise<any[]> {
-    return this.request('GET', `/warehouse-locations/slotting-suggestions?tenantId=${tenantId}`);
+    return this.request('GET', `/warehouse-locations/slotting-suggestions?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async getComplianceLedger(tenantId: string): Promise<any[]> {
-    return this.request('GET', `/compliance/ledger?tenantId=${tenantId}`);
+    return this.request('GET', `/compliance/ledger?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }> {
-    return this.request('POST', `/compliance/verify?tenantId=${tenantId}`);
+    return this.request('POST', `/compliance/verify?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async reconstructState(tenantId: string, timestamp?: string): Promise<any> {
-    const url = timestamp ? `/compliance/reconstruct?tenantId=${tenantId}&timestamp=${encodeURIComponent(timestamp)}` : `/compliance/reconstruct?tenantId=${tenantId}`;
+    const url = timestamp ? `/compliance/reconstruct?tenantId=${encodeURIComponent(tenantId)}&timestamp=${encodeURIComponent(timestamp)}` : `/compliance/reconstruct?tenantId=${encodeURIComponent(tenantId)}`;
     return this.request('GET', url);
   }
 
   async replayAudit(tenantId: string, upToTimestamp?: string): Promise<any[]> {
-    const url = upToTimestamp ? `/compliance/replay?tenantId=${tenantId}&timestamp=${encodeURIComponent(upToTimestamp)}` : `/compliance/replay?tenantId=${tenantId}`;
+    const url = upToTimestamp ? `/compliance/replay?tenantId=${encodeURIComponent(tenantId)}&timestamp=${encodeURIComponent(upToTimestamp)}` : `/compliance/replay?tenantId=${encodeURIComponent(tenantId)}`;
     return this.request('GET', url);
   }
 
@@ -645,22 +645,22 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async clearCache(tenantId?: string): Promise<{ success: boolean; clearedKeysCount: number }> {
-    const url = tenantId ? `/admin/cache/clear?tenantId=${tenantId}` : `/admin/cache/clear`;
+    const url = tenantId ? `/admin/cache/clear?tenantId=${encodeURIComponent(tenantId)}` : `/admin/cache/clear`;
     return this.request('POST', url);
   }
 
 
   async getRfidTags(tenantId: string): Promise<any[]> {
-    const res = await this.request('GET', `/rfid/tags?tenantId=${tenantId}`);
+    const res = await this.request('GET', `/rfid/tags?tenantId=${encodeURIComponent(tenantId)}`);
     return res.tags || [];
   }
 
   async assignRfidTag(tenantId: string, epc: string, sku: string, serialNumber: string): Promise<void> {
-    await this.request('POST', `/rfid/assign?tenantId=${tenantId}`, { epc, sku, serialNumber });
+    await this.request('POST', `/rfid/assign?tenantId=${encodeURIComponent(tenantId)}`, { epc, sku, serialNumber });
   }
 
   async simulateRfidScan(tenantId: string, locationId: string, tags: string[]): Promise<void> {
-    await this.request('POST', `/rfid/simulate-scan?tenantId=${tenantId}`, { locationId, tags });
+    await this.request('POST', `/rfid/simulate-scan?tenantId=${encodeURIComponent(tenantId)}`, { locationId, tags });
   }
 
   subscribeRfidScans(tenantId: string, onScanProcessed: (event: any) => void): () => void {
@@ -709,7 +709,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getRebalanceMatrix(tenantId: string): Promise<any> {
-    return await this.request('GET', `/rebalance/matrix?tenantId=${tenantId}`);
+    return await this.request('GET', `/rebalance/matrix?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   // Approvals
@@ -736,7 +736,7 @@ export class ExpressRESTAdapter implements InventoryClient {
 
   // Reporting & Analytics
   async getReportDefinitions(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/reports?tenantId=${tenantId}`);
+    return await this.request('GET', `/reports?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async createReportDefinition(tenantId: string, payload: any): Promise<any> {
@@ -752,7 +752,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getDashboardWidgets(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/widgets?tenantId=${tenantId}`);
+    return await this.request('GET', `/widgets?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async saveDashboardWidget(tenantId: string, widget: any): Promise<any> {
@@ -767,25 +767,25 @@ export class ExpressRESTAdapter implements InventoryClient {
     await this.request('POST', `/cycle-count/${id}/submit`, { countedLines });
   }
   async getCycleCounts(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/cycle-count?tenantId=${tenantId}`);
+    return await this.request('GET', `/cycle-count?tenantId=${encodeURIComponent(tenantId)}`);
   }
   
   async submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any> {
     return await this.request('POST', '/supplier/asn', { tenantId, poId, supplierId, expectedArrivalDate, lines });
   }
   async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
-    return await this.request('GET', `/supplier/asn?tenantId=${tenantId}&supplierId=${supplierId}`);
+    return await this.request('GET', `/supplier/asn?tenantId=${encodeURIComponent(tenantId)}&supplierId=${supplierId}`);
   }
   
   async getNotifications(tenantId: string, userId: string): Promise<any[]> {
-    return await this.request('GET', `/notifications?tenantId=${tenantId}&userId=${userId}`);
+    return await this.request('GET', `/notifications?tenantId=${encodeURIComponent(tenantId)}&userId=${userId}`);
   }
   async markNotificationRead(id: string): Promise<void> {
     await this.request('POST', `/notifications/${id}/read`);
   }
   
   async generateAgingReport(tenantId: string): Promise<any> {
-    return await this.request('GET', `/aging/report?tenantId=${tenantId}`);
+    return await this.request('GET', `/aging/report?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async createLegalEntity(tenantId: string, name: string, baseCurrency: string, taxIdentifier?: string): Promise<any> {
@@ -793,7 +793,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getLegalEntities(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/intercompany/entities?tenantId=${tenantId}`);
+    return await this.request('GET', `/intercompany/entities?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async executeIntercompanyTransfer(dto: { tenantId: string, fromEntityId: string, toEntityId: string, sku: string, quantity: number, unitCostCents: number, markupPercentage: number, dutyCents?: number }): Promise<any> {
@@ -801,10 +801,10 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getIntercompanyTransfers(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/intercompany/transfers?tenantId=${tenantId}`);
+    return await this.request('GET', `/intercompany/transfers?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async getApiUsageMetrics(tenantId: string): Promise<any[]> {
-    return await this.request('GET', `/usage?tenantId=${tenantId}`);
+    return await this.request('GET', `/usage?tenantId=${encodeURIComponent(tenantId)}`);
   }
 }
