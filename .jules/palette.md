@@ -93,3 +93,8 @@
 ## 2024-10-01 - Accessible Forms
 **Learning:** Forms in IntercompanyPanel were relying entirely on placeholders for field identification, making them inaccessible to screen readers.
 **Action:** Always wrap inputs and selects with `.form-group` and a `<label>` tied via `htmlFor` to the input's `id`. This maintains the application's grid layout while significantly improving accessibility.
+
+## Scope Quarantine, Journaling & Security Test Invariants
+- **Strictly Append-Only Journaling**: When adding learnings to `.jules/*.md`, append strictly at the end of the file. Do not rewrite, deduplicate, or remove lines beginning with `## YYYY-MM-DD`.
+- **Surgical Scope Quarantine**: Modify only the files directly involved in the issue and their corresponding test fixtures. Do not delete, rename, or perform drive-by cleanups of unrelated root-level scripts or legacy files.
+- **Coupled Test Fixture Awareness for Security Invariants**: When changing fail-open fallback behavior (such as hardening decryption to fail closed), always update upstream test mocks that rely on plaintext credentials or mock values.
