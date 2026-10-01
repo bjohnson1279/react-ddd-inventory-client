@@ -1,55 +1,103 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useInventory, BackendType, Item, JournalLine, Tab, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, ForecastingReportItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem } from './api/client';
+import { useEffect, useMemo, useState } from "react";
 import {
-  RfidPanel,
-  LotManagementPanel
-} from './components/Panels';
+  useInventory,
+  BackendType,
+  Item,
+  JournalLine,
+  Tab,
+  InventoryItem,
+  Product,
+  StockOnboarding,
+  JournalEntry,
+  ShopifyConnection,
+  SerializedItem,
+  ForecastingReportItem,
+  User,
+  AuditDiscrepancy,
+  OutboxStats,
+  OutboxEvent,
+  TenantAccountingConfig,
+  QuarantinedItem,
+  ValuationItem,
+} from "./api/client";
+import { RfidPanel, LotManagementPanel } from "./components/Panels";
 
-import { addScanToQueue, getQueuedScans, syncOfflineQueue } from './api/offlineQueue';
-import { AutonomousInventoryDashboard } from './components/AutonomousInventoryDashboard';
-import { ConformanceDashboardPanel } from './components/ConformanceDashboardPanel';
-import { ApiSpecViewerPanel } from './components/ApiSpecViewerPanel';
-import { AnomalyDetectionPanel } from './components/AnomalyDetectionPanel';
-import { RebalancingMatrixPanel } from './components/RebalancingMatrixPanel';
-import { LogisticsErpPanel } from './components/LogisticsErpPanel';
-import { ReverseLogisticsSupplierPanel } from './components/ReverseLogisticsSupplierPanel';
-import { ThermalPrintingArPanel } from './components/ThermalPrintingArPanel';
-import { DigitalTwinCopilotPanel } from './components/DigitalTwinCopilotPanel';
-import { EsgEmissionsPanel } from './components/EsgEmissionsPanel';
-import { RoleManagementPanel } from './components/RoleManagementPanel';
-import { ApprovalInboxPanel } from './components/ApprovalInboxPanel';
-import { ApprovalWorkflowPanel } from './components/ApprovalWorkflowPanel';
-import { ReportingDashboardPanel } from './components/ReportingDashboardPanel';
-import { OmnichannelIntegrationPanel } from './components/OmnichannelIntegrationPanel';
-import { CycleCountDashboardPanel } from './components/CycleCountDashboardPanel';
-import { SupplierCollaborationPortal } from './components/SupplierCollaborationPortal';
-import { NotificationInboxPanel } from './components/NotificationInboxPanel';
-import { InventoryAgingPanel } from './components/InventoryAgingPanel';
-import { IntercompanyPanel } from './panels/IntercompanyPanel';
-import { ApiUsageDashboardPanel } from './panels/ApiUsageDashboardPanel';
-import CVGatewayDashboard from './components/CVGatewayDashboard';
+import {
+  addScanToQueue,
+  getQueuedScans,
+  syncOfflineQueue,
+} from "./api/offlineQueue";
+import { AutonomousInventoryDashboard } from "./components/AutonomousInventoryDashboard";
+import { ConformanceDashboardPanel } from "./components/ConformanceDashboardPanel";
+import { ApiSpecViewerPanel } from "./components/ApiSpecViewerPanel";
+import { AnomalyDetectionPanel } from "./components/AnomalyDetectionPanel";
+import { RebalancingMatrixPanel } from "./components/RebalancingMatrixPanel";
+import { LogisticsErpPanel } from "./components/LogisticsErpPanel";
+import { ReverseLogisticsSupplierPanel } from "./components/ReverseLogisticsSupplierPanel";
+import { ThermalPrintingArPanel } from "./components/ThermalPrintingArPanel";
+import { DigitalTwinCopilotPanel } from "./components/DigitalTwinCopilotPanel";
+import { EsgEmissionsPanel } from "./components/EsgEmissionsPanel";
+import { RoleManagementPanel } from "./components/RoleManagementPanel";
+import { ApprovalInboxPanel } from "./components/ApprovalInboxPanel";
+import { ApprovalWorkflowPanel } from "./components/ApprovalWorkflowPanel";
+import { ReportingDashboardPanel } from "./components/ReportingDashboardPanel";
+import { OmnichannelIntegrationPanel } from "./components/OmnichannelIntegrationPanel";
+import { CycleCountDashboardPanel } from "./components/CycleCountDashboardPanel";
+import { SupplierCollaborationPortal } from "./components/SupplierCollaborationPortal";
+import { NotificationInboxPanel } from "./components/NotificationInboxPanel";
+import { InventoryAgingPanel } from "./components/InventoryAgingPanel";
+import { IntercompanyPanel } from "./panels/IntercompanyPanel";
+import { ApiUsageDashboardPanel } from "./panels/ApiUsageDashboardPanel";
+import CVGatewayDashboard from "./components/CVGatewayDashboard";
 
 const Spinner = () => (
-  <svg className="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle className="spinner-track" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25" />
-    <path className="spinner-head" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+  <svg
+    className="spinner"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle
+      className="spinner-track"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+      opacity="0.25"
+    />
+    <path
+      className="spinner-head"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    />
   </svg>
 );
 
 function App() {
   const { client, backendType, setBackendType } = useInventory();
-  
-  const [activeTab, setActiveTab] = useState<Tab | 'forecasting' | 'op-depth'>('dashboard');
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
-  const [loginTenant, setLoginTenant] = useState('tenant-1');
-  const [loginActor, setLoginActor] = useState('admin-user');
-  const [loginRole, setLoginRole] = useState('admin');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [role, setRole] = useState(localStorage.getItem('auth_role') || 'admin');
 
-  const [tenantId, setTenantId] = useState(localStorage.getItem('auth_tenant') || 'tenant-1');
-  const [locationId, setLocationId] = useState('loc-1');
-  const [actorId, setActorId] = useState(localStorage.getItem('auth_actor') || 'admin-user');
+  const [activeTab, setActiveTab] = useState<Tab | "forecasting" | "op-depth">(
+    "dashboard",
+  );
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem("auth_token"),
+  );
+  const [loginTenant, setLoginTenant] = useState("tenant-1");
+  const [loginActor, setLoginActor] = useState("admin-user");
+  const [loginRole, setLoginRole] = useState("admin");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [role, setRole] = useState(
+    localStorage.getItem("auth_role") || "admin",
+  );
+
+  const [tenantId, setTenantId] = useState(
+    localStorage.getItem("auth_tenant") || "tenant-1",
+  );
+  const [locationId, setLocationId] = useState("loc-1");
+  const [actorId, setActorId] = useState(
+    localStorage.getItem("auth_actor") || "admin-user",
+  );
 
   // --- Offline PWA States ---
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -57,7 +105,10 @@ function App() {
 
   // --- Shared Status States ---
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   // --- Loaded Data States ---
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
@@ -65,115 +116,140 @@ function App() {
   const [onboardings, setOnboardings] = useState<StockOnboarding[]>([]);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
   const [shopifyConns, setShopifyConns] = useState<ShopifyConnection[]>([]);
-  const [forecastingReport, setForecastingReport] = useState<ForecastingReportItem[]>([]);
+  const [forecastingReport, setForecastingReport] = useState<
+    ForecastingReportItem[]
+  >([]);
 
   // --- Selection / Draft States ---
-  const [selectedOnboarding, setSelectedOnboarding] = useState<StockOnboarding | null>(null);
-  const [onboardingItems, setOnboardingItems] = useState<Item[]>([{ variantId: '', quantity: 0, unitCostCents: 0 }]);
+  const [selectedOnboarding, setSelectedOnboarding] =
+    useState<StockOnboarding | null>(null);
+  const [onboardingItems, setOnboardingItems] = useState<Item[]>([
+    { variantId: "", quantity: 0, unitCostCents: 0 },
+  ]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // --- Form Inputs ---
-  const [newProdName, setNewProdName] = useState('');
-  const [newProdId, setNewProdId] = useState('');
-  
-  const [newVarSku, setNewVarSku] = useState('');
-  const [newVarTracking, setNewVarTracking] = useState<'quantity' | 'serial' | 'lot'>('quantity');
-  const [newVarAttrs, setNewVarAttrs] = useState<{ name: string; value: string }[]>([{ name: '', value: '' }]);
+  const [newProdName, setNewProdName] = useState("");
+  const [newProdId, setNewProdId] = useState("");
 
-  const [assignSku, setAssignSku] = useState('');
-  const [assignVal, setAssignVal] = useState('');
-  const [assignSymbology, setAssignSymbology] = useState('upc_a');
-  const [assignSource, setAssignSource] = useState('supplier');
+  const [newVarSku, setNewVarSku] = useState("");
+  const [newVarTracking, setNewVarTracking] = useState<
+    "quantity" | "serial" | "lot"
+  >("quantity");
+  const [newVarAttrs, setNewVarAttrs] = useState<
+    { name: string; value: string }[]
+  >([{ name: "", value: "" }]);
+
+  const [assignSku, setAssignSku] = useState("");
+  const [assignVal, setAssignVal] = useState("");
+  const [assignSymbology, setAssignSymbology] = useState("upc_a");
+  const [assignSource, setAssignSource] = useState("supplier");
   const [assignPrimary, setAssignPrimary] = useState(true);
 
-  const [scanVal, setScanVal] = useState('');
-  const [scanContext, setScanContext] = useState<'pos' | 'receiving' | 'cycle_count'>('pos');
+  const [scanVal, setScanVal] = useState("");
+  const [scanContext, setScanContext] = useState<
+    "pos" | "receiving" | "cycle_count"
+  >("pos");
   const [scanAmount, setScanAmount] = useState(1);
   const [scanActualQty, setScanActualQty] = useState(0);
-  const [scanHistory, setScanHistory] = useState<{ time: string; scan: string; context: string; status: string }[]>([]);
+  const [scanHistory, setScanHistory] = useState<
+    { time: string; scan: string; context: string; status: string }[]
+  >([]);
 
-  const [traceSerialNum, setTraceSerialNum] = useState('');
+  const [traceSerialNum, setTraceSerialNum] = useState("");
   const [tracedItem, setTracedItem] = useState<SerializedItem | null>(null);
 
-  const [newShopifyId, setNewShopifyId] = useState('');
-  const [newShopifyDomain, setNewShopifyDomain] = useState('');
-  const [newShopifyToken, setNewShopifyToken] = useState('');
+  const [newShopifyId, setNewShopifyId] = useState("");
+  const [newShopifyDomain, setNewShopifyDomain] = useState("");
+  const [newShopifyToken, setNewShopifyToken] = useState("");
 
-  const [newJournalDesc, setNewJournalDesc] = useState('');
-  const [newJournalMethod, setNewJournalMethod] = useState<'cash' | 'accrual'>('accrual');
+  const [newJournalDesc, setNewJournalDesc] = useState("");
+  const [newJournalMethod, setNewJournalMethod] = useState<"cash" | "accrual">(
+    "accrual",
+  );
   const [newJournalLines, setNewJournalLines] = useState<JournalLine[]>([
-    { accountCode: '1000', amountCents: 0, type: 'debit', memo: '' },
-    { accountCode: '2000', amountCents: 0, type: 'credit', memo: '' }
+    { accountCode: "1000", amountCents: 0, type: "debit", memo: "" },
+    { accountCode: "2000", amountCents: 0, type: "credit", memo: "" },
   ]);
 
   // --- Advanced Admin Features States ---
-  const [routingSku, setRoutingSku] = useState('ROUTE-SKU');
+  const [routingSku, setRoutingSku] = useState("ROUTE-SKU");
   const [routingQuantity, setRoutingQuantity] = useState(12);
-  const [routingAddress, setRoutingAddress] = useState('New York, NY 10001');
-  const [routingStrategy, setRoutingStrategy] = useState('MINIMIZE_COST');
+  const [routingAddress, setRoutingAddress] = useState("New York, NY 10001");
+  const [routingStrategy, setRoutingStrategy] = useState("MINIMIZE_COST");
   const [routingPlan, setRoutingPlan] = useState<any | null>(null);
 
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
-  const [newPoSupplier, setNewPoSupplier] = useState('');
-  const [newPoLines, setNewPoLines] = useState<{ sku: string; quantity: number; unitCostCents: number }[]>([
-    { sku: '', quantity: 1, unitCostCents: 1000 }
-  ]);
-  const [receivePoId, setReceivePoId] = useState('');
-  const [receivePoLines, setReceivePoLines] = useState<{ sku: string; quantity: number }[]>([]);
+  const [newPoSupplier, setNewPoSupplier] = useState("");
+  const [newPoLines, setNewPoLines] = useState<
+    { sku: string; quantity: number; unitCostCents: number }[]
+  >([{ sku: "", quantity: 1, unitCostCents: 1000 }]);
+  const [receivePoId, setReceivePoId] = useState("");
+  const [receivePoLines, setReceivePoLines] = useState<
+    { sku: string; quantity: number }[]
+  >([]);
 
   const [wmsLocations, setWmsLocations] = useState<any[]>([]);
-  const [wmsLocId, setWmsLocId] = useState('');
-  const [wmsWarehouseId, setWmsWarehouseId] = useState('WH-CENTRAL');
-  const [wmsZone, setWmsZone] = useState('A');
+  const [wmsLocId, setWmsLocId] = useState("");
+  const [wmsWarehouseId, setWmsWarehouseId] = useState("WH-CENTRAL");
+  const [wmsZone, setWmsZone] = useState("A");
   const [wmsMaxWeight, setWmsMaxWeight] = useState(50000);
   const [wmsMaxVolume, setWmsMaxVolume] = useState(10.0);
   const [wmsGridX, setWmsGridX] = useState(0);
   const [wmsGridY, setWmsGridY] = useState(0);
   const [wmsWidth, setWmsWidth] = useState(1);
   const [wmsHeight, setWmsHeight] = useState(1);
-  const [wmsSelectedZone, setWmsSelectedZone] = useState('');
-  const [putawaySku, setPutawaySku] = useState('');
+  const [wmsSelectedZone, setWmsSelectedZone] = useState("");
+  const [putawaySku, setPutawaySku] = useState("");
   const [putawayQty, setPutawayQty] = useState(10);
   const [putawayResult, setPutawayResult] = useState<any[]>([]);
-  const [pickSkusInput, setPickSkusInput] = useState('');
+  const [pickSkusInput, setPickSkusInput] = useState("");
   const [pickRouteResult, setPickRouteResult] = useState<string[]>([]);
 
   const [webhooks, setWebhooks] = useState<any[]>([]);
-  const [webhookUrl, setWebhookUrl] = useState('');
-  const [webhookEvents, setWebhookEvents] = useState<string[]>(['StockReceived']);
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookEvents, setWebhookEvents] = useState<string[]>([
+    "StockReceived",
+  ]);
   const [webhookDeliveries, setWebhookDeliveries] = useState<any[]>([]);
   const [complianceLedger, setComplianceLedger] = useState<any[]>([]);
   const [verificationStatus, setVerificationStatus] = useState<any>(null);
   const [verifyingLedger, setVerifyingLedger] = useState(false);
-  const [reconstructTimestamp, setReconstructTimestamp] = useState('');
-  const [reconstructedState, setReconstructedState] = useState<any | null>(null);
+  const [reconstructTimestamp, setReconstructTimestamp] = useState("");
+  const [reconstructedState, setReconstructedState] = useState<any | null>(
+    null,
+  );
   const [reconstructingState, setReconstructingState] = useState(false);
   const [auditReplaySteps, setAuditReplaySteps] = useState<any[]>([]);
   const [replayingAudit, setReplayingAudit] = useState(false);
   const [cacheStats, setCacheStats] = useState<any | null>(null);
 
-  
-  const [fefoSku, setFefoSku] = useState('');
+  const [fefoSku, setFefoSku] = useState("");
   const [fefoQty, setFefoQty] = useState(5);
   const [fefoResult, setFefoResult] = useState<any[]>([]);
-  const [recallLotNum, setRecallLotNum] = useState('');
+  const [recallLotNum, setRecallLotNum] = useState("");
   const [recallResult, setRecallResult] = useState<any | null>(null);
-  
+
   const [reorderPolicies, setReorderPolicies] = useState<any[]>([]);
-  const [policySku, setPolicySku] = useState('');
-  const [policyLoc, setPolicyLoc] = useState('');
+  const [policySku, setPolicySku] = useState("");
+  const [policyLoc, setPolicyLoc] = useState("");
   const [policyRop, setPolicyRop] = useState(10);
   const [policySafety, setPolicySafety] = useState(5);
   const [policyEoq, setPolicyEoq] = useState(25);
 
   // ⚡ Bolt: Memoize zones to prevent creating a Set and mapping over an array on every render
-  const wmsUniqueZones = useMemo(() => Array.from(new Set(wmsLocations.map(l => l.zone))), [wmsLocations]);
+  const wmsUniqueZones = useMemo(
+    () => Array.from(new Set(wmsLocations.map((l) => l.zone))),
+    [wmsLocations],
+  );
 
   // ⚡ Bolt: Pre-calculate pick path indices to avoid O(N*M) string matching inside the render loop (especially during hover interactions)
   const pickRouteIndicesMap = useMemo(() => {
     const map = new Map<string, number>();
     wmsLocations.forEach((loc) => {
-      const pickIdx = pickRouteResult.findIndex(path => typeof path === 'string' && path.includes(loc.id));
+      const pickIdx = pickRouteResult.findIndex(
+        (path) => typeof path === "string" && path.includes(loc.id),
+      );
       if (pickIdx !== -1) {
         map.set(loc.id, pickIdx);
       }
@@ -191,7 +267,7 @@ function App() {
   const variantMap = useMemo(() => {
     const map = new Map();
     for (const p of products) {
-      for (const v of (p.variants || [])) {
+      for (const v of p.variants || []) {
         if (v.sku) map.set(v.sku, v);
       }
     }
@@ -235,78 +311,137 @@ function App() {
   }, [wmsLocations, itemsByLocation, variantMap]);
 
   // ⚡ Bolt: Memoize derived statistics to prevent expensive array filtering on every render pass
-  const lowStockCount = useMemo(() => inventoryItems.filter(item => item.quantity < 10).length, [inventoryItems]);
-  const activeShopifyConnsCount = useMemo(() => shopifyConns.filter(c => c.isActive).length, [shopifyConns]);
-  const urgentActionsCount = useMemo(() => forecastingReport.filter(item => item.currentStock <= item.suggestedROP).length, [forecastingReport]);
+  const lowStockCount = useMemo(
+    () => inventoryItems.filter((item) => item.quantity < 10).length,
+    [inventoryItems],
+  );
+  const activeShopifyConnsCount = useMemo(
+    () => shopifyConns.filter((c) => c.isActive).length,
+    [shopifyConns],
+  );
+  const urgentActionsCount = useMemo(
+    () =>
+      forecastingReport.filter((item) => item.currentStock <= item.suggestedROP)
+        .length,
+    [forecastingReport],
+  );
 
   // ⚡ Bolt: Memoize filtered purchase orders to prevent O(N) filtering on every render pass in the procurement tab
-  const sentPurchaseOrders = useMemo(() => purchaseOrders.filter(po => po.status === 'sent'), [purchaseOrders]);
+  const sentPurchaseOrders = useMemo(
+    () => purchaseOrders.filter((po) => po.status === "sent"),
+    [purchaseOrders],
+  );
 
   // ⚡ Bolt: Memoize filtered WMS locations to avoid iterating the large warehouse grid array on every render
-  const filteredWmsLocations = useMemo(() => wmsLocations.filter(loc => !wmsSelectedZone || loc.zone === wmsSelectedZone), [wmsLocations, wmsSelectedZone]);
+  const filteredWmsLocations = useMemo(
+    () =>
+      wmsLocations.filter(
+        (loc) => !wmsSelectedZone || loc.zone === wmsSelectedZone,
+      ),
+    [wmsLocations, wmsSelectedZone],
+  );
 
   // --- Admin Portal States ---
-  const [adminActiveSubTab, setAdminActiveSubTab] = useState<'users' | 'roles' | 'audits' | 'outbox' | 'tenantConfig' | 'kits' | 'quarantine' | 'valuation'>('users');
+  const [adminActiveSubTab, setAdminActiveSubTab] = useState<
+    | "users"
+    | "roles"
+    | "audits"
+    | "outbox"
+    | "tenantConfig"
+    | "kits"
+    | "quarantine"
+    | "valuation"
+  >("users");
   const [adminUsers, setAdminUsers] = useState<User[]>([]);
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserRole, setNewUserRole] = useState('warehouse_operator');
-  const [invitedUser, setInvitedUser] = useState<{ userId: string; temporaryPassword?: string } | null>(null);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserRole, setNewUserRole] = useState("warehouse_operator");
+  const [invitedUser, setInvitedUser] = useState<{
+    userId: string;
+    temporaryPassword?: string;
+  } | null>(null);
 
   const [discrepancies, setDiscrepancies] = useState<AuditDiscrepancy[]>([]);
-  const [discrepancyNotes, setDiscrepancyNotes] = useState<Record<string, string>>({});
+  const [discrepancyNotes, setDiscrepancyNotes] = useState<
+    Record<string, string>
+  >({});
 
-  const [outboxStats, setOutboxStats] = useState<OutboxStats>({ pendingCount: 0, publishedCount: 0, failedCount: 0 });
+  const [outboxStats, setOutboxStats] = useState<OutboxStats>({
+    pendingCount: 0,
+    publishedCount: 0,
+    failedCount: 0,
+  });
   const [deadLetterEvents, setDeadLetterEvents] = useState<OutboxEvent[]>([]);
 
-  const [tenantConfig, setTenantConfig] = useState<TenantAccountingConfig | null>(null);
-  const [configAccountingMethod, setConfigAccountingMethod] = useState<'CASH' | 'ACCRUAL' | 'cash' | 'accrual'>('ACCRUAL');
-  const [configCostingMethod, setConfigCostingMethod] = useState<'FIFO' | 'LIFO' | 'WAC' | 'fifo' | 'lifo' | 'wac'>('FIFO');
+  const [tenantConfig, setTenantConfig] =
+    useState<TenantAccountingConfig | null>(null);
+  const [configAccountingMethod, setConfigAccountingMethod] = useState<
+    "CASH" | "ACCRUAL" | "cash" | "accrual"
+  >("ACCRUAL");
+  const [configCostingMethod, setConfigCostingMethod] = useState<
+    "FIFO" | "LIFO" | "WAC" | "fifo" | "lifo" | "wac"
+  >("FIFO");
 
-  const [kitSku, setKitSku] = useState('');
+  const [kitSku, setKitSku] = useState("");
   const [kitQty, setKitQty] = useState(1);
-  const [kitLocationId, setKitLocationId] = useState('LOC-A1');
-  const [kitRef, setKitRef] = useState('');
+  const [kitLocationId, setKitLocationId] = useState("LOC-A1");
+  const [kitRef, setKitRef] = useState("");
 
-  const [quarantinedItems, setQuarantinedItems] = useState<QuarantinedItem[]>([]);
-  const [quarantineResolutions, setQuarantineResolutions] = useState<Record<string, string>>({});
+  const [quarantinedItems, setQuarantinedItems] = useState<QuarantinedItem[]>(
+    [],
+  );
+  const [quarantineResolutions, setQuarantineResolutions] = useState<
+    Record<string, string>
+  >({});
 
   const [valuationItems, setValuationItems] = useState<ValuationItem[]>([]);
-  const [valuationCostingMethod, setValuationCostingMethod] = useState<string>('FIFO');
+  const [valuationCostingMethod, setValuationCostingMethod] =
+    useState<string>("FIFO");
 
-  const [backendHealth, setBackendHealth] = useState<Record<BackendType, { status: 'online' | 'offline' | 'checking', latencyMs: number }>>({
-    graphql: { status: 'checking', latencyMs: 0 },
-    express: { status: 'checking', latencyMs: 0 },
-    laravel: { status: 'checking', latencyMs: 0 },
-    python: { status: 'checking', latencyMs: 0 }
+  const [backendHealth, setBackendHealth] = useState<
+    Record<
+      BackendType,
+      { status: "online" | "offline" | "checking"; latencyMs: number }
+    >
+  >({
+    graphql: { status: "checking", latencyMs: 0 },
+    express: { status: "checking", latencyMs: 0 },
+    laravel: { status: "checking", latencyMs: 0 },
+    python: { status: "checking", latencyMs: 0 },
   });
 
   useEffect(() => {
     const checkHealth = async () => {
       const nodes: Record<BackendType, string> = {
-        graphql: 'http://localhost:4000',
-        express: 'http://localhost:5000',
-        laravel: 'http://localhost:8000',
-        python: 'http://localhost:8000'
+        graphql: "http://localhost:4000",
+        express: "http://localhost:5000",
+        laravel: "http://localhost:8000",
+        python: "http://localhost:8000",
       };
 
-      const promises = (Object.entries(nodes) as [BackendType, string][]).map(async ([type, url]) => {
-        const start = Date.now();
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        try {
-          await fetch(`${url}/health`, { signal: controller.signal });
-          return { type, status: 'online' as const, latencyMs: Date.now() - start };
-        } catch (error) {
-          return { type, status: 'offline' as const, latencyMs: 0 };
-        } finally {
-          clearTimeout(timeoutId);
-        }
-      });
+      const promises = (Object.entries(nodes) as [BackendType, string][]).map(
+        async ([type, url]) => {
+          const start = Date.now();
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          try {
+            await fetch(`${url}/health`, { signal: controller.signal });
+            return {
+              type,
+              status: "online" as const,
+              latencyMs: Date.now() - start,
+            };
+          } catch (error) {
+            return { type, status: "offline" as const, latencyMs: 0 };
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        },
+      );
 
       const results = await Promise.all(promises);
-      setBackendHealth(prev => {
+      setBackendHealth((prev) => {
         const next = { ...prev };
-        results.forEach(res => {
+        results.forEach((res) => {
           next[res.type] = { status: res.status, latencyMs: res.latencyMs };
         });
         return next;
@@ -323,7 +458,9 @@ function App() {
   useEffect(() => {
     if (token) {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        const payload = JSON.parse(
+          atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+        );
         setPermissions(payload.permissions || []);
       } catch (e) {
         setPermissions([]);
@@ -335,10 +472,11 @@ function App() {
 
   // ⚡ Bolt: Parse and memoize permissions to a Map to avoid O(N) array iteration and string splitting on every hasPermission call
   const parsedPermissions = useMemo(() => {
-    if (permissions.includes('*:*')) return { isSuperAdmin: true, map: new Map() };
+    if (permissions.includes("*:*"))
+      return { isSuperAdmin: true, map: new Map() };
     const map = new Map<string, Set<string>>();
-    permissions.forEach(p => {
-      const parts = p.split(':');
+    permissions.forEach((p) => {
+      const parts = p.split(":");
       if (parts.length !== 2) return;
       const pRes = parts[0].toLowerCase();
       const pAct = parts[1].toLowerCase();
@@ -357,31 +495,82 @@ function App() {
     const resLower = resource.toLowerCase();
     const actLower = action.toLowerCase();
 
-    const wildcardRes = parsedPermissions.map.get('*');
-    if (wildcardRes && (wildcardRes.has('*') || wildcardRes.has(actLower))) return true;
+    const wildcardRes = parsedPermissions.map.get("*");
+    if (wildcardRes && (wildcardRes.has("*") || wildcardRes.has(actLower)))
+      return true;
 
     const specificRes = parsedPermissions.map.get(resLower);
-    if (specificRes && (specificRes.has('*') || specificRes.has(actLower))) return true;
+    if (specificRes && (specificRes.has("*") || specificRes.has(actLower)))
+      return true;
 
     return false;
   };
 
   // Redirect to dashboard if the active tab is not allowed for the role/permissions
   useEffect(() => {
-    const allowedTabs = ['dashboard', 'cv-gateway'];
-    if (role === 'admin' || hasPermission('*', '*')) {
-      allowedTabs.push('onboarding', 'products', 'scanning', 'ledger', 'serials', 'shopify', 'forecasting', 'routing', 'procurement', 'warehouse', 'webhooks', 'admin', 'compliance', 'autonomous', 'rfid', 'anomaly-detection', 'rebalancing', 'conformance', 'api-specs', 'logistics-erp', 'reverse-logistics', 'thermal-ar', 'digital-twin', 'esg', 'approvals');
+    const allowedTabs = ["dashboard", "cv-gateway"];
+    if (role === "admin" || hasPermission("*", "*")) {
+      allowedTabs.push(
+        "onboarding",
+        "products",
+        "scanning",
+        "ledger",
+        "serials",
+        "shopify",
+        "forecasting",
+        "routing",
+        "procurement",
+        "warehouse",
+        "webhooks",
+        "admin",
+        "compliance",
+        "autonomous",
+        "rfid",
+        "anomaly-detection",
+        "rebalancing",
+        "conformance",
+        "api-specs",
+        "logistics-erp",
+        "reverse-logistics",
+        "thermal-ar",
+        "digital-twin",
+        "esg",
+        "approvals",
+      );
     } else {
-      if (hasPermission('inventory', 'read') || role === 'warehouse_operator') allowedTabs.push('products', 'scanning', 'serials', 'warehouse', 'autonomous', 'rfid', 'lots', 'cv-gateway');
-      if (hasPermission('procurement', 'read') || role === 'warehouse_operator' || role === 'accountant') allowedTabs.push('procurement', 'forecasting', 'routing', 'rebalancing');
-      if (hasPermission('ledger', 'read') || role === 'accountant') allowedTabs.push('ledger', 'onboarding', 'compliance');
-      if (hasPermission('admin', 'read') || hasPermission('approval', 'read')) allowedTabs.push('admin', 'approvals');
+      if (hasPermission("inventory", "read") || role === "warehouse_operator")
+        allowedTabs.push(
+          "products",
+          "scanning",
+          "serials",
+          "warehouse",
+          "autonomous",
+          "rfid",
+          "lots",
+          "cv-gateway",
+        );
+      if (
+        hasPermission("procurement", "read") ||
+        role === "warehouse_operator" ||
+        role === "accountant"
+      )
+        allowedTabs.push(
+          "procurement",
+          "forecasting",
+          "routing",
+          "rebalancing",
+        );
+      if (hasPermission("ledger", "read") || role === "accountant")
+        allowedTabs.push("ledger", "onboarding", "compliance");
+      if (hasPermission("admin", "read") || hasPermission("approval", "read"))
+        allowedTabs.push("admin", "approvals");
 
-      if (role === 'viewer') allowedTabs.push('products', 'serials', 'forecasting', 'api-specs');
+      if (role === "viewer")
+        allowedTabs.push("products", "serials", "forecasting", "api-specs");
     }
-    
+
     if (!allowedTabs.includes(activeTab)) {
-      setActiveTab('dashboard');
+      setActiveTab("dashboard");
     }
   }, [role, permissions, activeTab]);
 
@@ -391,27 +580,42 @@ function App() {
       setIsOnline(true);
       const queued = await getQueuedScans();
       if (queued.length > 0) {
-        setMessage({ type: 'success', text: `Connection restored. Synchronizing ${queued.length} offline scans...` });
+        setMessage({
+          type: "success",
+          text: `Connection restored. Synchronizing ${queued.length} offline scans...`,
+        });
         const res = await syncOfflineQueue(client);
         const remaining = await getQueuedScans();
         setOfflineQueueCount(remaining.length);
         if (res.failedCount > 0) {
-          setMessage({ type: 'error', text: `Sync finished: ${res.successCount} synced, ${res.failedCount} failed.` });
+          setMessage({
+            type: "error",
+            text: `Sync finished: ${res.successCount} synced, ${res.failedCount} failed.`,
+          });
         } else {
-          setMessage({ type: 'success', text: `All ${res.successCount} offline scans synchronized successfully.` });
+          setMessage({
+            type: "success",
+            text: `All ${res.successCount} offline scans synchronized successfully.`,
+          });
         }
       } else {
-        setMessage({ type: 'success', text: 'Network connection restored. Back online.' });
+        setMessage({
+          type: "success",
+          text: "Network connection restored. Back online.",
+        });
       }
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      setMessage({ type: 'error', text: 'Network connection lost. Running in Offline Mode.' });
+      setMessage({
+        type: "error",
+        text: "Network connection lost. Running in Offline Mode.",
+      });
     };
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     // Initial check of local IndexedDB queue
     const checkQueue = async () => {
@@ -419,14 +623,14 @@ function App() {
         const queued = await getQueuedScans();
         setOfflineQueueCount(queued.length);
       } catch (err) {
-        console.error('Failed to read IndexedDB offline queue:', err);
+        console.error("Failed to read IndexedDB offline queue:", err);
       }
     };
     checkQueue();
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, [client]);
 
@@ -434,31 +638,39 @@ function App() {
     e.preventDefault();
     try {
       setLoading(true);
-      const jwtToken = await client.login(loginTenant, loginActor, loginRole, loginPassword);
-      localStorage.setItem('auth_token', jwtToken);
-      localStorage.setItem('auth_tenant', loginTenant);
-      localStorage.setItem('auth_actor', loginActor);
-      localStorage.setItem('auth_role', loginRole);
+      const jwtToken = await client.login(
+        loginTenant,
+        loginActor,
+        loginRole,
+        loginPassword,
+      );
+      localStorage.setItem("auth_token", jwtToken);
+      localStorage.setItem("auth_tenant", loginTenant);
+      localStorage.setItem("auth_actor", loginActor);
+      localStorage.setItem("auth_role", loginRole);
       setToken(jwtToken);
       setTenantId(loginTenant);
       setActorId(loginActor);
       setRole(loginRole);
-      setMessage({ type: 'success', text: 'Authentication successful. Secure session started!' });
+      setMessage({
+        type: "success",
+        text: "Authentication successful. Secure session started!",
+      });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Login failed.' });
+      setMessage({ type: "error", text: err.message || "Login failed." });
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_tenant');
-    localStorage.removeItem('auth_actor');
-    localStorage.removeItem('auth_role');
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_tenant");
+    localStorage.removeItem("auth_actor");
+    localStorage.removeItem("auth_role");
     setToken(null);
-    setRole('viewer');
-    setMessage({ type: 'success', text: 'Logged out successfully.' });
+    setRole("viewer");
+    setMessage({ type: "success", text: "Logged out successfully." });
   };
 
   // --- Data Loading Functions ---
@@ -477,7 +689,10 @@ function App() {
       const glData = await client.getJournalEntries(tenantId);
       setJournals(glData || []);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to connect to backend server.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to connect to backend server.",
+      });
     } finally {
       setLoading(false);
     }
@@ -489,7 +704,7 @@ function App() {
       const data = await client.getStockOnboardings(tenantId);
       setOnboardings(data || []);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -501,7 +716,10 @@ function App() {
       const data = await client.getForecastingReport(locationId);
       setForecastingReport(data || []);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to load forecasting report.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to load forecasting report.",
+      });
     } finally {
       setLoading(false);
     }
@@ -513,7 +731,10 @@ function App() {
       const data = await client.getPurchaseOrders(tenantId);
       setPurchaseOrders(data || []);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to load Purchase Orders.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to load Purchase Orders.",
+      });
     } finally {
       setLoading(false);
     }
@@ -525,7 +746,10 @@ function App() {
       const data = await client.getWarehouseLocations(tenantId);
       setWmsLocations(data || []);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to load WMS locations.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to load WMS locations.",
+      });
     } finally {
       setLoading(false);
     }
@@ -537,7 +761,7 @@ function App() {
       const data = await client.getSlottingSuggestions(tenantId);
       setSlottingSuggestions(data || []);
     } catch (err: any) {
-      console.error('[SlottingSuggestions] Failed to load:', err);
+      console.error("[SlottingSuggestions] Failed to load:", err);
     } finally {
       setLoadingSlotting(false);
     }
@@ -549,7 +773,10 @@ function App() {
       const data = await client.getComplianceLedger(tenantId);
       setComplianceLedger(data || []);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to load Compliance Ledger.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to load Compliance Ledger.",
+      });
     } finally {
       setLoading(false);
     }
@@ -562,12 +789,21 @@ function App() {
       const result = await client.verifyComplianceLedger(tenantId);
       setVerificationStatus(result);
       if (result.isValid) {
-        setMessage({ type: 'success', text: 'Compliance Ledger validation successful! Integrity check passed.' });
+        setMessage({
+          type: "success",
+          text: "Compliance Ledger validation successful! Integrity check passed.",
+        });
       } else {
-        setMessage({ type: 'error', text: `Compliance Ledger compromised! Failed at sequence #${result.failedSequenceNumber}.` });
+        setMessage({
+          type: "error",
+          text: `Compliance Ledger compromised! Failed at sequence #${result.failedSequenceNumber}.`,
+        });
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Verification execution failed.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Verification execution failed.",
+      });
     } finally {
       setVerifyingLedger(false);
     }
@@ -576,11 +812,20 @@ function App() {
   const handleReconstructState = async () => {
     setReconstructingState(true);
     try {
-      const res = await client.reconstructState(tenantId, reconstructTimestamp || undefined);
+      const res = await client.reconstructState(
+        tenantId,
+        reconstructTimestamp || undefined,
+      );
       setReconstructedState(res);
-      setMessage({ type: 'success', text: `Reconstructed state as of ${res.timestamp} (${res.eventsReplayedCount} events replayed).` });
+      setMessage({
+        type: "success",
+        text: `Reconstructed state as of ${res.timestamp} (${res.eventsReplayedCount} events replayed).`,
+      });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'State reconstruction failed.' });
+      setMessage({
+        type: "error",
+        text: err.message || "State reconstruction failed.",
+      });
     } finally {
       setReconstructingState(false);
     }
@@ -589,11 +834,20 @@ function App() {
   const handleReplayAudit = async () => {
     setReplayingAudit(true);
     try {
-      const steps = await client.replayAudit(tenantId, reconstructTimestamp || undefined);
+      const steps = await client.replayAudit(
+        tenantId,
+        reconstructTimestamp || undefined,
+      );
       setAuditReplaySteps(steps);
-      setMessage({ type: 'success', text: `Loaded ${steps.length} audit replay steps.` });
+      setMessage({
+        type: "success",
+        text: `Loaded ${steps.length} audit replay steps.`,
+      });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Audit replay failed.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Audit replay failed.",
+      });
     } finally {
       setReplayingAudit(false);
     }
@@ -604,20 +858,25 @@ function App() {
       const stats = await client.getCacheStats();
       setCacheStats(stats);
     } catch (err: any) {
-      console.warn('Failed to fetch cache stats:', err);
+      console.warn("Failed to fetch cache stats:", err);
     }
   };
 
   const handleFlushCache = async () => {
     try {
       const result = await client.clearCache(tenantId);
-      setMessage({ type: 'success', text: `Tier-2 Distributed Redis Cache flushed (${result.clearedKeysCount} keys cleared).` });
+      setMessage({
+        type: "success",
+        text: `Tier-2 Distributed Redis Cache flushed (${result.clearedKeysCount} keys cleared).`,
+      });
       handleFetchCacheStats();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to flush cache.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to flush cache.",
+      });
     }
   };
-
 
   const loadWebhooks = async () => {
     setLoading(true);
@@ -627,7 +886,10 @@ function App() {
       const logs = await client.getWebhookDeliveries(tenantId);
       setWebhookDeliveries(logs || []);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to load Webhook configurations.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to load Webhook configurations.",
+      });
     } finally {
       setLoading(false);
     }
@@ -639,7 +901,10 @@ function App() {
       const data = await client.getReorderPolicies(tenantId);
       setReorderPolicies(data || []);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to load Reorder Policies.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to load Reorder Policies.",
+      });
     } finally {
       setLoading(false);
     }
@@ -650,35 +915,38 @@ function App() {
     if (!token) return;
     setLoading(true);
     try {
-      if (tabToLoad === 'users') {
+      if (tabToLoad === "users") {
         const u = await client.getUsers(tenantId);
         setAdminUsers(u);
-      } else if (tabToLoad === 'audits') {
+      } else if (tabToLoad === "audits") {
         const d = await client.getDiscrepancies(tenantId);
         setDiscrepancies(d);
-      } else if (tabToLoad === 'outbox') {
+      } else if (tabToLoad === "outbox") {
         const stats = await client.getOutboxStats();
         setOutboxStats(stats);
         const DL = await client.getDeadLetterEvents(100);
         setDeadLetterEvents(DL);
-      } else if (tabToLoad === 'tenantConfig') {
+      } else if (tabToLoad === "tenantConfig") {
         const config = await client.getTenantConfig(tenantId);
         setTenantConfig(config);
         if (config) {
           setConfigAccountingMethod(config.accountingMethod);
           setConfigCostingMethod(config.costingMethod);
         }
-      } else if (tabToLoad === 'quarantine') {
+      } else if (tabToLoad === "quarantine") {
         const q = await client.getQuarantinedItems(tenantId);
         setQuarantinedItems(q);
-      } else if (tabToLoad === 'valuation') {
-        const method = valuationCostingMethod || 'FIFO';
+      } else if (tabToLoad === "valuation") {
+        const method = valuationCostingMethod || "FIFO";
         const v = await client.getValuationReport(tenantId, undefined, method);
         setValuationItems(v);
       }
     } catch (err: any) {
-      console.error('Failed to load admin data:', err);
-      setMessage({ type: 'error', text: err.message || 'Failed to load administrative data.' });
+      console.error("Failed to load admin data:", err);
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to load administrative data.",
+      });
     } finally {
       setLoading(false);
     }
@@ -687,42 +955,42 @@ function App() {
   useEffect(() => {
     if (!token) return;
     setMessage(null);
-    if (activeTab === 'dashboard') {
+    if (activeTab === "dashboard") {
       loadDashboardData();
-    } else if (activeTab === 'onboarding') {
+    } else if (activeTab === "onboarding") {
       loadOnboardings();
-    } else if (activeTab === 'products') {
+    } else if (activeTab === "products") {
       loadDashboardData();
-    } else if (activeTab === 'ledger') {
+    } else if (activeTab === "ledger") {
       loadDashboardData();
-    } else if (activeTab === 'shopify') {
+    } else if (activeTab === "shopify") {
       loadDashboardData();
-    } else if (activeTab === 'forecasting') {
+    } else if (activeTab === "forecasting") {
       loadForecastingReport();
       loadReorderPolicies();
-    } else if (activeTab === 'routing') {
+    } else if (activeTab === "routing") {
       loadDashboardData();
-    } else if (activeTab === 'procurement') {
+    } else if (activeTab === "procurement") {
       loadDashboardData();
       loadPurchaseOrders();
-    } else if (activeTab === 'warehouse') {
+    } else if (activeTab === "warehouse") {
       loadDashboardData();
       loadWmsLocations();
       loadSlottingSuggestions();
-    } else if (activeTab === 'webhooks') {
+    } else if (activeTab === "webhooks") {
       loadWebhooks();
-    } else if (activeTab === 'compliance') {
+    } else if (activeTab === "compliance") {
       loadComplianceLedger();
-    } else if (activeTab === 'admin') {
+    } else if (activeTab === "admin") {
       loadAdminData();
-    } else if (activeTab === 'rfid') {
+    } else if (activeTab === "rfid") {
       loadWmsLocations();
     }
   }, [activeTab, tenantId, token]);
 
   // Keep admin subtab synced
   useEffect(() => {
-    if (activeTab === 'admin') {
+    if (activeTab === "admin") {
       loadAdminData();
     }
   }, [adminActiveSubTab, valuationCostingMethod]);
@@ -730,7 +998,7 @@ function App() {
   // Keep selected product synchronized with updated catalog data
   useEffect(() => {
     if (selectedProduct) {
-      const updated = products.find(p => p.id === selectedProduct.id);
+      const updated = products.find((p) => p.id === selectedProduct.id);
       if (updated) {
         setSelectedProduct(updated);
       }
@@ -742,18 +1010,18 @@ function App() {
     if (!token) return;
 
     const unsubscribe = client.subscribeBarcodeScans(tenantId, (scan) => {
-      setScanHistory(prev => [
+      setScanHistory((prev) => [
         {
           time: scan.time || new Date().toLocaleTimeString(),
           scan: scan.scanValue,
           context: scan.context,
-          status: scan.status
+          status: scan.status,
         },
-        ...prev
+        ...prev,
       ]);
       setMessage({
-        type: scan.status.toLowerCase().includes('error') ? 'error' : 'success',
-        text: `Live scan received: ${scan.scanValue} [${scan.context.toUpperCase()}] -> ${scan.status}`
+        type: scan.status.toLowerCase().includes("error") ? "error" : "success",
+        text: `Live scan received: ${scan.scanValue} [${scan.context.toUpperCase()}] -> ${scan.status}`,
       });
     });
 
@@ -764,27 +1032,34 @@ function App() {
 
   // Collaborative Synchronization: auto-update stock levels and alert webhook failures in real-time
   useEffect(() => {
-    if (!token || backendType !== 'express') return;
+    if (!token || backendType !== "express") return;
 
-    const activeToken = localStorage.getItem('auth_token') || '';
+    const activeToken = localStorage.getItem("auth_token") || "";
     const wsUrl = `ws://localhost:5000?tenantId=${encodeURIComponent(tenantId)}`;
     let socket: WebSocket | null = null;
     let reconnectTimeout: any = null;
 
     const connect = () => {
       socket = new WebSocket(wsUrl);
-      const activeToken = localStorage.getItem('auth_token') || '';
+      const activeToken = localStorage.getItem("auth_token") || "";
 
-      socket.addEventListener('open', () => {
+      socket.addEventListener("open", () => {
         // Authenticate WebSocket connection securely after opening,
         // preventing token leakage in the URL query string
         if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'authenticate', token: activeToken }));
+          socket.send(
+            JSON.stringify({ type: "authenticate", token: activeToken }),
+          );
         }
       });
 
       // ⚡ Bolt: Accumulate incoming WebSocket events to avoid O(N) array traversals per message
-      let updateBuffer: Array<{ sku: string; locationId: string; quantity: number; version: number }> = [];
+      let updateBuffer: Array<{
+        sku: string;
+        locationId: string;
+        quantity: number;
+        version: number;
+      }> = [];
       let batchTimeout: ReturnType<typeof setTimeout> | null = null;
 
       const flushBuffer = () => {
@@ -793,34 +1068,38 @@ function App() {
         const currentBatch = [...updateBuffer];
         updateBuffer = [];
 
-        setInventoryItems(prev => {
+        setInventoryItems((prev) => {
           // Pre-compute map for O(1) lookups
-          const batchMap = new Map<string, typeof currentBatch[0]>();
-          currentBatch.forEach(update => {
+          const batchMap = new Map<string, (typeof currentBatch)[0]>();
+          currentBatch.forEach((update) => {
             batchMap.set(`${update.sku}|${update.locationId}`, update);
           });
 
           let hasChanges = false;
-          const next = prev.map(item => {
+          const next = prev.map((item) => {
             const key = `${item.sku}|${item.locationId}`;
             const update = batchMap.get(key);
             if (update) {
               batchMap.delete(key);
               hasChanges = true;
-              return { ...item, quantity: update.quantity, version: update.version };
+              return {
+                ...item,
+                quantity: update.quantity,
+                version: update.version,
+              };
             }
             return item;
           });
 
           // Append new items
-          batchMap.forEach(update => {
+          batchMap.forEach((update) => {
             hasChanges = true;
             next.push({
               id: crypto.randomUUID(),
               sku: update.sku,
               locationId: update.locationId,
               quantity: update.quantity,
-              version: update.version
+              version: update.version,
             });
           });
 
@@ -831,13 +1110,13 @@ function App() {
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          
-          if (data.type === 'stock_changed') {
+
+          if (data.type === "stock_changed") {
             updateBuffer.push({
               sku: data.sku,
               locationId: data.locationId,
               quantity: data.quantity,
-              version: data.version
+              version: data.version,
             });
 
             if (!batchTimeout) {
@@ -846,15 +1125,18 @@ function App() {
                 batchTimeout = null;
               }, 100); // 100ms accumulation window
             }
-            setMessage({ type: 'success', text: `Real-time Stock Update: SKU ${data.sku} is now ${data.quantity} units.` });
-          } else if (data.type === 'webhook_failed') {
             setMessage({
-              type: 'error',
-              text: `Real-time Warning: Webhook failed (Type: ${data.eventType}, Error: ${data.lastError}).`
+              type: "success",
+              text: `Real-time Stock Update: SKU ${data.sku} is now ${data.quantity} units.`,
+            });
+          } else if (data.type === "webhook_failed") {
+            setMessage({
+              type: "error",
+              text: `Real-time Warning: Webhook failed (Type: ${data.eventType}, Error: ${data.lastError}).`,
             });
           }
         } catch (err) {
-          console.error('[WebSocket] Sync message error:', err);
+          console.error("[WebSocket] Sync message error:", err);
         }
       };
 
@@ -863,7 +1145,7 @@ function App() {
       };
 
       socket.onerror = (err) => {
-        console.error('[WebSocket] Sync error:', err);
+        console.error("[WebSocket] Sync error:", err);
       };
     };
 
@@ -877,99 +1159,109 @@ function App() {
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
       }
-
     };
   }, [token, tenantId, backendType]);
 
   // Laravel Collaborative Synchronization via Server-Sent Events (SSE)
   useEffect(() => {
-    if (!token || backendType !== 'laravel') return;
+    if (!token || backendType !== "laravel") return;
 
-    const activeToken = localStorage.getItem('auth_token') || '';
+    const activeToken = localStorage.getItem("auth_token") || "";
     const abortController = new AbortController();
 
     fetch(`http://localhost:8000/api/notifications/subscribe`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${activeToken}`,
-        'Accept': 'text/event-stream'
+        Authorization: `Bearer ${activeToken}`,
+        Accept: "text/event-stream",
       },
-      signal: abortController.signal
-    }).then(async (response) => {
-      const reader = response.body?.getReader();
-      if (!reader) return;
-      const decoder = new TextDecoder();
-      let buffer = '';
+      signal: abortController.signal,
+    })
+      .then(async (response) => {
+        const reader = response.body?.getReader();
+        if (!reader) return;
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() || "";
 
-        // ⚡ Bolt: Batch SSE stock_changed events across multiple lines to prevent consecutive O(N) array traversals
-        const batchMap = new Map<string, { sku: string; locationId: string; quantity: number }>();
+          // ⚡ Bolt: Batch SSE stock_changed events across multiple lines to prevent consecutive O(N) array traversals
+          const batchMap = new Map<
+            string,
+            { sku: string; locationId: string; quantity: number }
+          >();
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const payload = JSON.parse(line.substring(6));
-              if (payload.type === 'stock_changed') {
-                const data = JSON.parse(payload.message);
-                batchMap.set(`${data.sku}|${data.locationId}`, {
-                  sku: data.sku,
-                  locationId: data.locationId,
-                  quantity: data.quantity
-                });
-                setMessage({ type: 'success', text: `Real-time Stock Update (Laravel): SKU ${data.sku} is now ${data.quantity} units.` });
-              } else if (payload.type === 'webhook_failed') {
-                const data = JSON.parse(payload.message);
-                setMessage({
-                  type: 'error',
-                  text: `Real-time Warning (Laravel): Webhook failed (Type: ${data.eventType}, Error: ${data.errorMessage}).`
-                });
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const payload = JSON.parse(line.substring(6));
+                if (payload.type === "stock_changed") {
+                  const data = JSON.parse(payload.message);
+                  batchMap.set(`${data.sku}|${data.locationId}`, {
+                    sku: data.sku,
+                    locationId: data.locationId,
+                    quantity: data.quantity,
+                  });
+                  setMessage({
+                    type: "success",
+                    text: `Real-time Stock Update (Laravel): SKU ${data.sku} is now ${data.quantity} units.`,
+                  });
+                } else if (payload.type === "webhook_failed") {
+                  const data = JSON.parse(payload.message);
+                  setMessage({
+                    type: "error",
+                    text: `Real-time Warning (Laravel): Webhook failed (Type: ${data.eventType}, Error: ${data.errorMessage}).`,
+                  });
+                }
+              } catch (err) {
+                console.error(
+                  "[Laravel SSE] Collaborative message error:",
+                  err,
+                );
               }
-            } catch (err) {
-              console.error('[Laravel SSE] Collaborative message error:', err);
             }
           }
-        }
 
-        if (batchMap.size > 0) {
-          setInventoryItems(prev => {
-            let hasChanges = false;
-            const next = prev.map(item => {
-              const key = `${item.sku}|${item.locationId}`;
-              const update = batchMap.get(key);
-              if (update) {
-                batchMap.delete(key);
-                hasChanges = true;
-                return { ...item, quantity: update.quantity };
-              }
-              return item;
-            });
-
-            batchMap.forEach(update => {
-              hasChanges = true;
-              next.push({
-                id: crypto.randomUUID(),
-                sku: update.sku,
-                locationId: update.locationId,
-                quantity: update.quantity,
-                version: 1
+          if (batchMap.size > 0) {
+            setInventoryItems((prev) => {
+              let hasChanges = false;
+              const next = prev.map((item) => {
+                const key = `${item.sku}|${item.locationId}`;
+                const update = batchMap.get(key);
+                if (update) {
+                  batchMap.delete(key);
+                  hasChanges = true;
+                  return { ...item, quantity: update.quantity };
+                }
+                return item;
               });
-            });
 
-            return hasChanges ? next : prev;
-          });
+              batchMap.forEach((update) => {
+                hasChanges = true;
+                next.push({
+                  id: crypto.randomUUID(),
+                  sku: update.sku,
+                  locationId: update.locationId,
+                  quantity: update.quantity,
+                  version: 1,
+                });
+              });
+
+              return hasChanges ? next : prev;
+            });
+          }
         }
-      }
-    }).catch(err => {
-      if (err.name !== 'AbortError') {
-        console.error('[Laravel SSE] Collaborative connection error:', err);
-      }
-    });
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          console.error("[Laravel SSE] Collaborative connection error:", err);
+        }
+      });
 
     return () => {
       abortController.abort();
@@ -983,12 +1275,12 @@ function App() {
     setLoading(true);
     try {
       await client.createProduct(newProdId, newProdName);
-      setMessage({ type: 'success', text: `Product ${newProdName} created.` });
-      setNewProdId('');
-      setNewProdName('');
+      setMessage({ type: "success", text: `Product ${newProdName} created.` });
+      setNewProdId("");
+      setNewProdName("");
       loadDashboardData();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -999,14 +1291,21 @@ function App() {
     if (!selectedProduct) return;
     setLoading(true);
     try {
-      const attributes = newVarAttrs.filter(a => a.name !== '' && a.value !== '');
-      await client.addProductVariant(selectedProduct.id, newVarSku, newVarTracking, attributes);
-      setMessage({ type: 'success', text: `Variant ${newVarSku} added.` });
-      setNewVarSku('');
-      setNewVarAttrs([{ name: '', value: '' }]);
+      const attributes = newVarAttrs.filter(
+        (a) => a.name !== "" && a.value !== "",
+      );
+      await client.addProductVariant(
+        selectedProduct.id,
+        newVarSku,
+        newVarTracking,
+        attributes,
+      );
+      setMessage({ type: "success", text: `Variant ${newVarSku} added.` });
+      setNewVarSku("");
+      setNewVarAttrs([{ name: "", value: "" }]);
       loadDashboardData();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1016,13 +1315,19 @@ function App() {
     e.preventDefault();
     setLoading(true);
     try {
-      await client.assignBarcode(assignSku, assignVal, assignSymbology, assignSource, assignPrimary);
-      setMessage({ type: 'success', text: 'Barcode successfully assigned.' });
-      setAssignSku('');
-      setAssignVal('');
+      await client.assignBarcode(
+        assignSku,
+        assignVal,
+        assignSymbology,
+        assignSource,
+        assignPrimary,
+      );
+      setMessage({ type: "success", text: "Barcode successfully assigned." });
+      setAssignSku("");
+      setAssignVal("");
       loadDashboardData();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1032,10 +1337,10 @@ function App() {
     setLoading(true);
     try {
       const generated = await client.generateInternalBarcode(sku, tenantId);
-      setMessage({ type: 'success', text: `Generated barcode: ${generated}` });
+      setMessage({ type: "success", text: `Generated barcode: ${generated}` });
       loadDashboardData();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1044,28 +1349,40 @@ function App() {
   const handleCreateOnboarding = async () => {
     setLoading(true);
     try {
-      await client.createStockOnboarding(tenantId, locationId, new Date().toISOString(), []);
-      setMessage({ type: 'success', text: `Draft onboarding sheet created.` });
+      await client.createStockOnboarding(
+        tenantId,
+        locationId,
+        new Date().toISOString(),
+        [],
+      );
+      setMessage({ type: "success", text: `Draft onboarding sheet created.` });
       loadOnboardings();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
   };
 
   const handleSubmitOnboarding = async (onbId: string) => {
-    if (!window.confirm('Are you sure you want to lock and post this onboarding sheet? This will permanently post to the General Ledger and cannot be reversed.')) {
+    if (
+      !window.confirm(
+        "Are you sure you want to lock and post this onboarding sheet? This will permanently post to the General Ledger and cannot be reversed.",
+      )
+    ) {
       return;
     }
     setLoading(true);
     try {
       await client.submitStockOnboarding(onbId);
-      setMessage({ type: 'success', text: 'Onboarding items posted to General Ledger and lock completed.' });
+      setMessage({
+        type: "success",
+        text: "Onboarding items posted to General Ledger and lock completed.",
+      });
       loadOnboardings();
       setSelectedOnboarding(null);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1078,12 +1395,18 @@ function App() {
       const remaining = await getQueuedScans();
       setOfflineQueueCount(remaining.length);
       if (res.failedCount > 0) {
-        setMessage({ type: 'error', text: `Sync finished with some failures: ${res.successCount} succeeded, ${res.failedCount} failed.` });
+        setMessage({
+          type: "error",
+          text: `Sync finished with some failures: ${res.successCount} succeeded, ${res.failedCount} failed.`,
+        });
       } else {
-        setMessage({ type: 'success', text: `All ${res.successCount} buffered scans synced successfully.` });
+        setMessage({
+          type: "success",
+          text: `All ${res.successCount} buffered scans synced successfully.`,
+        });
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: `Sync failed: ${err.message}` });
+      setMessage({ type: "error", text: `Sync failed: ${err.message}` });
     } finally {
       setLoading(false);
     }
@@ -1101,30 +1424,59 @@ function App() {
           actualQuantity: Number(scanActualQty),
           tenantId,
           locationId,
-          actorId
+          actorId,
         });
-        setOfflineQueueCount(prev => prev + 1);
-        setScanHistory(prev => [
-          { time: new Date().toLocaleTimeString(), scan: scanVal, context: scanContext, status: 'Buffered Offline' },
-          ...prev
+        setOfflineQueueCount((prev) => prev + 1);
+        setScanHistory((prev) => [
+          {
+            time: new Date().toLocaleTimeString(),
+            scan: scanVal,
+            context: scanContext,
+            status: "Buffered Offline",
+          },
+          ...prev,
         ]);
-        setScanVal('');
-        setMessage({ type: 'success', text: 'Connection offline. Scan buffered in local queue.' });
+        setScanVal("");
+        setMessage({
+          type: "success",
+          text: "Connection offline. Scan buffered in local queue.",
+        });
       } else {
-        await client.scanBarcode(scanVal, scanContext, Number(scanAmount), Number(scanActualQty), tenantId, locationId, actorId);
-        setScanHistory(prev => [
-          { time: new Date().toLocaleTimeString(), scan: scanVal, context: scanContext, status: 'Success' },
-          ...prev
+        await client.scanBarcode(
+          scanVal,
+          scanContext,
+          Number(scanAmount),
+          Number(scanActualQty),
+          tenantId,
+          locationId,
+          actorId,
+        );
+        setScanHistory((prev) => [
+          {
+            time: new Date().toLocaleTimeString(),
+            scan: scanVal,
+            context: scanContext,
+            status: "Success",
+          },
+          ...prev,
         ]);
-        setScanVal('');
-        setMessage({ type: 'success', text: 'Scan successfully routed to workflow context.' });
+        setScanVal("");
+        setMessage({
+          type: "success",
+          text: "Scan successfully routed to workflow context.",
+        });
       }
     } catch (err: any) {
-      setScanHistory(prev => [
-        { time: new Date().toLocaleTimeString(), scan: scanVal, context: scanContext, status: `Error: ${err.message}` },
-        ...prev
+      setScanHistory((prev) => [
+        {
+          time: new Date().toLocaleTimeString(),
+          scan: scanVal,
+          context: scanContext,
+          status: `Error: ${err.message}`,
+        },
+        ...prev,
       ]);
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1137,11 +1489,13 @@ function App() {
     try {
       const data = await client.traceSerialHistory(traceSerialNum);
       if (!data) {
-        throw new Error(`No serialized item found for serial number ${traceSerialNum}`);
+        throw new Error(
+          `No serialized item found for serial number ${traceSerialNum}`,
+        );
       }
       setTracedItem(data);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1152,12 +1506,15 @@ function App() {
     setLoading(true);
     try {
       await client.connectShopify(tenantId, newShopifyDomain, newShopifyToken);
-      setMessage({ type: 'success', text: 'Shopify Connection added successfully.' });
-      setNewShopifyDomain('');
-      setNewShopifyToken('');
+      setMessage({
+        type: "success",
+        text: "Shopify Connection added successfully.",
+      });
+      setNewShopifyDomain("");
+      setNewShopifyToken("");
       loadDashboardData();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1165,21 +1522,33 @@ function App() {
 
   const handlePostJournal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('Are you sure you want to post this journal entry? This will permanently post to the General Ledger and cannot be reversed.')) {
+    if (
+      !window.confirm(
+        "Are you sure you want to post this journal entry? This will permanently post to the General Ledger and cannot be reversed.",
+      )
+    ) {
       return;
     }
     setLoading(true);
     try {
-      await client.createJournalEntry(tenantId, newJournalDesc, newJournalMethod, newJournalLines);
-      setMessage({ type: 'success', text: 'Double-entry general ledger journal posted successfully!' });
-      setNewJournalDesc('');
+      await client.createJournalEntry(
+        tenantId,
+        newJournalDesc,
+        newJournalMethod,
+        newJournalLines,
+      );
+      setMessage({
+        type: "success",
+        text: "Double-entry general ledger journal posted successfully!",
+      });
+      setNewJournalDesc("");
       setNewJournalLines([
-        { accountCode: '1000', amountCents: 0, type: 'debit', memo: '' },
-        { accountCode: '2000', amountCents: 0, type: 'credit', memo: '' }
+        { accountCode: "1000", amountCents: 0, type: "debit", memo: "" },
+        { accountCode: "2000", amountCents: 0, type: "credit", memo: "" },
       ]);
       loadDashboardData();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -1192,11 +1561,19 @@ function App() {
     setLoading(true);
     setRoutingPlan(null);
     try {
-      const plan = await client.routeOrder(routingSku, Number(routingQuantity), routingAddress, routingStrategy);
+      const plan = await client.routeOrder(
+        routingSku,
+        Number(routingQuantity),
+        routingAddress,
+        routingStrategy,
+      );
       setRoutingPlan(plan);
-      setMessage({ type: 'success', text: 'Order routing optimization completed successfully!' });
+      setMessage({
+        type: "success",
+        text: "Order routing optimization completed successfully!",
+      });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Routing failed.' });
+      setMessage({ type: "error", text: err.message || "Routing failed." });
     } finally {
       setLoading(false);
     }
@@ -1206,14 +1583,22 @@ function App() {
     e.preventDefault();
     setLoading(true);
     try {
-      const activeItems = newPoLines.filter(item => item.sku !== '' && item.quantity > 0);
+      const activeItems = newPoLines.filter(
+        (item) => item.sku !== "" && item.quantity > 0,
+      );
       await client.createPurchaseOrder(tenantId, newPoSupplier, activeItems);
-      setMessage({ type: 'success', text: `Purchase Order draft created for ${newPoSupplier}.` });
-      setNewPoSupplier('');
-      setNewPoLines([{ sku: '', quantity: 1, unitCostCents: 1000 }]);
+      setMessage({
+        type: "success",
+        text: `Purchase Order draft created for ${newPoSupplier}.`,
+      });
+      setNewPoSupplier("");
+      setNewPoLines([{ sku: "", quantity: 1, unitCostCents: 1000 }]);
       loadPurchaseOrders();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to create Purchase Order.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to create Purchase Order.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1223,10 +1608,10 @@ function App() {
     setLoading(true);
     try {
       await client.approvePurchaseOrder(tenantId, id);
-      setMessage({ type: 'success', text: `Purchase Order ${id} approved.` });
+      setMessage({ type: "success", text: `Purchase Order ${id} approved.` });
       loadPurchaseOrders();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Approval failed.' });
+      setMessage({ type: "error", text: err.message || "Approval failed." });
     } finally {
       setLoading(false);
     }
@@ -1236,10 +1621,13 @@ function App() {
     setLoading(true);
     try {
       await client.sendPurchaseOrder(tenantId, id);
-      setMessage({ type: 'success', text: `Purchase Order ${id} sent to supplier.` });
+      setMessage({
+        type: "success",
+        text: `Purchase Order ${id} sent to supplier.`,
+      });
       loadPurchaseOrders();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Sending PO failed.' });
+      setMessage({ type: "error", text: err.message || "Sending PO failed." });
     } finally {
       setLoading(false);
     }
@@ -1249,15 +1637,21 @@ function App() {
     e.preventDefault();
     setLoading(true);
     try {
-      const activeItems = receivePoLines.filter(item => item.quantity > 0);
+      const activeItems = receivePoLines.filter((item) => item.quantity > 0);
       await client.receivePurchaseOrder(tenantId, receivePoId, activeItems);
-      setMessage({ type: 'success', text: `Successfully received items for PO ${receivePoId}.` });
-      setReceivePoId('');
+      setMessage({
+        type: "success",
+        text: `Successfully received items for PO ${receivePoId}.`,
+      });
+      setReceivePoId("");
       setReceivePoLines([]);
       loadPurchaseOrders();
       loadDashboardData();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Receiving PO items failed.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Receiving PO items failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1276,31 +1670,48 @@ function App() {
         gridX: Number(wmsGridX),
         gridY: Number(wmsGridY),
         width: Number(wmsWidth),
-        height: Number(wmsHeight)
+        height: Number(wmsHeight),
       } as any);
-      setMessage({ type: 'success', text: `Warehouse location ${wmsLocId} configured.` });
-      setWmsLocId('');
+      setMessage({
+        type: "success",
+        text: `Warehouse location ${wmsLocId} configured.`,
+      });
+      setWmsLocId("");
       setWmsGridX(0);
       setWmsGridY(0);
       setWmsWidth(1);
       setWmsHeight(1);
       loadWmsLocations();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Saving WMS location failed.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Saving WMS location failed.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteWmsLocation = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this warehouse location? This action cannot be undone.')) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this warehouse location? This action cannot be undone.",
+      )
+    )
+      return;
     setLoading(true);
     try {
       await client.deleteWarehouseLocation(tenantId, id);
-      setMessage({ type: 'success', text: `Warehouse location ${id} deleted.` });
+      setMessage({
+        type: "success",
+        text: `Warehouse location ${id} deleted.`,
+      });
       loadWmsLocations();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Deleting WMS location failed.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Deleting WMS location failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1310,11 +1721,21 @@ function App() {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await client.getPutawaySuggestions(tenantId, putawaySku, Number(putawayQty));
+      const data = await client.getPutawaySuggestions(
+        tenantId,
+        putawaySku,
+        Number(putawayQty),
+      );
       setPutawayResult(data || []);
-      setMessage({ type: 'success', text: 'Putaway recommendation generated!' });
+      setMessage({
+        type: "success",
+        text: "Putaway recommendation generated!",
+      });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to suggest putaway.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to suggest putaway.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1326,15 +1747,21 @@ function App() {
     try {
       // ⚡ Bolt: Replace consecutive .map() and .filter() calls with a single-pass loop to eliminate redundant iterations and callback overhead
       const skus: string[] = [];
-      for (const s of pickSkusInput.split(',')) {
+      for (const s of pickSkusInput.split(",")) {
         const trimmed = s.trim();
-        if (trimmed !== '') skus.push(trimmed);
+        if (trimmed !== "") skus.push(trimmed);
       }
       const data = await client.getOptimizedPickRoute(tenantId, skus);
       setPickRouteResult(data || []);
-      setMessage({ type: 'success', text: 'Pick path optimization completed.' });
+      setMessage({
+        type: "success",
+        text: "Pick path optimization completed.",
+      });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Pick path optimization failed.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Pick path optimization failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1345,25 +1772,42 @@ function App() {
     setLoading(true);
     try {
       await client.createWebhook(tenantId, webhookUrl, webhookEvents);
-      setMessage({ type: 'success', text: `Webhook subscription created for ${webhookUrl}` });
-      setWebhookUrl('');
+      setMessage({
+        type: "success",
+        text: `Webhook subscription created for ${webhookUrl}`,
+      });
+      setWebhookUrl("");
       loadWebhooks();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to subscribe webhook.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to subscribe webhook.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteWebhook = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this webhook subscription? This action cannot be undone.')) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this webhook subscription? This action cannot be undone.",
+      )
+    )
+      return;
     setLoading(true);
     try {
       await client.deleteWebhook(tenantId, id);
-      setMessage({ type: 'success', text: `Webhook subscription ${id} deleted.` });
+      setMessage({
+        type: "success",
+        text: `Webhook subscription ${id} deleted.`,
+      });
       loadWebhooks();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to unsubscribe webhook.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to unsubscribe webhook.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1378,14 +1822,20 @@ function App() {
         locationId: policyLoc,
         reorderPoint: Number(policyRop),
         safetyStock: Number(policySafety),
-        economicOrderQuantity: Number(policyEoq)
+        economicOrderQuantity: Number(policyEoq),
       });
-      setMessage({ type: 'success', text: `ROP/EOQ policy for SKU ${policySku} saved.` });
-      setPolicySku('');
-      setPolicyLoc('');
+      setMessage({
+        type: "success",
+        text: `ROP/EOQ policy for SKU ${policySku} saved.`,
+      });
+      setPolicySku("");
+      setPolicyLoc("");
       loadReorderPolicies();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to save reorder policy.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to save reorder policy.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1395,10 +1845,16 @@ function App() {
     setLoading(true);
     try {
       await client.evaluateReorderPolicies(tenantId);
-      setMessage({ type: 'success', text: 'Dynamic ROP recalculations and safety checks completed!' });
+      setMessage({
+        type: "success",
+        text: "Dynamic ROP recalculations and safety checks completed!",
+      });
       loadForecastingReport();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'ROP evaluation failed.' });
+      setMessage({
+        type: "error",
+        text: err.message || "ROP evaluation failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1408,11 +1864,21 @@ function App() {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await client.getFefoPickSuggestions(tenantId, fefoSku, Number(fefoQty));
+      const data = await client.getFefoPickSuggestions(
+        tenantId,
+        fefoSku,
+        Number(fefoQty),
+      );
       setFefoResult(data || []);
-      setMessage({ type: 'success', text: 'FEFO pick recommendations loaded.' });
+      setMessage({
+        type: "success",
+        text: "FEFO pick recommendations loaded.",
+      });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'FEFO calculation failed.' });
+      setMessage({
+        type: "error",
+        text: err.message || "FEFO calculation failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1424,9 +1890,12 @@ function App() {
     try {
       const data = await client.traceRecall(tenantId, recallLotNum);
       setRecallResult(data);
-      setMessage({ type: 'success', text: 'Recall trace report compiled.' });
+      setMessage({ type: "success", text: "Recall trace report compiled." });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Recall tracing failed.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Recall tracing failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1440,12 +1909,21 @@ function App() {
     setInvitedUser(null);
     try {
       const res = await client.inviteUser(tenantId, newUserEmail, newUserRole);
-      setInvitedUser({ userId: res.userId, temporaryPassword: res.temporaryPassword });
-      setMessage({ type: 'success', text: `Successfully invited user ${newUserEmail}.` });
-      setNewUserEmail('');
-      loadAdminData('users');
+      setInvitedUser({
+        userId: res.userId,
+        temporaryPassword: res.temporaryPassword,
+      });
+      setMessage({
+        type: "success",
+        text: `Successfully invited user ${newUserEmail}.`,
+      });
+      setNewUserEmail("");
+      loadAdminData("users");
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to invite user.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to invite user.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1456,10 +1934,16 @@ function App() {
     setMessage(null);
     try {
       await client.updateUserRole(tenantId, uId, uRole);
-      setMessage({ type: 'success', text: `Successfully updated user role to ${uRole}.` });
-      loadAdminData('users');
+      setMessage({
+        type: "success",
+        text: `Successfully updated user role to ${uRole}.`,
+      });
+      loadAdminData("users");
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to update user role.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to update user role.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1470,33 +1954,42 @@ function App() {
     setMessage(null);
     try {
       const res = await client.runAudit(tenantId);
-      const text = res 
+      const text = res
         ? `Audit completed successfully. Shopify discrepancies: ${res.shopifyDiscrepancies || 0}, Accounting discrepancies: ${res.accountingDiscrepancies || 0}.`
-        : 'Audit triggered/completed successfully.';
-      setMessage({ type: 'success', text });
-      loadAdminData('audits');
+        : "Audit triggered/completed successfully.";
+      setMessage({ type: "success", text });
+      loadAdminData("audits");
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to trigger audit.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to trigger audit.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleResolveDiscrepancy = async (id: string) => {
-    const notes = discrepancyNotes[id] || 'Resolved via Admin Console.';
+    const notes = discrepancyNotes[id] || "Resolved via Admin Console.";
     setLoading(true);
     setMessage(null);
     try {
       await client.resolveDiscrepancy(tenantId, id, notes);
-      setMessage({ type: 'success', text: 'Discrepancy resolved successfully.' });
-      setDiscrepancyNotes(prev => {
+      setMessage({
+        type: "success",
+        text: "Discrepancy resolved successfully.",
+      });
+      setDiscrepancyNotes((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
       });
-      loadAdminData('audits');
+      loadAdminData("audits");
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to resolve discrepancy.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to resolve discrepancy.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1507,10 +2000,16 @@ function App() {
     setMessage(null);
     try {
       await client.retryOutboxEvent(id);
-      setMessage({ type: 'success', text: 'Outbox event retried successfully.' });
-      loadAdminData('outbox');
+      setMessage({
+        type: "success",
+        text: "Outbox event retried successfully.",
+      });
+      loadAdminData("outbox");
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to retry outbox event.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to retry outbox event.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1523,12 +2022,18 @@ function App() {
     try {
       await client.saveTenantConfig(tenantId, {
         accountingMethod: configAccountingMethod,
-        costingMethod: configCostingMethod
+        costingMethod: configCostingMethod,
       });
-      setMessage({ type: 'success', text: 'Tenant accounting configuration updated.' });
-      loadAdminData('tenantConfig');
+      setMessage({
+        type: "success",
+        text: "Tenant accounting configuration updated.",
+      });
+      loadAdminData("tenantConfig");
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to save tenant config.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to save tenant config.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1537,19 +2042,32 @@ function App() {
   const handleAssembleKit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!kitSku) {
-      setMessage({ type: 'error', text: 'Please input a kit SKU.' });
+      setMessage({ type: "error", text: "Please input a kit SKU." });
       return;
     }
     setLoading(true);
     setMessage(null);
     try {
       const ref = kitRef || `KIT-ASM-${Date.now()}`;
-      await client.assembleKit(tenantId, kitLocationId, kitSku, Number(kitQty), actorId, ref);
-      setMessage({ type: 'success', text: `Successfully assembled ${kitQty} units of Kit ${kitSku}.` });
-      setKitSku('');
-      setKitRef('');
+      await client.assembleKit(
+        tenantId,
+        kitLocationId,
+        kitSku,
+        Number(kitQty),
+        actorId,
+        ref,
+      );
+      setMessage({
+        type: "success",
+        text: `Successfully assembled ${kitQty} units of Kit ${kitSku}.`,
+      });
+      setKitSku("");
+      setKitRef("");
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to assemble kit.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to assemble kit.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1558,39 +2076,58 @@ function App() {
   const handleDisassembleKit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!kitSku) {
-      setMessage({ type: 'error', text: 'Please input a kit SKU.' });
+      setMessage({ type: "error", text: "Please input a kit SKU." });
       return;
     }
     setLoading(true);
     setMessage(null);
     try {
       const ref = kitRef || `KIT-DIS-${Date.now()}`;
-      await client.disassembleKit(tenantId, kitLocationId, kitSku, Number(kitQty), actorId, ref);
-      setMessage({ type: 'success', text: `Successfully disassembled ${kitQty} units of Kit ${kitSku}.` });
-      setKitSku('');
-      setKitRef('');
+      await client.disassembleKit(
+        tenantId,
+        kitLocationId,
+        kitSku,
+        Number(kitQty),
+        actorId,
+        ref,
+      );
+      setMessage({
+        type: "success",
+        text: `Successfully disassembled ${kitQty} units of Kit ${kitSku}.`,
+      });
+      setKitSku("");
+      setKitRef("");
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to disassemble kit.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to disassemble kit.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleResolveQuarantine = async (id: string) => {
-    const res = quarantineResolutions[id] || 'RELEASED';
+    const res = quarantineResolutions[id] || "RELEASED";
     setLoading(true);
     setMessage(null);
     try {
       await client.resolveQuarantine(tenantId, id, res);
-      setMessage({ type: 'success', text: `Quarantine item ${id} resolved with status: ${res}.` });
-      setQuarantineResolutions(prev => {
+      setMessage({
+        type: "success",
+        text: `Quarantine item ${id} resolved with status: ${res}.`,
+      });
+      setQuarantineResolutions((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
       });
-      loadAdminData('quarantine');
+      loadAdminData("quarantine");
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to resolve quarantine.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to resolve quarantine.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1599,20 +2136,32 @@ function App() {
   // --- Auth View ---
   if (!token) {
     return (
-      <div className="flex-center" style={{ minHeight: '100vh', padding: '2rem' }}>
-        <div className="glass-panel" style={{ maxWidth: '480px', width: '100%' }}>
-          <div className="brand-section" style={{ justifyContent: 'center', marginBottom: '2rem' }}>
+      <div
+        className="flex-center"
+        style={{ minHeight: "100vh", padding: "2rem" }}
+      >
+        <div
+          className="glass-panel"
+          style={{ maxWidth: "480px", width: "100%" }}
+        >
+          <div
+            className="brand-section"
+            style={{ justifyContent: "center", marginBottom: "2rem" }}
+          >
             <div className="brand-icon">📦</div>
             <div className="brand-name">INVENTORY CLIENT</div>
           </div>
-          
-          <div className="control-item" style={{ marginBottom: '1.5rem', justifyContent: 'center' }}>
+
+          <div
+            className="control-item"
+            style={{ marginBottom: "1.5rem", justifyContent: "center" }}
+          >
             <label htmlFor="backend-api-node">Backend API Node:</label>
-            <select 
+            <select
               id="backend-api-node"
-              value={backendType} 
+              value={backendType}
               onChange={(e) => setBackendType(e.target.value as BackendType)}
-              style={{ padding: '0.4rem 1rem', marginLeft: '0.5rem' }}
+              style={{ padding: "0.4rem 1rem", marginLeft: "0.5rem" }}
             >
               <option value="graphql">GraphQL API (Port 4000)</option>
               <option value="express">Express REST API (Port 5000)</option>
@@ -1620,19 +2169,37 @@ function App() {
             </select>
           </div>
 
-          <h2 className="form-section-title" style={{ textAlign: 'center' }}>System Authentication</h2>
+          <h2 className="form-section-title" style={{ textAlign: "center" }}>
+            System Authentication
+          </h2>
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <label htmlFor="login-tenant-id">Tenant ID</label>
-              <input id="login-tenant-id" type="text" value={loginTenant} onChange={(e) => setLoginTenant(e.target.value)} required />
+              <input
+                id="login-tenant-id"
+                type="text"
+                value={loginTenant}
+                onChange={(e) => setLoginTenant(e.target.value)}
+                required
+              />
             </div>
             <div className="form-group">
               <label htmlFor="login-actor-id">Actor ID / Email</label>
-              <input id="login-actor-id" type="text" value={loginActor} onChange={(e) => setLoginActor(e.target.value)} required />
+              <input
+                id="login-actor-id"
+                type="text"
+                value={loginActor}
+                onChange={(e) => setLoginActor(e.target.value)}
+                required
+              />
             </div>
             <div className="form-group">
               <label htmlFor="login-role">Assigned Role</label>
-              <select id="login-role" value={loginRole} onChange={(e) => setLoginRole(e.target.value)}>
+              <select
+                id="login-role"
+                value={loginRole}
+                onChange={(e) => setLoginRole(e.target.value)}
+              >
                 <option value="admin">Administrator</option>
                 <option value="warehouse_operator">Warehouse Operator</option>
                 <option value="accountant">Accountant</option>
@@ -1641,16 +2208,34 @@ function App() {
             </div>
             <div className="form-group">
               <label htmlFor="login-password">Secure Key / Password</label>
-              <input id="login-password" type="password" autoComplete="current-password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
+              <input
+                id="login-password"
+                type="password"
+                autoComplete="current-password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="••••••••"
+              />
             </div>
-            
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading} aria-busy={loading}>
-              {loading ? <Spinner /> : 'Authenticate Credentials'}
+
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ width: "100%", marginTop: "1rem" }}
+              disabled={loading}
+              aria-busy={loading}
+            >
+              {loading ? <Spinner /> : "Authenticate Credentials"}
             </button>
           </form>
 
           {message && (
-            <div role="alert" aria-live="assertive" className={`alert-box alert-${message.type}`} style={{ textAlign: 'center' }}>
+            <div
+              role="alert"
+              aria-live="assertive"
+              className={`alert-box alert-${message.type}`}
+              style={{ textAlign: "center" }}
+            >
               {message.text}
             </div>
           )}
@@ -1670,147 +2255,257 @@ function App() {
             <div className="brand-name">DDD CONTROL</div>
           </div>
           <div className="nav-links">
-            <div className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+            <div
+              className={`nav-link ${activeTab === "dashboard" ? "active" : ""}`}
+              onClick={() => setActiveTab("dashboard")}
+            >
               🏠 Operations Dashboard
             </div>
-            <div className={`nav-link ${activeTab === 'op-depth' ? 'active' : ''}`} onClick={() => setActiveTab('op-depth')}>
+            <div
+              className={`nav-link ${activeTab === "op-depth" ? "active" : ""}`}
+              onClick={() => setActiveTab("op-depth")}
+            >
               📊 Operational Depth
             </div>
-            {role === 'admin' && (
-              <div className={`nav-link ${activeTab === 'shopify' ? 'active' : ''}`} onClick={() => setActiveTab('shopify')}>
+            {role === "admin" && (
+              <div
+                className={`nav-link ${activeTab === "shopify" ? "active" : ""}`}
+                onClick={() => setActiveTab("shopify")}
+              >
                 🌐 Integrations (Omnichannel)
               </div>
             )}
-            {(role === 'admin' || role === 'warehouse_operator' || role === 'viewer') && (
-              <div className={`nav-link ${activeTab === 'products' ? 'active' : ''}`} onClick={() => setActiveTab('products')}>
+            {(role === "admin" ||
+              role === "warehouse_operator" ||
+              role === "viewer") && (
+              <div
+                className={`nav-link ${activeTab === "products" ? "active" : ""}`}
+                onClick={() => setActiveTab("products")}
+              >
                 📁 Product Catalog
               </div>
             )}
-            {(role === 'admin' || role === 'warehouse_operator') && (
-              <div className={`nav-link ${activeTab === 'scanning' ? 'active' : ''}`} onClick={() => setActiveTab('scanning')}>
+            {(role === "admin" || role === "warehouse_operator") && (
+              <div
+                className={`nav-link ${activeTab === "scanning" ? "active" : ""}`}
+                onClick={() => setActiveTab("scanning")}
+              >
                 🎯 Barcode Workflows
               </div>
             )}
-            {(role === 'admin' || role === 'accountant') && (
-              <div className={`nav-link ${activeTab === 'onboarding' ? 'active' : ''}`} onClick={() => setActiveTab('onboarding')}>
+            {(role === "admin" || role === "accountant") && (
+              <div
+                className={`nav-link ${activeTab === "onboarding" ? "active" : ""}`}
+                onClick={() => setActiveTab("onboarding")}
+              >
                 📥 Stock Onboarding
               </div>
             )}
-            {(role === 'admin' || role === 'accountant') && (
-              <div className={`nav-link ${activeTab === 'ledger' ? 'active' : ''}`} onClick={() => setActiveTab('ledger')}>
+            {(role === "admin" || role === "accountant") && (
+              <div
+                className={`nav-link ${activeTab === "ledger" ? "active" : ""}`}
+                onClick={() => setActiveTab("ledger")}
+              >
                 🧾 General Ledger
               </div>
             )}
-            {role === 'admin' && (
-              <div className={`nav-link ${activeTab === 'compliance' ? 'active' : ''}`} onClick={() => setActiveTab('compliance')}>
+            {role === "admin" && (
+              <div
+                className={`nav-link ${activeTab === "compliance" ? "active" : ""}`}
+                onClick={() => setActiveTab("compliance")}
+              >
                 🔒 Compliance Ledger
               </div>
             )}
-            {(role === 'admin' || role === 'warehouse_operator' || role === 'viewer') && (
-              <div className={`nav-link ${activeTab === 'serials' ? 'active' : ''}`} onClick={() => setActiveTab('serials')}>
+            {(role === "admin" ||
+              role === "warehouse_operator" ||
+              role === "viewer") && (
+              <div
+                className={`nav-link ${activeTab === "serials" ? "active" : ""}`}
+                onClick={() => setActiveTab("serials")}
+              >
                 🔍 Serial Number Trace
               </div>
             )}
-            <div className={`nav-link ${activeTab === 'forecasting' ? 'active' : ''}`} onClick={() => setActiveTab('forecasting')}>
+            <div
+              className={`nav-link ${activeTab === "forecasting" ? "active" : ""}`}
+              onClick={() => setActiveTab("forecasting")}
+            >
               📊 Demand Forecasting
             </div>
-            <div className={`nav-link ${(activeTab as string) === 'reporting' ? 'active' : ''}`} onClick={() => setActiveTab('reporting' as any)}>
+            <div
+              className={`nav-link ${(activeTab as string) === "reporting" ? "active" : ""}`}
+              onClick={() => setActiveTab("reporting" as any)}
+            >
               📈 Reporting & Dashboards
             </div>
-            {role === 'admin' && (
-              <div className={`nav-link ${activeTab === 'routing' ? 'active' : ''}`} onClick={() => setActiveTab('routing')}>
+            {role === "admin" && (
+              <div
+                className={`nav-link ${activeTab === "routing" ? "active" : ""}`}
+                onClick={() => setActiveTab("routing")}
+              >
                 🚚 Order Routing
               </div>
             )}
-            {(role === 'admin' || role === 'warehouse_operator' || role === 'accountant') && (
-              <div className={`nav-link ${activeTab === 'procurement' ? 'active' : ''}`} onClick={() => setActiveTab('procurement')}>
+            {(role === "admin" ||
+              role === "warehouse_operator" ||
+              role === "accountant") && (
+              <div
+                className={`nav-link ${activeTab === "procurement" ? "active" : ""}`}
+                onClick={() => setActiveTab("procurement")}
+              >
                 🛒 Purchase Orders
               </div>
             )}
-            {(role === 'admin' || role === 'warehouse_operator') && (
-              <div className={`nav-link ${activeTab === 'warehouse' ? 'active' : ''}`} onClick={() => setActiveTab('warehouse')}>
+            {(role === "admin" || role === "warehouse_operator") && (
+              <div
+                className={`nav-link ${activeTab === "warehouse" ? "active" : ""}`}
+                onClick={() => setActiveTab("warehouse")}
+              >
                 🏢 Warehouse Layout
               </div>
             )}
-            {(role === 'admin' || role === 'warehouse_operator') && (
-              <div className={`nav-link ${(activeTab as string) === 'lots' ? 'active' : ''}`} onClick={() => setActiveTab('lots' as any)}>
+            {(role === "admin" || role === "warehouse_operator") && (
+              <div
+                className={`nav-link ${(activeTab as string) === "lots" ? "active" : ""}`}
+                onClick={() => setActiveTab("lots" as any)}
+              >
                 🛡️ Lot & Traceability
               </div>
             )}
-            {(role === 'admin' || role === 'warehouse_operator') && (
-              <div className={`nav-link ${activeTab === 'rfid' ? 'active' : ''}`} onClick={() => setActiveTab('rfid')}>
+            {(role === "admin" || role === "warehouse_operator") && (
+              <div
+                className={`nav-link ${activeTab === "rfid" ? "active" : ""}`}
+                onClick={() => setActiveTab("rfid")}
+              >
                 📡 RFID Ingestion
               </div>
             )}
 
-            {(role === 'admin' || role === 'warehouse_operator') && (
-              <div className={`nav-link ${activeTab === 'autonomous' ? 'active' : ''}`} onClick={() => setActiveTab('autonomous')}>
+            {(role === "admin" || role === "warehouse_operator") && (
+              <div
+                className={`nav-link ${activeTab === "autonomous" ? "active" : ""}`}
+                onClick={() => setActiveTab("autonomous")}
+              >
                 ⚡ Autonomous Agent
               </div>
             )}
-            {role === 'admin' && (
-              <div className={`nav-link ${activeTab === 'webhooks' ? 'active' : ''}`} onClick={() => setActiveTab('webhooks')}>
+            {role === "admin" && (
+              <div
+                className={`nav-link ${activeTab === "webhooks" ? "active" : ""}`}
+                onClick={() => setActiveTab("webhooks")}
+              >
                 🔗 Webhook Logs
               </div>
             )}
-            {role === 'admin' && (
-              <div className={`nav-link ${activeTab === 'approvals' ? 'active' : ''}`} onClick={() => setActiveTab('approvals')}>
+            {role === "admin" && (
+              <div
+                className={`nav-link ${activeTab === "approvals" ? "active" : ""}`}
+                onClick={() => setActiveTab("approvals")}
+              >
                 ✅ Approvals
               </div>
             )}
-            {role === 'admin' && (
-              <div className={`nav-link ${activeTab === 'admin' ? 'active' : ''}`} onClick={() => setActiveTab('admin')}>
+            {role === "admin" && (
+              <div
+                className={`nav-link ${activeTab === "admin" ? "active" : ""}`}
+                onClick={() => setActiveTab("admin")}
+              >
                 🛠️ Admin Portal
               </div>
             )}
             <div className="nav-separator">AI & Automation</div>
-            {(role === 'admin' || role === 'warehouse_operator') && (
-              <div className={`nav-link ${(activeTab as string) === 'cv-gateway' ? 'active' : ''}`} onClick={() => setActiveTab('cv-gateway' as any)}>
+            {(role === "admin" || role === "warehouse_operator") && (
+              <div
+                className={`nav-link ${(activeTab as string) === "cv-gateway" ? "active" : ""}`}
+                onClick={() => setActiveTab("cv-gateway" as any)}
+              >
                 📷 CV Receiving Gateway
               </div>
             )}
-            <div className={`nav-link ${activeTab === 'anomaly-detection' ? 'active' : ''}`} onClick={() => setActiveTab('anomaly-detection')}>
+            <div
+              className={`nav-link ${activeTab === "anomaly-detection" ? "active" : ""}`}
+              onClick={() => setActiveTab("anomaly-detection")}
+            >
               🔍 Anomaly Detection
             </div>
-            <div className={`nav-link ${activeTab === 'rebalancing' ? 'active' : ''}`} onClick={() => setActiveTab('rebalancing')}>
+            <div
+              className={`nav-link ${activeTab === "rebalancing" ? "active" : ""}`}
+              onClick={() => setActiveTab("rebalancing")}
+            >
               ⚖️ Rebalancing Matrix
             </div>
             <div className="nav-separator">Developer Tools</div>
-            <div className={`nav-link ${activeTab === 'conformance' ? 'active' : ''}`} onClick={() => setActiveTab('conformance')}>
+            <div
+              className={`nav-link ${activeTab === "conformance" ? "active" : ""}`}
+              onClick={() => setActiveTab("conformance")}
+            >
               🧪 Conformance Suite
             </div>
-            <div className={`nav-link ${activeTab === 'api-specs' ? 'active' : ''}`} onClick={() => setActiveTab('api-specs')}>
+            <div
+              className={`nav-link ${activeTab === "api-specs" ? "active" : ""}`}
+              onClick={() => setActiveTab("api-specs")}
+            >
               📋 API Specifications
             </div>
-            <div className={`nav-link ${(activeTab as string) === 'logistics-erp' ? 'active' : ''}`} onClick={() => setActiveTab('logistics-erp' as any)}>
+            <div
+              className={`nav-link ${(activeTab as string) === "logistics-erp" ? "active" : ""}`}
+              onClick={() => setActiveTab("logistics-erp" as any)}
+            >
               🚚 Logistics & ERP
             </div>
-            <div className={`nav-link ${(activeTab as string) === 'reverse-logistics' ? 'active' : ''}`} onClick={() => setActiveTab('reverse-logistics' as any)}>
+            <div
+              className={`nav-link ${(activeTab as string) === "reverse-logistics" ? "active" : ""}`}
+              onClick={() => setActiveTab("reverse-logistics" as any)}
+            >
               🔄 Reverse Logistics & Supplier
             </div>
-            <div className={`nav-link ${(activeTab as string) === 'thermal-ar' ? 'active' : ''}`} onClick={() => setActiveTab('thermal-ar' as any)}>
+            <div
+              className={`nav-link ${(activeTab as string) === "thermal-ar" ? "active" : ""}`}
+              onClick={() => setActiveTab("thermal-ar" as any)}
+            >
               🏷️ Thermal Print & AR
             </div>
-            <div className={`nav-link ${(activeTab as string) === 'digital-twin' ? 'active' : ''}`} onClick={() => setActiveTab('digital-twin' as any)}>
+            <div
+              className={`nav-link ${(activeTab as string) === "digital-twin" ? "active" : ""}`}
+              onClick={() => setActiveTab("digital-twin" as any)}
+            >
               🤖 Digital Twin & Copilot
             </div>
-            <div className={`nav-link ${(activeTab as string) === 'esg' ? 'active' : ''}`} onClick={() => setActiveTab('esg' as any)}>
+            <div
+              className={`nav-link ${(activeTab as string) === "esg" ? "active" : ""}`}
+              onClick={() => setActiveTab("esg" as any)}
+            >
               🌱 ESG Emissions Tracking
             </div>
             <div className="nav-separator">Enterprise</div>
-            <div className={`nav-link ${(activeTab as string) === 'intercompany' ? 'active' : ''}`} onClick={() => setActiveTab('intercompany' as any)}>
+            <div
+              className={`nav-link ${(activeTab as string) === "intercompany" ? "active" : ""}`}
+              onClick={() => setActiveTab("intercompany" as any)}
+            >
               🏢 Intercompany Accounting
             </div>
-            <div className={`nav-link ${(activeTab as string) === 'api-usage' ? 'active' : ''}`} onClick={() => setActiveTab('api-usage' as any)}>
+            <div
+              className={`nav-link ${(activeTab as string) === "api-usage" ? "active" : ""}`}
+              onClick={() => setActiveTab("api-usage" as any)}
+            >
               📈 API Usage Metering
             </div>
           </div>
         </div>
         <div>
           <div className="sidebar-footer">
-            <div style={{ marginBottom: '0.5rem' }}>Tenant: <code>{tenantId}</code></div>
-            <div style={{ marginBottom: '1rem' }}>User: <code>{actorId}</code></div>
-            <button className="btn btn-secondary" style={{ width: '100%', padding: '0.5rem' }} onClick={handleLogout}>
+            <div style={{ marginBottom: "0.5rem" }}>
+              Tenant: <code>{tenantId}</code>
+            </div>
+            <div style={{ marginBottom: "1rem" }}>
+              User: <code>{actorId}</code>
+            </div>
+            <button
+              className="btn btn-secondary"
+              style={{ width: "100%", padding: "0.5rem" }}
+              onClick={handleLogout}
+            >
               Logout Session
             </button>
           </div>
@@ -1824,39 +2519,67 @@ function App() {
             <h1>Unified Control Center</h1>
             <p>Evaluating domain state parity and data synchronization.</p>
           </div>
-          
+
           <div className="header-controls">
             <div className="backend-switcher">
-              {(['graphql', 'express', 'laravel'] as BackendType[]).map((type) => (
-                <div 
-                  key={type}
-                  className={`backend-option ${backendType === type ? 'active' : ''}`}
-                  onClick={() => setBackendType(type)}
-                >
-                  <div className={`health-dot ${backendHealth[type]?.status || 'checking'}`} title={backendHealth[type]?.status} />
-                  <span>
-                    {type === 'graphql' ? 'GraphQL' : type === 'express' ? 'Express' : 'Laravel'}
-                  </span>
-                  {backendHealth[type]?.status === 'online' && (
-                    <span className="backend-latency">{backendHealth[type].latencyMs}ms</span>
-                  )}
-                </div>
-              ))}
+              {(["graphql", "express", "laravel"] as BackendType[]).map(
+                (type) => (
+                  <div
+                    key={type}
+                    className={`backend-option ${backendType === type ? "active" : ""}`}
+                    onClick={() => setBackendType(type)}
+                  >
+                    <div
+                      className={`health-dot ${backendHealth[type]?.status || "checking"}`}
+                      title={backendHealth[type]?.status}
+                    />
+                    <span>
+                      {type === "graphql"
+                        ? "GraphQL"
+                        : type === "express"
+                          ? "Express"
+                          : "Laravel"}
+                    </span>
+                    {backendHealth[type]?.status === "online" && (
+                      <span className="backend-latency">
+                        {backendHealth[type].latencyMs}ms
+                      </span>
+                    )}
+                  </div>
+                ),
+              )}
               <div className="conformance-badge passed">
                 ✓ Conformance Passed
               </div>
             </div>
             <div className="control-item">
               <label>Location:</label>
-              <input id="header-location-id" aria-label="Active Location ID" type="text" value={locationId} onChange={(e) => setLocationId(e.target.value)} style={{ width: '90px' }} />
+              <input
+                id="header-location-id"
+                aria-label="Active Location ID"
+                type="text"
+                value={locationId}
+                onChange={(e) => setLocationId(e.target.value)}
+                style={{ width: "90px" }}
+              />
             </div>
           </div>
         </div>
 
         {message && (
-          <div role="alert" aria-live="assertive" className={`alert-box alert-${message.type} flex-between`}>
+          <div
+            role="alert"
+            aria-live="assertive"
+            className={`alert-box alert-${message.type} flex-between`}
+          >
             <span>{message.text}</span>
-            <button aria-label="Dismiss alert" title="Dismiss alert" className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setMessage(null)}>
+            <button
+              aria-label="Dismiss alert"
+              title="Dismiss alert"
+              className="btn btn-secondary"
+              style={{ padding: "0.2rem 0.6rem", fontSize: "0.8rem" }}
+              onClick={() => setMessage(null)}
+            >
               Dismiss
             </button>
           </div>
@@ -1864,7 +2587,7 @@ function App() {
 
         {/* Dynamic Tab Contents */}
 
-        {activeTab === 'dashboard' && (
+        {activeTab === "dashboard" && (
           <>
             <div className="grid-cols-4">
               <div className="stat-card">
@@ -1874,10 +2597,10 @@ function App() {
               </div>
               <div className="stat-card accent">
                 <span className="stat-title">Low Stock SKUs</span>
-                <span className="stat-value">
-                  {lowStockCount}
+                <span className="stat-value">{lowStockCount}</span>
+                <span className="stat-desc">
+                  SKUs below safety threshold (10)
                 </span>
-                <span className="stat-desc">SKUs below safety threshold (10)</span>
               </div>
               <div className="stat-card">
                 <span className="stat-title">Platform Integrations</span>
@@ -1893,11 +2616,19 @@ function App() {
 
             <div className="glass-panel">
               <div className="flex-between">
-                <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>
+                <h3
+                  className="form-section-title"
+                  style={{ border: "none", marginBottom: 0 }}
+                >
                   Real-time Stock Levels
                 </h3>
-                <button className="btn btn-secondary" onClick={loadDashboardData} disabled={loading} aria-busy={loading}>
-                  {loading ? <Spinner /> : 'Refresh Stock'}
+                <button
+                  className="btn btn-secondary"
+                  onClick={loadDashboardData}
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? <Spinner /> : "Refresh Stock"}
                 </button>
               </div>
               <div className="table-wrapper">
@@ -1915,23 +2646,43 @@ function App() {
                   <tbody>
                     {inventoryItems.length === 0 ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <td
+                          colSpan={6}
+                          style={{
+                            textAlign: "center",
+                            color: "var(--text-muted)",
+                          }}
+                        >
                           No inventory stock records loaded.
                         </td>
                       </tr>
                     ) : (
-                      inventoryItems.map(item => (
+                      inventoryItems.map((item) => (
                         <tr key={item.id}>
-                          <td><code>{item.id}</code></td>
-                          <td><code>{item.sku}</code></td>
-                          <td><code>{item.locationId}</code></td>
-                          <td><strong>{item.quantity} units</strong></td>
-                          <td><code>v{item.version}</code></td>
+                          <td>
+                            <code>{item.id}</code>
+                          </td>
+                          <td>
+                            <code>{item.sku}</code>
+                          </td>
+                          <td>
+                            <code>{item.locationId}</code>
+                          </td>
+                          <td>
+                            <strong>{item.quantity} units</strong>
+                          </td>
+                          <td>
+                            <code>v{item.version}</code>
+                          </td>
                           <td>
                             {item.quantity >= 10 ? (
-                              <span className="badge badge-success">Healthy</span>
+                              <span className="badge badge-success">
+                                Healthy
+                              </span>
                             ) : (
-                              <span className="badge badge-warning">Low Stock</span>
+                              <span className="badge badge-warning">
+                                Low Stock
+                              </span>
                             )}
                           </td>
                         </tr>
@@ -1944,7 +2695,7 @@ function App() {
           </>
         )}
 
-        {activeTab === 'op-depth' && (
+        {activeTab === "op-depth" && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
             <CycleCountDashboardPanel tenantId={tenantId} />
             <SupplierCollaborationPortal tenantId={tenantId} />
@@ -1957,83 +2708,135 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'shopify' && (
+        {activeTab === "shopify" && (
           <OmnichannelIntegrationPanel tenantId={tenantId} />
         )}
 
-        {activeTab === 'products' && (
+        {activeTab === "products" && (
           <div className="grid-cols-2">
             <div className="glass-panel">
               <h3 className="form-section-title">Add Catalog Product</h3>
               <form onSubmit={handleCreateProduct}>
                 <div className="form-group">
                   <label>Product Reference ID</label>
-                  <input type="text" value={newProdId} onChange={(e) => setNewProdId(e.target.value)} required placeholder="e.g. prod-123" />
+                  <input
+                    type="text"
+                    value={newProdId}
+                    onChange={(e) => setNewProdId(e.target.value)}
+                    required
+                    placeholder="e.g. prod-123"
+                  />
                 </div>
                 <div className="form-group">
                   <label>Display Name</label>
-                  <input type="text" value={newProdName} onChange={(e) => setNewProdName(e.target.value)} required placeholder="e.g. Wireless Charger" />
+                  <input
+                    type="text"
+                    value={newProdName}
+                    onChange={(e) => setNewProdName(e.target.value)}
+                    required
+                    placeholder="e.g. Wireless Charger"
+                  />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-                  {loading ? <Spinner /> : 'Register Product'}
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? <Spinner /> : "Register Product"}
                 </button>
               </form>
 
               {selectedProduct && (
-                <div style={{ marginTop: '2.5rem' }}>
-                  <h3 className="form-section-title">Add Variant to {selectedProduct.name}</h3>
+                <div style={{ marginTop: "2.5rem" }}>
+                  <h3 className="form-section-title">
+                    Add Variant to {selectedProduct.name}
+                  </h3>
                   <form onSubmit={handleAddVariant}>
                     <div className="form-group">
                       <label>SKU Reference</label>
-                      <input type="text" value={newVarSku} onChange={(e) => setNewVarSku(e.target.value)} required placeholder="e.g. CHARGER-WRLS-BLK" />
+                      <input
+                        type="text"
+                        value={newVarSku}
+                        onChange={(e) => setNewVarSku(e.target.value)}
+                        required
+                        placeholder="e.g. CHARGER-WRLS-BLK"
+                      />
                     </div>
                     <div className="form-group">
                       <label>Inventory Tracking Mode</label>
-                      <select value={newVarTracking} onChange={(e) => setNewVarTracking(e.target.value as any)}>
-                        <option value="quantity">Quantity Tracking (Default)</option>
+                      <select
+                        value={newVarTracking}
+                        onChange={(e) =>
+                          setNewVarTracking(e.target.value as any)
+                        }
+                      >
+                        <option value="quantity">
+                          Quantity Tracking (Default)
+                        </option>
                         <option value="serial">Serial Number Tracking</option>
                         <option value="lot">Lot / Batch Tracking</option>
                       </select>
                     </div>
-                    
+
                     <div className="form-group">
                       <label>Variant Attributes (Optional)</label>
                       {newVarAttrs.map((attr, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                          <input 
-                            type="text" 
-                            placeholder="Name (e.g. Color)" 
+                        <div
+                          key={idx}
+                          style={{
+                            display: "flex",
+                            gap: "0.5rem",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          <input
+                            type="text"
+                            placeholder="Name (e.g. Color)"
                             value={attr.name}
                             onChange={(e) => {
                               const updated = [...newVarAttrs];
                               updated[idx].name = e.target.value;
                               setNewVarAttrs(updated);
-                            }} 
+                            }}
                           />
-                          <input 
-                            type="text" 
-                            placeholder="Value (e.g. Black)" 
+                          <input
+                            type="text"
+                            placeholder="Value (e.g. Black)"
                             value={attr.value}
                             onChange={(e) => {
                               const updated = [...newVarAttrs];
                               updated[idx].value = e.target.value;
                               setNewVarAttrs(updated);
-                            }} 
+                            }}
                           />
                         </div>
                       ))}
-                      <button 
-                        type="button" 
-                        className="btn btn-secondary" 
-                        style={{ padding: '0.3rem 0.75rem', fontSize: '0.8rem' }}
-                        onClick={() => setNewVarAttrs([...newVarAttrs, { name: '', value: '' }])}
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{
+                          padding: "0.3rem 0.75rem",
+                          fontSize: "0.8rem",
+                        }}
+                        onClick={() =>
+                          setNewVarAttrs([
+                            ...newVarAttrs,
+                            { name: "", value: "" },
+                          ])
+                        }
                       >
                         + Add Attribute
                       </button>
                     </div>
 
-                    <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
-                      {loading ? <Spinner /> : 'Save Variant'}
+                    <button
+                      type="submit"
+                      className="btn btn-accent"
+                      disabled={loading}
+                      aria-busy={loading}
+                    >
+                      {loading ? <Spinner /> : "Save Variant"}
                     </button>
                   </form>
                 </div>
@@ -2055,38 +2858,82 @@ function App() {
                   <tbody>
                     {products.length === 0 ? (
                       <tr>
-                        <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <td
+                          colSpan={4}
+                          style={{
+                            textAlign: "center",
+                            color: "var(--text-muted)",
+                          }}
+                        >
                           No products found in catalog.
                         </td>
                       </tr>
                     ) : (
-                      products.map(p => (
-                        <tr key={p.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedProduct(p)}>
+                      products.map((p) => (
+                        <tr
+                          key={p.id}
+                          style={{ cursor: "pointer" }}
+                          onClick={() => setSelectedProduct(p)}
+                        >
                           <td>
                             <strong>{p.name}</strong>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}><code>{p.id}</code></div>
+                            <div
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "var(--text-muted)",
+                              }}
+                            >
+                              <code>{p.id}</code>
+                            </div>
                           </td>
                           <td>
                             {p.variants.map((v: any) => (
-                              <div key={v.id} style={{ marginBottom: '0.25rem' }}>
-                                <code>{v.sku}</code> <span style={{ fontSize: '0.7rem', color: 'var(--text-muted-dark)' }}>({v.trackingMode})</span>
+                              <div
+                                key={v.id}
+                                style={{ marginBottom: "0.25rem" }}
+                              >
+                                <code>{v.sku}</code>{" "}
+                                <span
+                                  style={{
+                                    fontSize: "0.7rem",
+                                    color: "var(--text-muted-dark)",
+                                  }}
+                                >
+                                  ({v.trackingMode})
+                                </span>
                               </div>
                             ))}
                           </td>
                           <td>
                             {p.variants.map((v: any) => (
-                              <div key={v.id} style={{ marginBottom: '0.25rem' }}>
+                              <div
+                                key={v.id}
+                                style={{ marginBottom: "0.25rem" }}
+                              >
                                 {v.barcodes && v.barcodes.length > 0 ? (
                                   v.barcodes.map((b: any) => (
-                                    <span key={b.id} className="badge badge-info" style={{ marginRight: '0.25rem', fontSize: '0.65rem' }}>
+                                    <span
+                                      key={b.id}
+                                      className="badge badge-info"
+                                      style={{
+                                        marginRight: "0.25rem",
+                                        fontSize: "0.65rem",
+                                      }}
+                                    >
                                       {b.barcode.value}
                                     </span>
                                   ))
                                 ) : (
-                                  <button 
-                                    className="btn btn-secondary" 
-                                    style={{ padding: '0.1rem 0.4rem', fontSize: '0.65rem' }}
-                                    onClick={(e) => { e.stopPropagation(); handleGenerateBarcode(v.sku); }}
+                                  <button
+                                    className="btn btn-secondary"
+                                    style={{
+                                      padding: "0.1rem 0.4rem",
+                                      fontSize: "0.65rem",
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleGenerateBarcode(v.sku);
+                                    }}
                                   >
                                     Generate
                                   </button>
@@ -2095,7 +2942,14 @@ function App() {
                             ))}
                           </td>
                           <td>
-                            <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setSelectedProduct(p)}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{
+                                padding: "0.3rem 0.6rem",
+                                fontSize: "0.8rem",
+                              }}
+                              onClick={() => setSelectedProduct(p)}
+                            >
                               Select
                             </button>
                           </td>
@@ -2109,15 +2963,41 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'scanning' && (
+        {activeTab === "scanning" && (
           <div className="grid-cols-2">
             <div className="glass-panel">
-              <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-                <h3 className="form-section-title" style={{ margin: 0, border: 'none' }}>Barcode Scanning Simulator</h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span className={`badge ${isOnline ? 'badge-success' : 'badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isOnline ? '#00e676' : '#ff9100' }}></span>
-                    {isOnline ? 'ONLINE' : 'OFFLINE'}
+              <div className="flex-between" style={{ marginBottom: "1.5rem" }}>
+                <h3
+                  className="form-section-title"
+                  style={{ margin: 0, border: "none" }}
+                >
+                  Barcode Scanning Simulator
+                </h3>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                  }}
+                >
+                  <span
+                    className={`badge ${isOnline ? "badge-success" : "badge-warning"}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        backgroundColor: isOnline ? "#00e676" : "#ff9100",
+                      }}
+                    ></span>
+                    {isOnline ? "ONLINE" : "OFFLINE"}
                   </span>
                   {offlineQueueCount > 0 && (
                     <span className="badge badge-accent">
@@ -2128,15 +3008,41 @@ function App() {
               </div>
 
               {!isOnline && (
-                <div role="alert" aria-live="assertive" className="alert-box alert-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-                  <strong>Offline Mode:</strong> Connection lost. Scans will be buffered locally in IndexedDB and synchronized automatically when online.
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  className="alert-box alert-warning"
+                  style={{ marginBottom: "1.5rem", fontSize: "0.85rem" }}
+                >
+                  <strong>Offline Mode:</strong> Connection lost. Scans will be
+                  buffered locally in IndexedDB and synchronized automatically
+                  when online.
                 </div>
               )}
 
               {offlineQueueCount > 0 && isOnline && (
-                <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span><strong>Buffered:</strong> {offlineQueueCount} scan(s) in IndexedDB.</span>
-                  <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={handleSyncQueue} disabled={loading} aria-busy={loading}>
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  className="alert-box alert-success"
+                  style={{
+                    marginBottom: "1.5rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span>
+                    <strong>Buffered:</strong> {offlineQueueCount} scan(s) in
+                    IndexedDB.
+                  </span>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: "0.25rem 0.75rem", fontSize: "0.8rem" }}
+                    onClick={handleSyncQueue}
+                    disabled={loading}
+                    aria-busy={loading}
+                  >
                     Sync Now
                   </button>
                 </div>
@@ -2145,58 +3051,112 @@ function App() {
               <form onSubmit={handleDispatchScan}>
                 <div className="form-group">
                   <label>Scanned Barcode / QR Value</label>
-                  <input type="text" value={scanVal} onChange={(e) => setScanVal(e.target.value)} required placeholder="Scan or type barcode value..." />
+                  <input
+                    type="text"
+                    value={scanVal}
+                    onChange={(e) => setScanVal(e.target.value)}
+                    required
+                    placeholder="Scan or type barcode value..."
+                  />
                 </div>
                 <div className="form-group">
                   <label>Fulfillment Workflow Context</label>
-                  <select value={scanContext} onChange={(e) => setScanContext(e.target.value as any)}>
-                    <option value="pos">POS Dispatch (Inventory Decrement)</option>
-                    <option value="receiving">Warehouse Receiving (Inventory Increment)</option>
-                    <option value="cycle_count">Physical Cycle Count Audit (Variance Reconcile)</option>
+                  <select
+                    value={scanContext}
+                    onChange={(e) => setScanContext(e.target.value as any)}
+                  >
+                    <option value="pos">
+                      POS Dispatch (Inventory Decrement)
+                    </option>
+                    <option value="receiving">
+                      Warehouse Receiving (Inventory Increment)
+                    </option>
+                    <option value="cycle_count">
+                      Physical Cycle Count Audit (Variance Reconcile)
+                    </option>
                   </select>
                 </div>
-                
-                {(scanContext === 'pos' || scanContext === 'receiving') && (
+
+                {(scanContext === "pos" || scanContext === "receiving") && (
                   <div className="form-group">
                     <label>Quantity Change</label>
-                    <input type="number" value={scanAmount} onChange={(e) => setScanAmount(Number(e.target.value))} required min={1} />
+                    <input
+                      type="number"
+                      value={scanAmount}
+                      onChange={(e) => setScanAmount(Number(e.target.value))}
+                      required
+                      min={1}
+                    />
                   </div>
                 )}
 
-                {scanContext === 'cycle_count' && (
+                {scanContext === "cycle_count" && (
                   <div className="form-group">
                     <label>Actual Counted Quantity</label>
-                    <input type="number" value={scanActualQty} onChange={(e) => setScanActualQty(Number(e.target.value))} required min={0} />
+                    <input
+                      type="number"
+                      value={scanActualQty}
+                      onChange={(e) => setScanActualQty(Number(e.target.value))}
+                      required
+                      min={0}
+                    />
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-                  {isOnline ? 'Trigger Scanning Event' : 'Buffer Scan Offline'}
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {isOnline ? "Trigger Scanning Event" : "Buffer Scan Offline"}
                 </button>
               </form>
 
-              {role === 'admin' && (
-                <div style={{ marginTop: '2.5rem' }}>
-                  <h3 className="form-section-title">Assign Barcode to Catalog Variant</h3>
+              {role === "admin" && (
+                <div style={{ marginTop: "2.5rem" }}>
+                  <h3 className="form-section-title">
+                    Assign Barcode to Catalog Variant
+                  </h3>
                   <form onSubmit={handleAssignBarcode}>
                     <div className="form-group">
                       <label>Target Variant SKU</label>
-                      <input type="text" value={assignSku} onChange={(e) => setAssignSku(e.target.value)} required placeholder="e.g. CHARGER-WRLS-BLK" />
+                      <input
+                        type="text"
+                        value={assignSku}
+                        onChange={(e) => setAssignSku(e.target.value)}
+                        required
+                        placeholder="e.g. CHARGER-WRLS-BLK"
+                      />
                     </div>
                     <div className="form-group">
                       <label>Barcode Value</label>
-                      <input type="text" value={assignVal} onChange={(e) => setAssignVal(e.target.value)} required placeholder="UPC, EAN or QR code text..." />
+                      <input
+                        type="text"
+                        value={assignVal}
+                        onChange={(e) => setAssignVal(e.target.value)}
+                        required
+                        placeholder="UPC, EAN or QR code text..."
+                      />
                     </div>
                     <div className="form-group">
                       <label>Symbology / Encoding</label>
-                      <select value={assignSymbology} onChange={(e) => setAssignSymbology(e.target.value)}>
+                      <select
+                        value={assignSymbology}
+                        onChange={(e) => setAssignSymbology(e.target.value)}
+                      >
                         <option value="upc_a">UPC-A</option>
                         <option value="ean_13">EAN-13</option>
                         <option value="code_128">Code 128</option>
                         <option value="qr">QR Code</option>
                       </select>
                     </div>
-                    <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
+                    <button
+                      type="submit"
+                      className="btn btn-accent"
+                      disabled={loading}
+                      aria-busy={loading}
+                    >
                       Save Assignment
                     </button>
                   </form>
@@ -2208,18 +3168,29 @@ function App() {
               <h3 className="form-section-title">Live Scanning Event Stream</h3>
               <div className="timeline">
                 {scanHistory.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0' }}>
-                    No barcode scanning events captured yet. Click "Trigger Scanning Event" or send events over WebSockets.
+                  <div
+                    style={{
+                      textAlign: "center",
+                      color: "var(--text-muted)",
+                      padding: "2rem 0",
+                    }}
+                  >
+                    No barcode scanning events captured yet. Click "Trigger
+                    Scanning Event" or send events over WebSockets.
                   </div>
                 ) : (
                   scanHistory.map((item, idx) => (
-                    <div key={idx} className={`timeline-item ${item.status.includes('Error') ? 'warning' : 'success'}`}>
+                    <div
+                      key={idx}
+                      className={`timeline-item ${item.status.includes("Error") ? "warning" : "success"}`}
+                    >
                       <div className="timeline-header">
                         <span>{item.context.toUpperCase()} Workflow</span>
                         <span>{item.time}</span>
                       </div>
                       <div className="timeline-body">
-                        Scanned Value: <code>{item.scan}</code> &rarr; Status: <strong>{item.status}</strong>
+                        Scanned Value: <code>{item.scan}</code> &rarr; Status:{" "}
+                        <strong>{item.status}</strong>
                       </div>
                     </div>
                   ))
@@ -2229,74 +3200,110 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'onboarding' && (
+        {activeTab === "onboarding" && (
           <div className="grid-cols-2">
             <div className="glass-panel">
               <h3 className="form-section-title">Invite New Inventory Batch</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-                Onboarding sheets allow inventory stock to be loaded with baseline cost layers and posted as an opening balance on the General Ledger.
+              <p
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "0.85rem",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                Onboarding sheets allow inventory stock to be loaded with
+                baseline cost layers and posted as an opening balance on the
+                General Ledger.
               </p>
-              <button onClick={handleCreateOnboarding} className="btn btn-primary" disabled={loading} aria-busy={loading}>
-                {loading ? <Spinner /> : 'Create Draft Onboarding Sheet'}
+              <button
+                onClick={handleCreateOnboarding}
+                className="btn btn-primary"
+                disabled={loading}
+                aria-busy={loading}
+              >
+                {loading ? <Spinner /> : "Create Draft Onboarding Sheet"}
               </button>
 
               {selectedOnboarding && (
-                <div style={{ marginTop: '2.5rem' }}>
-                  <h3 className="form-section-title">Add Items to: {selectedOnboarding.id}</h3>
+                <div style={{ marginTop: "2.5rem" }}>
+                  <h3 className="form-section-title">
+                    Add Items to: {selectedOnboarding.id}
+                  </h3>
                   <div className="form-group">
                     <label>Items Specification</label>
                     {onboardingItems.map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <input 
-                          type="text" 
-                          placeholder="Variant SKU" 
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          gap: "0.5rem",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        <input
+                          type="text"
+                          placeholder="Variant SKU"
                           value={item.variantId}
                           onChange={(e) => {
                             const updated = [...onboardingItems];
                             updated[idx].variantId = e.target.value;
                             setOnboardingItems(updated);
-                          }} 
+                          }}
                         />
-                        <input 
-                          type="number" 
-                          placeholder="Quantity" 
-                          value={item.quantity || ''}
+                        <input
+                          type="number"
+                          placeholder="Quantity"
+                          value={item.quantity || ""}
                           onChange={(e) => {
                             const updated = [...onboardingItems];
                             updated[idx].quantity = Number(e.target.value);
                             setOnboardingItems(updated);
-                          }} 
+                          }}
                         />
-                        <input 
-                          type="number" 
-                          placeholder="Cost Cents" 
-                          value={item.unitCostCents || ''}
+                        <input
+                          type="number"
+                          placeholder="Cost Cents"
+                          value={item.unitCostCents || ""}
                           onChange={(e) => {
                             const updated = [...onboardingItems];
                             updated[idx].unitCostCents = Number(e.target.value);
                             setOnboardingItems(updated);
-                          }} 
+                          }}
                         />
                       </div>
                     ))}
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="btn btn-secondary"
-                      style={{ padding: '0.3rem 0.75rem', fontSize: '0.8rem' }}
-                      onClick={() => setOnboardingItems([...onboardingItems, { variantId: '', quantity: 0, unitCostCents: 0 }])}
+                      style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                      onClick={() =>
+                        setOnboardingItems([
+                          ...onboardingItems,
+                          { variantId: "", quantity: 0, unitCostCents: 0 },
+                        ])
+                      }
                     >
                       + Add Item row
                     </button>
                   </div>
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                    <button 
-                      onClick={() => handleSubmitOnboarding(selectedOnboarding.id)}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "1rem",
+                      marginTop: "1.5rem",
+                    }}
+                  >
+                    <button
+                      onClick={() =>
+                        handleSubmitOnboarding(selectedOnboarding.id)
+                      }
                       className="btn btn-accent"
-                      disabled={loading} aria-busy={loading}
+                      disabled={loading}
+                      aria-busy={loading}
                     >
                       Submit & Post Opening Balances
                     </button>
-                    <button 
+                    <button
                       onClick={() => setSelectedOnboarding(null)}
                       className="btn btn-secondary"
                     >
@@ -2323,30 +3330,67 @@ function App() {
                   <tbody>
                     {onboardings.length === 0 ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <td
+                          colSpan={5}
+                          style={{
+                            textAlign: "center",
+                            color: "var(--text-muted)",
+                          }}
+                        >
                           No onboarding sheets registered.
                         </td>
                       </tr>
                     ) : (
-                      onboardings.map(onb => (
+                      onboardings.map((onb) => (
                         <tr key={onb.id}>
-                          <td><code>{onb.id}</code></td>
+                          <td>
+                            <code>{onb.id}</code>
+                          </td>
                           <td>{new Date(onb.asOfDate).toLocaleDateString()}</td>
                           <td>
-                            {onb.status === 'submitted' ? (
-                              <span className="badge badge-success">Posted</span>
+                            {onb.status === "submitted" ? (
+                              <span className="badge badge-success">
+                                Posted
+                              </span>
                             ) : (
                               <span className="badge badge-warning">Draft</span>
                             )}
                           </td>
                           <td>{onb.items?.length || 0} items</td>
                           <td>
-                            {onb.status === 'draft' ? (
-                              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => { setSelectedOnboarding(onb); setOnboardingItems(onb.items.length > 0 ? onb.items : [{ variantId: '', quantity: 0, unitCostCents: 0 }]); }}>
+                            {onb.status === "draft" ? (
+                              <button
+                                className="btn btn-secondary"
+                                style={{
+                                  padding: "0.3rem 0.6rem",
+                                  fontSize: "0.8rem",
+                                }}
+                                onClick={() => {
+                                  setSelectedOnboarding(onb);
+                                  setOnboardingItems(
+                                    onb.items.length > 0
+                                      ? onb.items
+                                      : [
+                                          {
+                                            variantId: "",
+                                            quantity: 0,
+                                            unitCostCents: 0,
+                                          },
+                                        ],
+                                  );
+                                }}
+                              >
                                 Edit & Submit
                               </button>
                             ) : (
-                              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Completed</span>
+                              <span
+                                style={{
+                                  fontSize: "0.85rem",
+                                  color: "var(--text-muted)",
+                                }}
+                              >
+                                Completed
+                              </span>
                             )}
                           </td>
                         </tr>
@@ -2359,51 +3403,72 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'ledger' && (
+        {activeTab === "ledger" && (
           <div className="grid-cols-2">
             <div className="glass-panel">
-              <h3 className="form-section-title">Record General Ledger Journal</h3>
+              <h3 className="form-section-title">
+                Record General Ledger Journal
+              </h3>
               <form onSubmit={handlePostJournal}>
                 <div className="form-group">
                   <label>Journal Description</label>
-                  <input type="text" value={newJournalDesc} onChange={(e) => setNewJournalDesc(e.target.value)} required placeholder="e.g. Adjustment entry" />
+                  <input
+                    type="text"
+                    value={newJournalDesc}
+                    onChange={(e) => setNewJournalDesc(e.target.value)}
+                    required
+                    placeholder="e.g. Adjustment entry"
+                  />
                 </div>
                 <div className="form-group">
                   <label>Accounting Method</label>
-                  <select value={newJournalMethod} onChange={(e) => setNewJournalMethod(e.target.value as any)}>
+                  <select
+                    value={newJournalMethod}
+                    onChange={(e) => setNewJournalMethod(e.target.value as any)}
+                  >
                     <option value="accrual">Accrual Method</option>
                     <option value="cash">Cash Method</option>
                   </select>
                 </div>
-                
+
                 <div className="form-group">
-                  <label>Journal Entry Lines (Must balance debits and credits)</label>
+                  <label>
+                    Journal Entry Lines (Must balance debits and credits)
+                  </label>
                   {newJournalLines.map((line, idx) => (
-                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                      <input 
-                        type="text" 
-                        placeholder="Account Code" 
-                        value={line.accountCode} 
+                    <div
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        gap: "0.5rem",
+                        marginBottom: "0.5rem",
+                        alignItems: "center",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        placeholder="Account Code"
+                        value={line.accountCode}
                         onChange={(e) => {
                           const updated = [...newJournalLines];
                           updated[idx].accountCode = e.target.value;
                           setNewJournalLines(updated);
                         }}
-                        required 
+                        required
                       />
-                      <input 
-                        type="number" 
-                        placeholder="Cents" 
-                        value={line.amountCents || ''} 
+                      <input
+                        type="number"
+                        placeholder="Cents"
+                        value={line.amountCents || ""}
                         onChange={(e) => {
                           const updated = [...newJournalLines];
                           updated[idx].amountCents = Number(e.target.value);
                           setNewJournalLines(updated);
                         }}
-                        required 
+                        required
                       />
-                      <select 
-                        value={line.type} 
+                      <select
+                        value={line.type}
                         onChange={(e) => {
                           const updated = [...newJournalLines];
                           updated[idx].type = e.target.value as any;
@@ -2413,10 +3478,10 @@ function App() {
                         <option value="debit">DEBIT</option>
                         <option value="credit">CREDIT</option>
                       </select>
-                      <input 
-                        type="text" 
-                        placeholder="Memo" 
-                        value={line.memo || ''} 
+                      <input
+                        type="text"
+                        placeholder="Memo"
+                        value={line.memo || ""}
                         onChange={(e) => {
                           const updated = [...newJournalLines];
                           updated[idx].memo = e.target.value;
@@ -2425,18 +3490,33 @@ function App() {
                       />
                     </div>
                   ))}
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    style={{ padding: '0.3rem 0.75rem', fontSize: '0.8rem' }}
-                    onClick={() => setNewJournalLines([...newJournalLines, { accountCode: '', amountCents: 0, type: 'debit', memo: '' }])}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                    onClick={() =>
+                      setNewJournalLines([
+                        ...newJournalLines,
+                        {
+                          accountCode: "",
+                          amountCents: 0,
+                          type: "debit",
+                          memo: "",
+                        },
+                      ])
+                    }
                   >
                     + Add Line row
                   </button>
                 </div>
 
-                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-                  {loading ? <Spinner /> : 'Post General Ledger Entry'}
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? <Spinner /> : "Post General Ledger Entry"}
                 </button>
               </form>
             </div>
@@ -2456,23 +3536,48 @@ function App() {
                   <tbody>
                     {journals.length === 0 ? (
                       <tr>
-                        <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <td
+                          colSpan={4}
+                          style={{
+                            textAlign: "center",
+                            color: "var(--text-muted)",
+                          }}
+                        >
                           No journal entries posted yet.
                         </td>
                       </tr>
                     ) : (
-                      journals.map(entry => (
+                      journals.map((entry) => (
                         <tr key={entry.id}>
-                          <td>{new Date(entry.date || new Date()).toLocaleDateString()}</td>
+                          <td>
+                            {new Date(
+                              entry.date || new Date(),
+                            ).toLocaleDateString()}
+                          </td>
                           <td>
                             <strong>{entry.description}</strong>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted-dark)' }}><code>Ref: {entry.referenceId || entry.id}</code></div>
+                            <div
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "var(--text-muted-dark)",
+                              }}
+                            >
+                              <code>Ref: {entry.referenceId || entry.id}</code>
+                            </div>
                           </td>
                           <td>{entry.method.toUpperCase()}</td>
                           <td>
                             {entry.lines.map((l: any, idx: number) => (
-                              <div key={idx} style={{ fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                                <code>{l.accountCode}</code>: {l.type === 'debit' ? 'DR' : 'CR'} ${(l.amountCents / 100).toFixed(2)}
+                              <div
+                                key={idx}
+                                style={{
+                                  fontSize: "0.85rem",
+                                  marginBottom: "0.25rem",
+                                }}
+                              >
+                                <code>{l.accountCode}</code>:{" "}
+                                {l.type === "debit" ? "DR" : "CR"} $
+                                {(l.amountCents / 100).toFixed(2)}
                               </div>
                             ))}
                           </td>
@@ -2486,30 +3591,60 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'serials' && (
+        {activeTab === "serials" && (
           <div className="grid-cols-2">
             <div className="glass-panel">
               <h3 className="form-section-title">Serialized Stock Tracker</h3>
               <form onSubmit={handleTraceSerial}>
                 <div className="form-group">
                   <label>Item Serial Number</label>
-                  <input type="text" value={traceSerialNum} onChange={(e) => setTraceSerialNum(e.target.value)} required placeholder="Enter unique serial number..." />
+                  <input
+                    type="text"
+                    value={traceSerialNum}
+                    onChange={(e) => setTraceSerialNum(e.target.value)}
+                    required
+                    placeholder="Enter unique serial number..."
+                  />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                  aria-busy={loading}
+                >
                   Trace Serial History
                 </button>
               </form>
 
               {tracedItem && (
-                <div style={{ marginTop: '2rem' }}>
+                <div style={{ marginTop: "2rem" }}>
                   <h3 className="form-section-title">Item Properties</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem' }}>
-                    <div><strong>Serial Number:</strong> <code>{tracedItem.serialNumber}</code></div>
-                    <div><strong>Variant ID:</strong> <code>{tracedItem.variantId}</code></div>
-                    <div><strong>Warehouse Location:</strong> <code>{tracedItem.locationId}</code></div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.5rem",
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     <div>
-                      <strong>Tracking Status:</strong> 
-                      <span className="badge badge-success" style={{ marginLeft: '0.5rem' }}>
+                      <strong>Serial Number:</strong>{" "}
+                      <code>{tracedItem.serialNumber}</code>
+                    </div>
+                    <div>
+                      <strong>Variant ID:</strong>{" "}
+                      <code>{tracedItem.variantId}</code>
+                    </div>
+                    <div>
+                      <strong>Warehouse Location:</strong>{" "}
+                      <code>{tracedItem.locationId}</code>
+                    </div>
+                    <div>
+                      <strong>Tracking Status:</strong>
+                      <span
+                        className="badge badge-success"
+                        style={{ marginLeft: "0.5rem" }}
+                      >
                         {tracedItem.status.toUpperCase()}
                       </span>
                     </div>
@@ -2519,23 +3654,49 @@ function App() {
             </div>
 
             <div className="glass-panel">
-              <h3 className="form-section-title">Serial Custody & Location Timeline</h3>
+              <h3 className="form-section-title">
+                Serial Custody & Location Timeline
+              </h3>
               <div className="timeline">
-                {!tracedItem || !tracedItem.history || tracedItem.history.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0' }}>
-                    Enter a serial number to trace custody and location transitions.
+                {!tracedItem ||
+                !tracedItem.history ||
+                tracedItem.history.length === 0 ? (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      color: "var(--text-muted)",
+                      padding: "2rem 0",
+                    }}
+                  >
+                    Enter a serial number to trace custody and location
+                    transitions.
                   </div>
                 ) : (
                   tracedItem.history.map((hist: any, idx: number) => (
                     <div key={idx} className="timeline-item success">
                       <div className="timeline-header">
-                        <span>Status Transition: {hist.from} → {hist.to}</span>
-                        <span>{new Date(hist.occurredAt || new Date()).toLocaleTimeString()}</span>
+                        <span>
+                          Status Transition: {hist.from} → {hist.to}
+                        </span>
+                        <span>
+                          {new Date(
+                            hist.occurredAt || new Date(),
+                          ).toLocaleTimeString()}
+                        </span>
                       </div>
                       <div className="timeline-body">
-                        <div><strong>Reason:</strong> {hist.reason}</div>
-                        <div><strong>Actor:</strong> <code>{hist.actor}</code></div>
-                        {hist.referenceId && <div><strong>Reference ID:</strong> <code>{hist.referenceId}</code></div>}
+                        <div>
+                          <strong>Reason:</strong> {hist.reason}
+                        </div>
+                        <div>
+                          <strong>Actor:</strong> <code>{hist.actor}</code>
+                        </div>
+                        {hist.referenceId && (
+                          <div>
+                            <strong>Reference ID:</strong>{" "}
+                            <code>{hist.referenceId}</code>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
@@ -2545,38 +3706,52 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'forecasting' && (
+        {activeTab === "forecasting" && (
           <>
             <div className="grid-cols-3">
               <div className="stat-card">
                 <span className="stat-title">Products Monitored</span>
                 <span className="stat-value">{forecastingReport.length}</span>
-                <span className="stat-desc">SKUs Evaluated under forecasting</span>
+                <span className="stat-desc">
+                  SKUs Evaluated under forecasting
+                </span>
               </div>
               <div className="stat-card accent">
                 <span className="stat-title">Urgent Actions</span>
-                <span className="stat-value">
-                  {urgentActionsCount}
+                <span className="stat-value">{urgentActionsCount}</span>
+                <span className="stat-desc">
+                  SKUs below recommended Reorder Point
                 </span>
-                <span className="stat-desc">SKUs below recommended Reorder Point</span>
               </div>
               <div className="stat-card">
                 <span className="stat-title">Target Location</span>
-                <span className="stat-value"><code>{locationId.toUpperCase()}</code></span>
-                <span className="stat-desc">Active demand evaluation location</span>
+                <span className="stat-value">
+                  <code>{locationId.toUpperCase()}</code>
+                </span>
+                <span className="stat-desc">
+                  Active demand evaluation location
+                </span>
               </div>
             </div>
 
             <div className="glass-panel">
               <div className="flex-between">
-                <h3 className="form-section-title" style={{ border: 'none', marginBottom: 0 }}>
+                <h3
+                  className="form-section-title"
+                  style={{ border: "none", marginBottom: 0 }}
+                >
                   Demand Planning & ROP Safety Stock Recommendations
                 </h3>
-                <button className="btn btn-secondary" onClick={loadForecastingReport} disabled={loading} aria-busy={loading}>
-                  {loading ? <Spinner /> : 'Recalculate ROP'}
+                <button
+                  className="btn btn-secondary"
+                  onClick={loadForecastingReport}
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? <Spinner /> : "Recalculate ROP"}
                 </button>
               </div>
-              
+
               <div className="table-wrapper">
                 <table>
                   <thead>
@@ -2593,34 +3768,71 @@ function App() {
                   <tbody>
                     {forecastingReport.length === 0 ? (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                          No demand forecasting items calculated. Make sure stock movement transactions exist in database.
+                        <td
+                          colSpan={7}
+                          style={{
+                            textAlign: "center",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          No demand forecasting items calculated. Make sure
+                          stock movement transactions exist in database.
                         </td>
                       </tr>
                     ) : (
-                      forecastingReport.map(item => {
-                        const isReorderUrgent = item.currentStock <= item.suggestedROP;
-                        const isReorderWarning = !isReorderUrgent && item.currentStock <= (item.suggestedROP + item.safetyStock);
-                        
+                      forecastingReport.map((item) => {
+                        const isReorderUrgent =
+                          item.currentStock <= item.suggestedROP;
+                        const isReorderWarning =
+                          !isReorderUrgent &&
+                          item.currentStock <=
+                            item.suggestedROP + item.safetyStock;
+
                         return (
                           <tr key={item.sku}>
-                            <td><code>{item.sku}</code></td>
-                            <td><strong>{item.currentStock} units</strong></td>
                             <td>
-                              <code>{Number(item.salesVelocity7d || 0).toFixed(1)}</code> / 
-                              <code> {Number(item.salesVelocity30d || 0).toFixed(1)}</code> / 
-                              <code> {Number(item.salesVelocity90d || 0).toFixed(1)}</code>
+                              <code>{item.sku}</code>
                             </td>
-                            <td><strong>{item.forecastedDemand} units</strong></td>
-                            <td><code>{item.safetyStock} units</code></td>
-                            <td><code>{item.suggestedROP} units</code></td>
+                            <td>
+                              <strong>{item.currentStock} units</strong>
+                            </td>
+                            <td>
+                              <code>
+                                {Number(item.salesVelocity7d || 0).toFixed(1)}
+                              </code>{" "}
+                              /
+                              <code>
+                                {" "}
+                                {Number(item.salesVelocity30d || 0).toFixed(1)}
+                              </code>{" "}
+                              /
+                              <code>
+                                {" "}
+                                {Number(item.salesVelocity90d || 0).toFixed(1)}
+                              </code>
+                            </td>
+                            <td>
+                              <strong>{item.forecastedDemand} units</strong>
+                            </td>
+                            <td>
+                              <code>{item.safetyStock} units</code>
+                            </td>
+                            <td>
+                              <code>{item.suggestedROP} units</code>
+                            </td>
                             <td>
                               {isReorderUrgent ? (
-                                <span className="badge badge-error">🔴 REORDER URGENT</span>
+                                <span className="badge badge-error">
+                                  🔴 REORDER URGENT
+                                </span>
                               ) : isReorderWarning ? (
-                                <span className="badge badge-warning">🟡 MONITOR STOCKS</span>
+                                <span className="badge badge-warning">
+                                  🟡 MONITOR STOCKS
+                                </span>
                               ) : (
-                                <span className="badge badge-success">🟢 STOCK HEALTHY</span>
+                                <span className="badge badge-success">
+                                  🟢 STOCK HEALTHY
+                                </span>
                               )}
                             </td>
                           </tr>
@@ -2634,33 +3846,64 @@ function App() {
           </>
         )}
 
-        {activeTab === 'routing' && (
+        {activeTab === "routing" && (
           <div className="grid-cols-2">
             <div className="glass-panel">
-              <h3 className="form-section-title">Intelligent Order Routing Optimizer</h3>
+              <h3 className="form-section-title">
+                Intelligent Order Routing Optimizer
+              </h3>
               <form onSubmit={handleComputeRoute}>
                 <div className="form-group">
                   <label>Product SKU</label>
-                  <input type="text" value={routingSku} onChange={(e) => setRoutingSku(e.target.value)} required />
+                  <input
+                    type="text"
+                    value={routingSku}
+                    onChange={(e) => setRoutingSku(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="form-group">
                   <label>Order Quantity</label>
-                  <input type="number" value={routingQuantity} onChange={(e) => setRoutingQuantity(Number(e.target.value))} required />
+                  <input
+                    type="number"
+                    value={routingQuantity}
+                    onChange={(e) => setRoutingQuantity(Number(e.target.value))}
+                    required
+                  />
                 </div>
                 <div className="form-group">
                   <label>Destination Address (Geocode Lookup)</label>
-                  <input type="text" value={routingAddress} onChange={(e) => setRoutingAddress(e.target.value)} required />
+                  <input
+                    type="text"
+                    value={routingAddress}
+                    onChange={(e) => setRoutingAddress(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="form-group">
                   <label>Routing Strategy</label>
-                  <select value={routingStrategy} onChange={(e) => setRoutingStrategy(e.target.value)}>
-                    <option value="MINIMIZE_COST">Minimize Carrier Cost (Balanced splits)</option>
-                    <option value="MINIMIZE_SPLITS">Minimize Splits (Fulfill from single location)</option>
-                    <option value="MINIMIZE_DISTANCE">Minimize Distance (Nearest origin warehouse)</option>
+                  <select
+                    value={routingStrategy}
+                    onChange={(e) => setRoutingStrategy(e.target.value)}
+                  >
+                    <option value="MINIMIZE_COST">
+                      Minimize Carrier Cost (Balanced splits)
+                    </option>
+                    <option value="MINIMIZE_SPLITS">
+                      Minimize Splits (Fulfill from single location)
+                    </option>
+                    <option value="MINIMIZE_DISTANCE">
+                      Minimize Distance (Nearest origin warehouse)
+                    </option>
                   </select>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-                  {loading ? <Spinner /> : 'Compute Optimal Routing Plan'}
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? <Spinner /> : "Compute Optimal Routing Plan"}
                 </button>
               </form>
             </div>
@@ -2668,29 +3911,51 @@ function App() {
             <div className="glass-panel">
               <h3 className="form-section-title">Optimal Fulfillment Plan</h3>
               {!routingPlan ? (
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem 0' }}>
+                <div
+                  style={{
+                    textAlign: "center",
+                    color: "var(--text-muted)",
+                    padding: "3rem 0",
+                  }}
+                >
                   Submit parameters on the left to resolve origin allocations.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1.25rem",
+                  }}
+                >
                   <div className="stat-card accent">
                     <span className="stat-title">Fulfillment Cost</span>
-                    <span className="stat-value">${(routingPlan.totalCost / 100).toFixed(2)}</span>
-                    <span className="stat-desc">Calculated shipping & split penalties</span>
+                    <span className="stat-value">
+                      ${(routingPlan.totalCost / 100).toFixed(2)}
+                    </span>
+                    <span className="stat-desc">
+                      Calculated shipping & split penalties
+                    </span>
                   </div>
-                  
-                  <div className="grid-cols-2" style={{ gap: '1rem' }}>
+
+                  <div className="grid-cols-2" style={{ gap: "1rem" }}>
                     <div className="stat-card">
                       <span className="stat-title">Total Distance</span>
-                      <span className="stat-value">{Number(routingPlan.totalDistance).toFixed(1)} km</span>
+                      <span className="stat-value">
+                        {Number(routingPlan.totalDistance).toFixed(1)} km
+                      </span>
                     </div>
                     <div className="stat-card">
                       <span className="stat-title">Split Shipments</span>
-                      <span className="stat-value">{routingPlan.splitCount} splits</span>
+                      <span className="stat-value">
+                        {routingPlan.splitCount} splits
+                      </span>
                     </div>
                   </div>
 
-                  <h4 style={{ margin: '1rem 0 0.5rem 0' }}>Warehouse Allocations</h4>
+                  <h4 style={{ margin: "1rem 0 0.5rem 0" }}>
+                    Warehouse Allocations
+                  </h4>
                   <div className="table-wrapper">
                     <table>
                       <thead>
@@ -2700,12 +3965,18 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {routingPlan.allocations.map((alloc: any, idx: number) => (
-                          <tr key={idx}>
-                            <td><code>{alloc.locationId}</code></td>
-                            <td><strong>{alloc.quantity} units</strong></td>
-                          </tr>
-                        ))}
+                        {routingPlan.allocations.map(
+                          (alloc: any, idx: number) => (
+                            <tr key={idx}>
+                              <td>
+                                <code>{alloc.locationId}</code>
+                              </td>
+                              <td>
+                                <strong>{alloc.quantity} units</strong>
+                              </td>
+                            </tr>
+                          ),
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -2715,91 +3986,128 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'procurement' && (
+        {activeTab === "procurement" && (
           <div className="grid-cols-2">
             <div className="glass-panel">
-              <h3 className="form-section-title">Create Purchase Order (PO) Draft</h3>
+              <h3 className="form-section-title">
+                Create Purchase Order (PO) Draft
+              </h3>
               <form onSubmit={handleCreatePurchaseOrder}>
                 <div className="form-group">
                   <label>Supplier Name</label>
-                  <input type="text" value={newPoSupplier} onChange={(e) => setNewPoSupplier(e.target.value)} required placeholder="e.g. Acme Supplies Ltd." />
+                  <input
+                    type="text"
+                    value={newPoSupplier}
+                    onChange={(e) => setNewPoSupplier(e.target.value)}
+                    required
+                    placeholder="e.g. Acme Supplies Ltd."
+                  />
                 </div>
-                
+
                 <div className="form-group">
                   <label>Line Items</label>
                   {newPoLines.map((line, idx) => (
-                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      <input 
-                        type="text" 
-                        placeholder="SKU" 
-                        value={line.sku} 
+                    <div
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        gap: "0.5rem",
+                        marginBottom: "0.5rem",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        placeholder="SKU"
+                        value={line.sku}
                         onChange={(e) => {
                           const updated = [...newPoLines];
                           updated[idx].sku = e.target.value;
                           setNewPoLines(updated);
-                        }} 
-                        required 
+                        }}
+                        required
                       />
-                      <input 
-                        type="number" 
-                        placeholder="Qty" 
-                        value={line.quantity || ''} 
+                      <input
+                        type="number"
+                        placeholder="Qty"
+                        value={line.quantity || ""}
                         onChange={(e) => {
                           const updated = [...newPoLines];
                           updated[idx].quantity = Number(e.target.value);
                           setNewPoLines(updated);
-                        }} 
-                        required 
+                        }}
+                        required
                       />
-                      <input 
-                        type="number" 
-                        placeholder="Unit Cost (Cents)" 
-                        value={line.unitCostCents || ''} 
+                      <input
+                        type="number"
+                        placeholder="Unit Cost (Cents)"
+                        value={line.unitCostCents || ""}
                         onChange={(e) => {
                           const updated = [...newPoLines];
                           updated[idx].unitCostCents = Number(e.target.value);
                           setNewPoLines(updated);
-                        }} 
-                        required 
+                        }}
+                        required
                       />
                     </div>
                   ))}
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    style={{ padding: '0.3rem 0.75rem', fontSize: '0.8rem' }}
-                    onClick={() => setNewPoLines([...newPoLines, { sku: '', quantity: 1, unitCostCents: 1000 }])}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                    onClick={() =>
+                      setNewPoLines([
+                        ...newPoLines,
+                        { sku: "", quantity: 1, unitCostCents: 1000 },
+                      ])
+                    }
                   >
                     + Add Item Row
                   </button>
                 </div>
-                
-                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-                  {loading ? <Spinner /> : 'Draft Purchase Order'}
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? <Spinner /> : "Draft Purchase Order"}
                 </button>
               </form>
 
               {sentPurchaseOrders.length > 0 && (
-                <div style={{ marginTop: '2.5rem' }}>
-                  <h3 className="form-section-title">Receive Purchase Order Inventory</h3>
+                <div style={{ marginTop: "2.5rem" }}>
+                  <h3 className="form-section-title">
+                    Receive Purchase Order Inventory
+                  </h3>
                   <form onSubmit={handleReceivePO}>
                     <div className="form-group">
                       <label>Purchase Order ID</label>
-                      <select 
-                        value={receivePoId} 
+                      <select
+                        value={receivePoId}
                         onChange={(e) => {
                           const id = e.target.value;
                           setReceivePoId(id);
-                          const po = purchaseOrders.find(p => p.id === id);
+                          // ⚡ Bolt: Use smaller pre-filtered sentPurchaseOrders array for O(N) search instead of full purchaseOrders array
+                          const po = sentPurchaseOrders.find(
+                            (p) => p.id === id,
+                          );
                           if (po) {
-                            setReceivePoLines(po.items.map((i: any) => ({ sku: i.sku, quantity: i.quantity })));
+                            setReceivePoLines(
+                              po.items.map((i: any) => ({
+                                sku: i.sku,
+                                quantity: i.quantity,
+                              })),
+                            );
                           }
                         }}
                         required
                       >
                         <option value="">-- Select Active PO --</option>
-                        {sentPurchaseOrders.map(po => (
-                          <option key={po.id} value={po.id}>{po.id} ({po.supplier})</option>
+                        {sentPurchaseOrders.map((po) => (
+                          <option key={po.id} value={po.id}>
+                            {po.id} ({po.supplier})
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -2808,24 +4116,39 @@ function App() {
                       <div className="form-group">
                         <label>Receipt Quantities</label>
                         {receivePoLines.map((line, idx) => (
-                          <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                            <span><code>{line.sku}</code></span>
-                            <input 
-                              type="number" 
-                              value={line.quantity} 
+                          <div
+                            key={idx}
+                            style={{
+                              display: "flex",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                              alignItems: "center",
+                            }}
+                          >
+                            <span>
+                              <code>{line.sku}</code>
+                            </span>
+                            <input
+                              type="number"
+                              value={line.quantity}
                               onChange={(e) => {
                                 const updated = [...receivePoLines];
                                 updated[idx].quantity = Number(e.target.value);
                                 setReceivePoLines(updated);
                               }}
-                              required 
+                              required
                             />
                           </div>
                         ))}
                       </div>
                     )}
 
-                    <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
+                    <button
+                      type="submit"
+                      className="btn btn-accent"
+                      disabled={loading}
+                      aria-busy={loading}
+                    >
                       Fulfill PO & Receive Stock
                     </button>
                   </form>
@@ -2848,41 +4171,74 @@ function App() {
                   <tbody>
                     {purchaseOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                          No Purchase Orders registered in local storage or backend.
+                        <td
+                          colSpan={4}
+                          style={{
+                            textAlign: "center",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          No Purchase Orders registered in local storage or
+                          backend.
                         </td>
                       </tr>
                     ) : (
-                      purchaseOrders.map(po => (
+                      purchaseOrders.map((po) => (
                         <tr key={po.id}>
                           <td>
                             <code>{po.id}</code>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted-dark)' }}>
-                              {new Date(po.createdAt || new Date()).toLocaleDateString()}
+                            <div
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "var(--text-muted-dark)",
+                              }}
+                            >
+                              {new Date(
+                                po.createdAt || new Date(),
+                              ).toLocaleDateString()}
                             </div>
                           </td>
-                          <td><strong>{po.supplier}</strong></td>
+                          <td>
+                            <strong>{po.supplier}</strong>
+                          </td>
                           <td>
                             {po.items.map((i: any, idx: number) => (
-                              <div key={idx} style={{ fontSize: '0.85rem' }}>
-                                <code>{i.sku}</code>: x{i.quantity} (${((i.unitCostCents || 0) / 100).toFixed(2)})
+                              <div key={idx} style={{ fontSize: "0.85rem" }}>
+                                <code>{i.sku}</code>: x{i.quantity} ($
+                                {((i.unitCostCents || 0) / 100).toFixed(2)})
                               </div>
                             ))}
                           </td>
                           <td>
-                            <div style={{ marginBottom: '0.5rem' }}>
-                              <span className={`badge badge-${po.status === 'draft' ? 'warning' : po.status === 'approved' ? 'info' : po.status === 'sent' ? 'primary' : 'success'}`}>
+                            <div style={{ marginBottom: "0.5rem" }}>
+                              <span
+                                className={`badge badge-${po.status === "draft" ? "warning" : po.status === "approved" ? "info" : po.status === "sent" ? "primary" : "success"}`}
+                              >
                                 {po.status.toUpperCase()}
                               </span>
                             </div>
-                            <div style={{ display: 'flex', gap: '0.25rem' }}>
-                              {po.status === 'draft' && (
-                                <button className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleApprovePO(po.id)}>
+                            <div style={{ display: "flex", gap: "0.25rem" }}>
+                              {po.status === "draft" && (
+                                <button
+                                  className="btn btn-primary"
+                                  style={{
+                                    padding: "0.25rem 0.5rem",
+                                    fontSize: "0.75rem",
+                                  }}
+                                  onClick={() => handleApprovePO(po.id)}
+                                >
                                   Approve
                                 </button>
                               )}
-                              {po.status === 'approved' && (
-                                <button className="btn btn-accent" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleSendPO(po.id)}>
+                              {po.status === "approved" && (
+                                <button
+                                  className="btn btn-accent"
+                                  style={{
+                                    padding: "0.25rem 0.5rem",
+                                    fontSize: "0.75rem",
+                                  }}
+                                  onClick={() => handleSendPO(po.id)}
+                                >
                                   Send PO
                                 </button>
                               )}
@@ -2898,252 +4254,479 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'warehouse' && (
+        {activeTab === "warehouse" && (
           <>
             <div className="grid-cols-2">
-            <div className="glass-panel">
-              <h3 className="form-section-title">Configure Warehouse Location Layout</h3>
-              <form onSubmit={handleCreateWmsLocation}>
-                <div className="form-group">
-                  <label>Location / Bin ID</label>
-                  <input type="text" value={wmsLocId} onChange={(e) => setWmsLocId(e.target.value)} required placeholder="e.g. LOC-CENTRAL" />
-                </div>
-                <div className="form-group">
-                  <label>Warehouse ID</label>
-                  <input type="text" value={wmsWarehouseId} onChange={(e) => setWmsWarehouseId(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                  <label>Warehouse Zone</label>
-                  <input type="text" value={wmsZone} onChange={(e) => setWmsZone(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                  <label>Max Weight Capacity (Grams)</label>
-                  <input type="number" value={wmsMaxWeight} onChange={(e) => setWmsMaxWeight(Number(e.target.value))} required />
-                </div>
-                <div className="form-group">
-                  <label>Max Volume Capacity (Cubic Meters)</label>
-                  <input type="number" step="0.01" value={wmsMaxVolume} onChange={(e) => setWmsMaxVolume(Number(e.target.value))} required />
-                </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Grid X Column Start</label>
-                    <input type="number" value={wmsGridX} onChange={(e) => setWmsGridX(Number(e.target.value))} required min={0} />
-                  </div>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Grid Y Row Start</label>
-                    <input type="number" value={wmsGridY} onChange={(e) => setWmsGridY(Number(e.target.value))} required min={0} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Width Cells</label>
-                    <input type="number" value={wmsWidth} onChange={(e) => setWmsWidth(Number(e.target.value))} required min={1} />
-                  </div>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Height Cells</label>
-                    <input type="number" value={wmsHeight} onChange={(e) => setWmsHeight(Number(e.target.value))} required min={1} />
-                  </div>
-                </div>
-                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-                  Configure Location
-                </button>
-              </form>
-
-              <div style={{ marginTop: '2.5rem' }}>
-                <h3 className="form-section-title">Get Putaway Recommendation</h3>
-                <form onSubmit={handleGetPutawaySuggestions}>
+              <div className="glass-panel">
+                <h3 className="form-section-title">
+                  Configure Warehouse Location Layout
+                </h3>
+                <form onSubmit={handleCreateWmsLocation}>
                   <div className="form-group">
-                    <label>Product SKU</label>
-                    <input type="text" value={putawaySku} onChange={(e) => setPutawaySku(e.target.value)} required placeholder="e.g. ROUTE-SKU" />
+                    <label>Location / Bin ID</label>
+                    <input
+                      type="text"
+                      value={wmsLocId}
+                      onChange={(e) => setWmsLocId(e.target.value)}
+                      required
+                      placeholder="e.g. LOC-CENTRAL"
+                    />
                   </div>
                   <div className="form-group">
-                    <label>Incoming Quantity</label>
-                    <input type="number" value={putawayQty} onChange={(e) => setPutawayQty(Number(e.target.value))} required />
+                    <label>Warehouse ID</label>
+                    <input
+                      type="text"
+                      value={wmsWarehouseId}
+                      onChange={(e) => setWmsWarehouseId(e.target.value)}
+                      required
+                    />
                   </div>
-                  <button type="submit" className="btn btn-accent" disabled={loading} aria-busy={loading}>
-                    Suggest Bin Location
+                  <div className="form-group">
+                    <label>Warehouse Zone</label>
+                    <input
+                      type="text"
+                      value={wmsZone}
+                      onChange={(e) => setWmsZone(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Max Weight Capacity (Grams)</label>
+                    <input
+                      type="number"
+                      value={wmsMaxWeight}
+                      onChange={(e) => setWmsMaxWeight(Number(e.target.value))}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Max Volume Capacity (Cubic Meters)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={wmsMaxVolume}
+                      onChange={(e) => setWmsMaxVolume(Number(e.target.value))}
+                      required
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Grid X Column Start</label>
+                      <input
+                        type="number"
+                        value={wmsGridX}
+                        onChange={(e) => setWmsGridX(Number(e.target.value))}
+                        required
+                        min={0}
+                      />
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Grid Y Row Start</label>
+                      <input
+                        type="number"
+                        value={wmsGridY}
+                        onChange={(e) => setWmsGridY(Number(e.target.value))}
+                        required
+                        min={0}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Width Cells</label>
+                      <input
+                        type="number"
+                        value={wmsWidth}
+                        onChange={(e) => setWmsWidth(Number(e.target.value))}
+                        required
+                        min={1}
+                      />
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Height Cells</label>
+                      <input
+                        type="number"
+                        value={wmsHeight}
+                        onChange={(e) => setWmsHeight(Number(e.target.value))}
+                        required
+                        min={1}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={loading}
+                    aria-busy={loading}
+                  >
+                    Configure Location
                   </button>
                 </form>
 
-                {putawayResult.length > 0 && (
-                  <div role="alert" aria-live="assertive" style={{ marginTop: '1rem' }} className="alert-box alert-success">
-                    <strong>Suggested Bin:</strong> <code>{putawayResult[0].locationId}</code> (Fulfill: {putawayResult[0].suggestedQuantity} units)
-                  </div>
-                )}
-              </div>
-            </div>
+                <div style={{ marginTop: "2.5rem" }}>
+                  <h3 className="form-section-title">
+                    Get Putaway Recommendation
+                  </h3>
+                  <form onSubmit={handleGetPutawaySuggestions}>
+                    <div className="form-group">
+                      <label>Product SKU</label>
+                      <input
+                        type="text"
+                        value={putawaySku}
+                        onChange={(e) => setPutawaySku(e.target.value)}
+                        required
+                        placeholder="e.g. ROUTE-SKU"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Incoming Quantity</label>
+                      <input
+                        type="number"
+                        value={putawayQty}
+                        onChange={(e) => setPutawayQty(Number(e.target.value))}
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn btn-accent"
+                      disabled={loading}
+                      aria-busy={loading}
+                    >
+                      Suggest Bin Location
+                    </button>
+                  </form>
 
-            <div className="glass-panel">
-              <h3 className="form-section-title">Warehouse Location Registry</h3>
-              <div className="table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Location ID</th>
-                      <th>Zone</th>
-                      <th>Max Weight</th>
-                      <th>Max Volume</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {wmsLocations.length === 0 ? (
+                  {putawayResult.length > 0 && (
+                    <div
+                      role="alert"
+                      aria-live="assertive"
+                      style={{ marginTop: "1rem" }}
+                      className="alert-box alert-success"
+                    >
+                      <strong>Suggested Bin:</strong>{" "}
+                      <code>{putawayResult[0].locationId}</code> (Fulfill:{" "}
+                      {putawayResult[0].suggestedQuantity} units)
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="glass-panel">
+                <h3 className="form-section-title">
+                  Warehouse Location Registry
+                </h3>
+                <div className="table-wrapper">
+                  <table>
+                    <thead>
                       <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                          No warehouse locations configured.
-                        </td>
+                        <th>Location ID</th>
+                        <th>Zone</th>
+                        <th>Max Weight</th>
+                        <th>Max Volume</th>
+                        <th>Action</th>
                       </tr>
-                    ) : (
-                      wmsLocations.map(loc => (
-                        <tr key={loc.id}>
-                          <td><code>{loc.id}</code></td>
-                          <td><code>Zone {loc.zone}</code></td>
-                          <td>{loc.maxWeightGrams}g</td>
-                          <td>{loc.maxVolumeCubicMeters}m³</td>
-                          <td>
-                            <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWmsLocation(loc.id)} aria-label={`Delete warehouse location ${loc.id}`}>
-                              Delete
-                            </button>
+                    </thead>
+                    <tbody>
+                      {wmsLocations.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            style={{
+                              textAlign: "center",
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            No warehouse locations configured.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ) : (
+                        wmsLocations.map((loc) => (
+                          <tr key={loc.id}>
+                            <td>
+                              <code>{loc.id}</code>
+                            </td>
+                            <td>
+                              <code>Zone {loc.zone}</code>
+                            </td>
+                            <td>{loc.maxWeightGrams}g</td>
+                            <td>{loc.maxVolumeCubicMeters}m³</td>
+                            <td>
+                              <button
+                                className="btn btn-secondary"
+                                style={{
+                                  padding: "0.2rem 0.5rem",
+                                  fontSize: "0.75rem",
+                                }}
+                                onClick={() => handleDeleteWmsLocation(loc.id)}
+                                aria-label={`Delete warehouse location ${loc.id}`}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-              <div style={{ marginTop: '2.5rem' }}>
-                <h3 className="form-section-title">WMS Picking Route Optimization</h3>
-                <form onSubmit={handleOptimizePickRoute}>
-                  <div className="form-group">
-                    <label>List of SKUs to Pick (Comma separated)</label>
-                    <input type="text" value={pickSkusInput} onChange={(e) => setPickSkusInput(e.target.value)} required placeholder="ROUTE-SKU, CHARGER-WRLS-BLK" />
-                  </div>
-                  <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
-                    Generate Optimal Pick Sequence
-                  </button>
-                </form>
+                <div style={{ marginTop: "2.5rem" }}>
+                  <h3 className="form-section-title">
+                    WMS Picking Route Optimization
+                  </h3>
+                  <form onSubmit={handleOptimizePickRoute}>
+                    <div className="form-group">
+                      <label>List of SKUs to Pick (Comma separated)</label>
+                      <input
+                        type="text"
+                        value={pickSkusInput}
+                        onChange={(e) => setPickSkusInput(e.target.value)}
+                        required
+                        placeholder="ROUTE-SKU, CHARGER-WRLS-BLK"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={loading}
+                      aria-busy={loading}
+                    >
+                      Generate Optimal Pick Sequence
+                    </button>
+                  </form>
 
-                {pickRouteResult.length > 0 && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <h4>Suggested Sequencing Path</h4>
-                    <ol style={{ paddingLeft: '1.25rem', marginTop: '0.5rem' }}>
-                      {pickRouteResult.map((sku, idx) => (
-                        <li key={idx} style={{ marginBottom: '0.25rem' }}>
-                          Collect SKU: <strong><code>{sku}</code></strong>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
+                  {pickRouteResult.length > 0 && (
+                    <div style={{ marginTop: "1rem" }}>
+                      <h4>Suggested Sequencing Path</h4>
+                      <ol
+                        style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}
+                      >
+                        {pickRouteResult.map((sku, idx) => (
+                          <li key={idx} style={{ marginBottom: "0.25rem" }}>
+                            Collect SKU:{" "}
+                            <strong>
+                              <code>{sku}</code>
+                            </strong>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="glass-panel" style={{ marginTop: '2rem' }}>
-            <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-              <h3 className="form-section-title" style={{ margin: 0, border: 'none' }}>
-                Interactive 2D Warehouse Bin Map & Heat Visualizer
-              </h3>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Filter Zone:</label>
-                <select 
-                  value={wmsSelectedZone} 
-                  onChange={(e) => setWmsSelectedZone(e.target.value)}
-                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}
+            <div className="glass-panel" style={{ marginTop: "2rem" }}>
+              <div className="flex-between" style={{ marginBottom: "1.5rem" }}>
+                <h3
+                  className="form-section-title"
+                  style={{ margin: 0, border: "none" }}
                 >
-                  <option value="">All Zones</option>
-                  {wmsUniqueZones.map(zone => (
-                    <option key={zone} value={zone}>Zone {zone}</option>
-                  ))}
-                </select>
+                  Interactive 2D Warehouse Bin Map & Heat Visualizer
+                </h3>
+                <div
+                  style={{ display: "flex", gap: "1rem", alignItems: "center" }}
+                >
+                  <label
+                    style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}
+                  >
+                    Filter Zone:
+                  </label>
+                  <select
+                    value={wmsSelectedZone}
+                    onChange={(e) => setWmsSelectedZone(e.target.value)}
+                    style={{ padding: "0.25rem 0.5rem", fontSize: "0.85rem" }}
+                  >
+                    <option value="">All Zones</option>
+                    {wmsUniqueZones.map((zone) => (
+                      <option key={zone} value={zone}>
+                        Zone {zone}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', fontSize: '0.8rem' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#1e293b', border: '1px solid var(--border-color)' }}></span>
-                Empty (&lt;10%)
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#2e7d32' }}></span>
-                Medium (10%-75%)
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#ff9800' }}></span>
-                High (75%-90%)
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#ef5350' }}></span>
-                Overloaded (&gt;90%)
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '2px', border: '2.5px solid #ffd54f', backgroundColor: 'transparent' }}></span>
-                On Active Pick Path
-              </span>
-            </div>
-
-            {wmsLocations.length === 0 ? (
-              <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-                No warehouse layout bins registered yet. Create locations above to view map layout.
-              </div>
-            ) : (
-              <div 
-                style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
-                  gap: '12px',
-                  background: 'rgba(0,0,0,0.2)',
-                  padding: '20px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)'
+              <div
+                style={{
+                  display: "flex",
+                  gap: "1.5rem",
+                  marginBottom: "1.5rem",
+                  fontSize: "0.8rem",
                 }}
               >
-                {(() => {
-                  return filteredWmsLocations
-                    .map((loc, idx) => {
-                      const capacity = locationCapacityMap.get(loc.id) || { weight: 0, volume: 0 };
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "2px",
+                      backgroundColor: "#1e293b",
+                      border: "1px solid var(--border-color)",
+                    }}
+                  ></span>
+                  Empty (&lt;10%)
+                </span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "2px",
+                      backgroundColor: "#2e7d32",
+                    }}
+                  ></span>
+                  Medium (10%-75%)
+                </span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "2px",
+                      backgroundColor: "#ff9800",
+                    }}
+                  ></span>
+                  High (75%-90%)
+                </span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "2px",
+                      backgroundColor: "#ef5350",
+                    }}
+                  ></span>
+                  Overloaded (&gt;90%)
+                </span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "2px",
+                      border: "2.5px solid #ffd54f",
+                      backgroundColor: "transparent",
+                    }}
+                  ></span>
+                  On Active Pick Path
+                </span>
+              </div>
+
+              {wmsLocations.length === 0 ? (
+                <div
+                  style={{
+                    padding: "3rem 0",
+                    textAlign: "center",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  No warehouse layout bins registered yet. Create locations
+                  above to view map layout.
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(140px, 1fr))",
+                    gap: "12px",
+                    background: "rgba(0,0,0,0.2)",
+                    padding: "20px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  {(() => {
+                    return filteredWmsLocations.map((loc, idx) => {
+                      const capacity = locationCapacityMap.get(loc.id) || {
+                        weight: 0,
+                        volume: 0,
+                      };
                       const currentWeight = capacity.weight;
                       const currentVolume = capacity.volume;
 
-                    const weightLimit = loc.maxWeightGrams || 1000000;
-                    const volumeLimit = loc.maxVolumeCubicMeters || 10;
-                    const weightPct = (currentWeight / weightLimit) * 100;
-                    const volumePct = (currentVolume / volumeLimit) * 100;
-                    const occupancy = Math.min(100, Math.max(weightPct, volumePct));
+                      const weightLimit = loc.maxWeightGrams || 1000000;
+                      const volumeLimit = loc.maxVolumeCubicMeters || 10;
+                      const weightPct = (currentWeight / weightLimit) * 100;
+                      const volumePct = (currentVolume / volumeLimit) * 100;
+                      const occupancy = Math.min(
+                        100,
+                        Math.max(weightPct, volumePct),
+                      );
 
-                    let bgColor = '#1e293b';
-                    if (occupancy >= 90) bgColor = '#ef5350';
-                    else if (occupancy >= 75) bgColor = '#ff9800';
-                    else if (occupancy >= 10) bgColor = '#2e7d32';
+                      let bgColor = "#1e293b";
+                      if (occupancy >= 90) bgColor = "#ef5350";
+                      else if (occupancy >= 75) bgColor = "#ff9800";
+                      else if (occupancy >= 10) bgColor = "#2e7d32";
 
-                    const pickIdx = pickRouteIndicesMap.has(loc.id) ? pickRouteIndicesMap.get(loc.id) as number : -1;
-                    const isOnPickPath = pickIdx !== -1;
+                      const pickIdx = pickRouteIndicesMap.has(loc.id)
+                        ? (pickRouteIndicesMap.get(loc.id) as number)
+                        : -1;
+                      const isOnPickPath = pickIdx !== -1;
 
-                    const useCoordinates = loc.gridX > 0 && loc.gridY > 0;
-                    const gridStyle: React.CSSProperties = useCoordinates ? {
-                      gridColumnStart: loc.gridX,
-                      gridRowStart: loc.gridY,
-                      gridColumnEnd: `span ${loc.width || 1}`,
-                      gridRowEnd: `span ${loc.height || 1}`
-                    } : {};
+                      const useCoordinates = loc.gridX > 0 && loc.gridY > 0;
+                      const gridStyle: React.CSSProperties = useCoordinates
+                        ? {
+                            gridColumnStart: loc.gridX,
+                            gridRowStart: loc.gridY,
+                            gridColumnEnd: `span ${loc.width || 1}`,
+                            gridRowEnd: `span ${loc.height || 1}`,
+                          }
+                        : {};
 
-                      const isSource = hoveredSuggestion && hoveredSuggestion.currentLocationId === loc.id;
-                      const isTarget = hoveredSuggestion && hoveredSuggestion.recommendedLocationId === loc.id;
-                      const borderStyle = isSource 
-                        ? '3px dashed #ef5350' 
-                        : isTarget 
-                        ? '3px dashed #4caf50' 
-                        : isOnPickPath 
-                        ? '3px solid #ffd54f' 
-                        : '1px solid rgba(255,255,255,0.08)';
-                      const cardShadow = isSource
-                        ? '0 0 16px rgba(239,83,80,0.6)'
+                      const isSource =
+                        hoveredSuggestion &&
+                        hoveredSuggestion.currentLocationId === loc.id;
+                      const isTarget =
+                        hoveredSuggestion &&
+                        hoveredSuggestion.recommendedLocationId === loc.id;
+                      const borderStyle = isSource
+                        ? "3px dashed #ef5350"
                         : isTarget
-                        ? '0 0 16px rgba(76,175,80,0.6)'
-                        : isOnPickPath
-                        ? '0 0 12px rgba(255,213,79,0.3)'
-                        : 'none';
+                          ? "3px dashed #4caf50"
+                          : isOnPickPath
+                            ? "3px solid #ffd54f"
+                            : "1px solid rgba(255,255,255,0.08)";
+                      const cardShadow = isSource
+                        ? "0 0 16px rgba(239,83,80,0.6)"
+                        : isTarget
+                          ? "0 0 16px rgba(76,175,80,0.6)"
+                          : isOnPickPath
+                            ? "0 0 12px rgba(255,213,79,0.3)"
+                            : "none";
 
                       return (
                         <div
@@ -3151,205 +4734,414 @@ function App() {
                           style={{
                             ...gridStyle,
                             backgroundColor: bgColor,
-                            borderRadius: '6px',
-                            padding: '12px',
+                            borderRadius: "6px",
+                            padding: "12px",
                             border: borderStyle,
                             boxShadow: cardShadow,
-                            position: 'relative',
-                            transition: 'transform 0.2s',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            minHeight: '90px'
+                            position: "relative",
+                            transition: "transform 0.2s",
+                            cursor: "pointer",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            minHeight: "90px",
                           }}
                           title={`Bin Capacity Details:\nWeight: ${currentWeight}g / ${weightLimit}g\nVolume: ${currentVolume}m³ / ${volumeLimit}m³\nOccupancy: ${occupancy.toFixed(1)}%`}
-                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1.0)'; }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = "scale(1.04)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = "scale(1.0)";
+                          }}
                         >
                           {isSource && (
-                            <span style={{ position: 'absolute', top: '-10px', right: '4px', background: '#ef5350', color: 'white', fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold', zIndex: 10 }}>
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: "-10px",
+                                right: "4px",
+                                background: "#ef5350",
+                                color: "white",
+                                fontSize: "0.65rem",
+                                padding: "1px 5px",
+                                borderRadius: "4px",
+                                fontWeight: "bold",
+                                zIndex: 10,
+                              }}
+                            >
                               SLOT SOURCE
                             </span>
                           )}
                           {isTarget && (
-                            <span style={{ position: 'absolute', top: '-10px', right: '4px', background: '#4caf50', color: 'white', fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold', zIndex: 10 }}>
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: "-10px",
+                                right: "4px",
+                                background: "#4caf50",
+                                color: "white",
+                                fontSize: "0.65rem",
+                                padding: "1px 5px",
+                                borderRadius: "4px",
+                                fontWeight: "bold",
+                                zIndex: 10,
+                              }}
+                            >
                               SLOT TARGET
                             </span>
                           )}
                           {isOnPickPath && (
-                          <span 
-                            style={{ 
-                              position: 'absolute', 
-                              top: '-8px', 
-                              right: '-8px', 
-                              backgroundColor: '#ffd54f', 
-                              color: '#000', 
-                              fontWeight: 'bold', 
-                              borderRadius: '50%', 
-                              width: '20px', 
-                              height: '20px', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center',
-                              fontSize: '0.7rem',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
-                            }}
-                          >
-                            {pickIdx + 1}
-                          </span>
-                        )}
-                        <div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 'bold', wordBreak: 'break-all' }}>{loc.id}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>Zone {loc.zone}</div>
-                        </div>
-                        <div style={{ marginTop: '0.75rem', textAlign: 'right' }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{occupancy.toFixed(0)}%</span>
-                          <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', marginLeft: '2px' }}>cap</span>
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
-
-            {/* AI-Driven Slotting Optimization Section */}
-            <div className="glass-panel" style={{ marginTop: '2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div>
-                  <h3 className="form-section-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    🧠 AI-Driven Slotting Optimization Suggestions
-                  </h3>
-                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Analyzes coordinates, Manhattan distance, and sales velocities over the last 30 days to propose layout relocations.
-                  </p>
-                </div>
-                <button 
-                  onClick={loadSlottingSuggestions} 
-                  className="btn btn-secondary" 
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                  disabled={loadingSlotting}
-                  aria-busy={loadingSlotting}
-                >
-                  {loadingSlotting ? 'Analyzing...' : '↻ Recalculate Bins'}
-                </button>
-              </div>
-
-              {slottingSuggestions.length === 0 ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  No optimization suggestions found. Your current warehouse slotting is fully optimized for distance and sales velocity!
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {slottingSuggestions.map((sugg, idx) => (
-                    <div 
-                      key={idx}
-                      className="glass-panel"
-                      style={{ 
-                        padding: '12px 16px', 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        borderLeft: '4px solid var(--primary-color)',
-                        background: hoveredSuggestion === sugg ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
-                        transition: 'background 0.2s',
-                        cursor: 'pointer'
-                      }}
-                      onMouseEnter={() => setHoveredSuggestion(sugg)}
-                      onMouseLeave={() => setHoveredSuggestion(null)}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                        <div style={{ background: 'var(--primary-color-dim)', padding: '6px 12px', borderRadius: '4px' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>SKU TO RELOCATE</span>
-                          <strong style={{ fontSize: '0.95rem', color: 'var(--primary-color)' }}>{sugg.sku}</strong>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>CURRENT STATE</span>
-                          <span style={{ fontSize: '0.85rem' }}>
-                            Bin <strong>{sugg.currentLocationId}</strong> (Dist: <strong>{sugg.currentDistance}m</strong>, Velocity: <strong>{sugg.currentVelocity} sales</strong>)
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>➔</div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>RECOMMENDED STATE</span>
-                          <span style={{ fontSize: '0.85rem' }}>
-                            Bin <strong>{sugg.recommendedLocationId}</strong> (Dist: <strong>{sugg.recommendedDistance}m</strong>)
-                          </span>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        {sugg.potentialSwapSku && (
-                          <div style={{ marginBottom: '4px' }}>
-                            <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '3px', marginRight: '6px' }}>
-                              SWAP SWEEP
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: "-8px",
+                                right: "-8px",
+                                backgroundColor: "#ffd54f",
+                                color: "#000",
+                                fontWeight: "bold",
+                                borderRadius: "50%",
+                                width: "20px",
+                                height: "20px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "0.7rem",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.4)",
+                              }}
+                            >
+                              {pickIdx + 1}
                             </span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              Swap with <strong>{sugg.potentialSwapSku}</strong>
+                          )}
+                          <div>
+                            <div
+                              style={{
+                                fontSize: "0.85rem",
+                                fontWeight: "bold",
+                                wordBreak: "break-all",
+                              }}
+                            >
+                              {loc.id}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "0.7rem",
+                                color: "rgba(255,255,255,0.6)",
+                              }}
+                            >
+                              Zone {loc.zone}
+                            </div>
+                          </div>
+                          <div
+                            style={{ marginTop: "0.75rem", textAlign: "right" }}
+                          >
+                            <span
+                              style={{ fontSize: "0.9rem", fontWeight: "bold" }}
+                            >
+                              {occupancy.toFixed(0)}%
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "0.65rem",
+                                color: "rgba(255,255,255,0.7)",
+                                marginLeft: "2px",
+                              }}
+                            >
+                              cap
                             </span>
                           </div>
-                        )}
-                        <div style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                          Save {sugg.estimatedSavings}m roundtrip/mo
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    });
+                  })()}
                 </div>
               )}
+
+              {/* AI-Driven Slotting Optimization Section */}
+              <div className="glass-panel" style={{ marginTop: "2rem" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <div>
+                    <h3
+                      className="form-section-title"
+                      style={{
+                        margin: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      🧠 AI-Driven Slotting Optimization Suggestions
+                    </h3>
+                    <p
+                      style={{
+                        margin: "0.25rem 0 0 0",
+                        fontSize: "0.75rem",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      Analyzes coordinates, Manhattan distance, and sales
+                      velocities over the last 30 days to propose layout
+                      relocations.
+                    </p>
+                  </div>
+                  <button
+                    onClick={loadSlottingSuggestions}
+                    className="btn btn-secondary"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.25rem",
+                      fontSize: "0.8rem",
+                      padding: "0.4rem 0.8rem",
+                    }}
+                    disabled={loadingSlotting}
+                    aria-busy={loadingSlotting}
+                  >
+                    {loadingSlotting ? "Analyzing..." : "↻ Recalculate Bins"}
+                  </button>
+                </div>
+
+                {slottingSuggestions.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "2rem",
+                      textAlign: "center",
+                      color: "var(--text-muted)",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    No optimization suggestions found. Your current warehouse
+                    slotting is fully optimized for distance and sales velocity!
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                    }}
+                  >
+                    {slottingSuggestions.map((sugg, idx) => (
+                      <div
+                        key={idx}
+                        className="glass-panel"
+                        style={{
+                          padding: "12px 16px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          borderLeft: "4px solid var(--primary-color)",
+                          background:
+                            hoveredSuggestion === sugg
+                              ? "rgba(255,255,255,0.05)"
+                              : "rgba(255,255,255,0.02)",
+                          transition: "background 0.2s",
+                          cursor: "pointer",
+                        }}
+                        onMouseEnter={() => setHoveredSuggestion(sugg)}
+                        onMouseLeave={() => setHoveredSuggestion(null)}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "1.5rem",
+                          }}
+                        >
+                          <div
+                            style={{
+                              background: "var(--primary-color-dim)",
+                              padding: "6px 12px",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "var(--text-muted)",
+                                display: "block",
+                              }}
+                            >
+                              SKU TO RELOCATE
+                            </span>
+                            <strong
+                              style={{
+                                fontSize: "0.95rem",
+                                color: "var(--primary-color)",
+                              }}
+                            >
+                              {sugg.sku}
+                            </strong>
+                          </div>
+                          <div>
+                            <span
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "var(--text-muted)",
+                                display: "block",
+                              }}
+                            >
+                              CURRENT STATE
+                            </span>
+                            <span style={{ fontSize: "0.85rem" }}>
+                              Bin <strong>{sugg.currentLocationId}</strong>{" "}
+                              (Dist: <strong>{sugg.currentDistance}m</strong>,
+                              Velocity:{" "}
+                              <strong>{sugg.currentVelocity} sales</strong>)
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "1.2rem",
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            ➔
+                          </div>
+                          <div>
+                            <span
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "var(--text-muted)",
+                                display: "block",
+                              }}
+                            >
+                              RECOMMENDED STATE
+                            </span>
+                            <span style={{ fontSize: "0.85rem" }}>
+                              Bin <strong>{sugg.recommendedLocationId}</strong>{" "}
+                              (Dist:{" "}
+                              <strong>{sugg.recommendedDistance}m</strong>)
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          {sugg.potentialSwapSku && (
+                            <div style={{ marginBottom: "4px" }}>
+                              <span
+                                style={{
+                                  fontSize: "0.65rem",
+                                  background: "rgba(255,255,255,0.1)",
+                                  padding: "2px 6px",
+                                  borderRadius: "3px",
+                                  marginRight: "6px",
+                                }}
+                              >
+                                SWAP SWEEP
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "var(--text-muted)",
+                                }}
+                              >
+                                Swap with{" "}
+                                <strong>{sugg.potentialSwapSku}</strong>
+                              </span>
+                            </div>
+                          )}
+                          <div
+                            style={{
+                              color: "#4caf50",
+                              fontWeight: "bold",
+                              fontSize: "0.9rem",
+                            }}
+                          >
+                            Save {sugg.estimatedSavings}m roundtrip/mo
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
           </>
         )}
 
-        {(activeTab as string) === 'lots' && (
-          <LotManagementPanel />
-        )}
+        {(activeTab as string) === "lots" && <LotManagementPanel />}
 
-        {activeTab === 'approvals' && (
+        {activeTab === "approvals" && (
           <div className="grid-cols-2">
             <ApprovalInboxPanel api={client} tenantId={tenantId} />
             <ApprovalWorkflowPanel api={client} />
           </div>
         )}
 
-        {activeTab === 'webhooks' && (
-
+        {activeTab === "webhooks" && (
           <div className="grid-cols-2">
             <div className="glass-panel">
               <h3 className="form-section-title">Subscribe Outbound Webhook</h3>
               <form onSubmit={handleCreateWebhook}>
                 <div className="form-group">
                   <label>Target URL Endpoint</label>
-                  <input type="url" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} required placeholder="https://api.thirdparty.com/webhook" />
+                  <input
+                    type="url"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    required
+                    placeholder="https://api.thirdparty.com/webhook"
+                  />
                 </div>
                 <div className="form-group">
                   <label>Event Subscriptions</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {['StockReceived', 'StockDispatched', 'LowStockDetected', 'OnboardingSubmitted'].map(evt => (
-                      <label key={evt} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={webhookEvents.includes(evt)} 
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    {[
+                      "StockReceived",
+                      "StockDispatched",
+                      "LowStockDetected",
+                      "OnboardingSubmitted",
+                    ].map((evt) => (
+                      <label
+                        key={evt}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          fontWeight: "normal",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={webhookEvents.includes(evt)}
                           onChange={(e) => {
                             if (e.target.checked) {
                               setWebhookEvents([...webhookEvents, evt]);
                             } else {
-                              setWebhookEvents(webhookEvents.filter(x => x !== evt));
+                              setWebhookEvents(
+                                webhookEvents.filter((x) => x !== evt),
+                              );
                             }
-                          }} 
+                          }}
                         />
                         <code>{evt}</code>
                       </label>
                     ))}
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                  aria-busy={loading}
+                >
                   Create Webhook Subscription
                 </button>
               </form>
 
-              <div style={{ marginTop: '2.5rem' }}>
+              <div style={{ marginTop: "2.5rem" }}>
                 <h3 className="form-section-title">Webhook Subscriptions</h3>
                 <div className="table-wrapper">
                   <table>
@@ -3363,23 +5155,44 @@ function App() {
                     <tbody>
                       {webhooks.length === 0 ? (
                         <tr>
-                          <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                          <td
+                            colSpan={3}
+                            style={{
+                              textAlign: "center",
+                              color: "var(--text-muted)",
+                            }}
+                          >
                             No active webhook subscriptions configured.
                           </td>
                         </tr>
                       ) : (
-                        webhooks.map(w => (
+                        webhooks.map((w) => (
                           <tr key={w.id}>
-                            <td style={{ maxWidth: '200px', wordBreak: 'break-all' }}>
+                            <td
+                              style={{
+                                maxWidth: "200px",
+                                wordBreak: "break-all",
+                              }}
+                            >
                               <code>{w.url}</code>
                             </td>
                             <td>
                               {w.eventTypes.map((e: string) => (
-                                <div key={e} style={{ fontSize: '0.85rem' }}><code>{e}</code></div>
+                                <div key={e} style={{ fontSize: "0.85rem" }}>
+                                  <code>{e}</code>
+                                </div>
                               ))}
                             </td>
                             <td>
-                              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleDeleteWebhook(w.id)} aria-label={`Delete webhook for ${w.url}`}>
+                              <button
+                                className="btn btn-secondary"
+                                style={{
+                                  padding: "0.2rem 0.5rem",
+                                  fontSize: "0.75rem",
+                                }}
+                                onClick={() => handleDeleteWebhook(w.id)}
+                                aria-label={`Delete webhook for ${w.url}`}
+                              >
                                 Delete
                               </button>
                             </td>
@@ -3393,7 +5206,9 @@ function App() {
             </div>
 
             <div className="glass-panel">
-              <h3 className="form-section-title">Webhook Delivery Retry Logs</h3>
+              <h3 className="form-section-title">
+                Webhook Delivery Retry Logs
+              </h3>
               <div className="table-wrapper">
                 <table>
                   <thead>
@@ -3406,20 +5221,34 @@ function App() {
                   <tbody>
                     {webhookDeliveries.length === 0 ? (
                       <tr>
-                        <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <td
+                          colSpan={3}
+                          style={{
+                            textAlign: "center",
+                            color: "var(--text-muted)",
+                          }}
+                        >
                           No webhook deliveries recorded.
                         </td>
                       </tr>
                     ) : (
-                      webhookDeliveries.map(log => (
+                      webhookDeliveries.map((log) => (
                         <tr key={log.id}>
-                          <td><code>{log.eventName}</code></td>
                           <td>
-                            <span className={`badge badge-${log.statusCode && log.statusCode >= 200 && log.statusCode < 300 ? 'success' : 'error'}`}>
+                            <code>{log.eventName}</code>
+                          </td>
+                          <td>
+                            <span
+                              className={`badge badge-${log.statusCode && log.statusCode >= 200 && log.statusCode < 300 ? "success" : "error"}`}
+                            >
                               {log.statusCode || log.status}
                             </span>
                           </td>
-                          <td>{new Date(log.occurredOn || new Date()).toLocaleTimeString()}</td>
+                          <td>
+                            {new Date(
+                              log.occurredOn || new Date(),
+                            ).toLocaleTimeString()}
+                          </td>
                         </tr>
                       ))
                     )}
@@ -3430,43 +5259,90 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'compliance' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        {activeTab === "compliance" && (
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
+          >
             <div className="glass-panel">
-              <h3 className="form-section-title">Cryptographic Compliance Ledger Validator</h3>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                This ledger logs all critical inventory status shifts in a cryptographically chained sequence.
-                Each entry is hashed together with the previous block hash and signed using a secure tenant secret, preventing unauthorized database tampering.
+              <h3 className="form-section-title">
+                Cryptographic Compliance Ledger Validator
+              </h3>
+              <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>
+                This ledger logs all critical inventory status shifts in a
+                cryptographically chained sequence. Each entry is hashed
+                together with the previous block hash and signed using a secure
+                tenant secret, preventing unauthorized database tampering.
               </p>
 
-              <button 
-                onClick={handleVerifyComplianceLedger} 
+              <button
+                onClick={handleVerifyComplianceLedger}
                 className="btn btn-primary"
                 disabled={verifyingLedger}
                 aria-busy={verifyingLedger}
               >
-                {verifyingLedger ? 'Verifying Ledger Chains...' : 'Verify Compliance Ledger Integrity'}
+                {verifyingLedger
+                  ? "Verifying Ledger Chains..."
+                  : "Verify Compliance Ledger Integrity"}
               </button>
 
               {verificationStatus && (
-                <div style={{ marginTop: '1.5rem' }}>
+                <div style={{ marginTop: "1.5rem" }}>
                   {verificationStatus.isValid ? (
-                    <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem' }}>
-                      <span style={{ fontSize: '1.75rem' }}>🛡️</span>
+                    <div
+                      role="alert"
+                      aria-live="assertive"
+                      className="alert-box alert-success"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "1rem",
+                        padding: "1.25rem",
+                      }}
+                    >
+                      <span style={{ fontSize: "1.75rem" }}>🛡️</span>
                       <div>
-                        <h4 style={{ margin: '0 0 0.25rem 0', color: '#fff' }}>Verification Passed</h4>
-                        <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                          All ledger blocks are intact. Chained hashes and signatures are verified. No tampering detected.
+                        <h4 style={{ margin: "0 0 0.25rem 0", color: "#fff" }}>
+                          Verification Passed
+                        </h4>
+                        <p style={{ margin: 0, fontSize: "0.9rem" }}>
+                          All ledger blocks are intact. Chained hashes and
+                          signatures are verified. No tampering detected.
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div role="alert" aria-live="assertive" className="alert-box alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderLeft: '5px solid #ef5350', backgroundColor: 'rgba(239, 83, 80, 0.1)' }}>
-                      <span style={{ fontSize: '1.75rem' }}>🚨</span>
+                    <div
+                      role="alert"
+                      aria-live="assertive"
+                      className="alert-box alert-danger"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "1rem",
+                        padding: "1.25rem",
+                        borderLeft: "5px solid #ef5350",
+                        backgroundColor: "rgba(239, 83, 80, 0.1)",
+                      }}
+                    >
+                      <span style={{ fontSize: "1.75rem" }}>🚨</span>
                       <div>
-                        <h4 style={{ margin: '0 0 0.25rem 0', color: '#ef5350' }}>Verification Failed!</h4>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#ffcdd2' }}>
-                          Chain is compromised at <strong>Block #{verificationStatus.failedSequenceNumber}</strong>.<br />
+                        <h4
+                          style={{ margin: "0 0 0.25rem 0", color: "#ef5350" }}
+                        >
+                          Verification Failed!
+                        </h4>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "0.9rem",
+                            color: "#ffcdd2",
+                          }}
+                        >
+                          Chain is compromised at{" "}
+                          <strong>
+                            Block #{verificationStatus.failedSequenceNumber}
+                          </strong>
+                          .<br />
                           <strong>Reason:</strong> {verificationStatus.reason}
                         </p>
                       </div>
@@ -3478,19 +5354,34 @@ function App() {
 
             {/* Event-Sourced Point-in-Time Reconstruction & Audit Replay Panel */}
             <div className="glass-panel">
-              <h3 className="form-section-title">⏱️ Event-Sourced Point-in-Time State Reconstruction & Audit Replay</h3>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                Reconstruct historical stock levels, bin configurations, and account balances as of any exact timestamp using the cryptographic ledger sequence.
+              <h3 className="form-section-title">
+                ⏱️ Event-Sourced Point-in-Time State Reconstruction & Audit
+                Replay
+              </h3>
+              <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>
+                Reconstruct historical stock levels, bin configurations, and
+                account balances as of any exact timestamp using the
+                cryptographic ledger sequence.
               </p>
 
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: '240px' }}>
-                  <label className="form-label">Target Historical Timestamp</label>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "1rem",
+                  alignItems: "center",
+                  marginBottom: "1.5rem",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: "240px" }}>
+                  <label className="form-label">
+                    Target Historical Timestamp
+                  </label>
                   <input
                     type="datetime-local"
                     className="form-input"
                     value={reconstructTimestamp}
-                    onChange={e => setReconstructTimestamp(e.target.value)}
+                    onChange={(e) => setReconstructTimestamp(e.target.value)}
                   />
                 </div>
                 <button
@@ -3498,69 +5389,205 @@ function App() {
                   className="btn btn-primary"
                   disabled={reconstructingState}
                   aria-busy={reconstructingState}
-                  style={{ alignSelf: 'flex-end' }}
+                  style={{ alignSelf: "flex-end" }}
                 >
-                  {reconstructingState ? 'Reconstructing State...' : 'Reconstruct Historical State'}
+                  {reconstructingState
+                    ? "Reconstructing State..."
+                    : "Reconstruct Historical State"}
                 </button>
                 <button
                   onClick={handleReplayAudit}
                   className="btn btn-secondary"
                   disabled={replayingAudit}
                   aria-busy={replayingAudit}
-                  style={{ alignSelf: 'flex-end' }}
+                  style={{ alignSelf: "flex-end" }}
                 >
-                  {replayingAudit ? 'Replaying Ledger...' : 'Replay Audit Timeline'}
+                  {replayingAudit
+                    ? "Replaying Ledger..."
+                    : "Replay Audit Timeline"}
                 </button>
               </div>
 
               {reconstructedState && (
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1.5rem', marginTop: '1rem' }}>
-                  <h4 style={{ margin: '0 0 1rem 0', color: 'var(--accent-orange)' }}>
-                    Historical Snapshot as of {new Date(reconstructedState.timestamp).toLocaleString()} ({reconstructedState.eventsReplayedCount} events replayed)
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "8px",
+                    padding: "1.5rem",
+                    marginTop: "1rem",
+                  }}
+                >
+                  <h4
+                    style={{
+                      margin: "0 0 1rem 0",
+                      color: "var(--accent-orange)",
+                    }}
+                  >
+                    Historical Snapshot as of{" "}
+                    {new Date(reconstructedState.timestamp).toLocaleString()} (
+                    {reconstructedState.eventsReplayedCount} events replayed)
                   </h4>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(280px, 1fr))",
+                      gap: "1.5rem",
+                    }}
+                  >
                     <div>
-                      <h5 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', margin: '0 0 0.5rem 0' }}>📦 Reconstructed Stock Levels</h5>
+                      <h5
+                        style={{
+                          borderBottom: "1px solid var(--border-color)",
+                          paddingBottom: "0.5rem",
+                          margin: "0 0 0.5rem 0",
+                        }}
+                      >
+                        📦 Reconstructed Stock Levels
+                      </h5>
                       {reconstructedState.stockLevels?.length === 0 ? (
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No stock items at timestamp.</p>
+                        <p
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          No stock items at timestamp.
+                        </p>
                       ) : (
-                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.9rem' }}>
-                          {reconstructedState.stockLevels?.map((s: any, idx: number) => (
-                            <li key={idx} style={{ padding: '0.4rem 0', borderBottom: '1px dashed rgba(255,255,255,0.05)' }}>
-                              <strong>{s.sku}</strong> @ {s.locationId}: <span style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>{s.quantity} units</span>
-                            </li>
-                          ))}
+                        <ul
+                          style={{
+                            listStyle: "none",
+                            padding: 0,
+                            margin: 0,
+                            fontSize: "0.9rem",
+                          }}
+                        >
+                          {reconstructedState.stockLevels?.map(
+                            (s: any, idx: number) => (
+                              <li
+                                key={idx}
+                                style={{
+                                  padding: "0.4rem 0",
+                                  borderBottom:
+                                    "1px dashed rgba(255,255,255,0.05)",
+                                }}
+                              >
+                                <strong>{s.sku}</strong> @ {s.locationId}:{" "}
+                                <span
+                                  style={{
+                                    color: "var(--accent-green)",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  {s.quantity} units
+                                </span>
+                              </li>
+                            ),
+                          )}
                         </ul>
                       )}
                     </div>
 
                     <div>
-                      <h5 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', margin: '0 0 0.5rem 0' }}>📍 Reconstructed Bin Configs</h5>
+                      <h5
+                        style={{
+                          borderBottom: "1px solid var(--border-color)",
+                          paddingBottom: "0.5rem",
+                          margin: "0 0 0.5rem 0",
+                        }}
+                      >
+                        📍 Reconstructed Bin Configs
+                      </h5>
                       {reconstructedState.binConfigurations?.length === 0 ? (
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No bin allocations at timestamp.</p>
+                        <p
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          No bin allocations at timestamp.
+                        </p>
                       ) : (
-                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.9rem' }}>
-                          {reconstructedState.binConfigurations?.map((b: any, idx: number) => (
-                            <li key={idx} style={{ padding: '0.4rem 0', borderBottom: '1px dashed rgba(255,255,255,0.05)' }}>
-                              Bin <strong>{b.binCode}</strong> ({b.locationId}): {b.currentCapacity} / {b.maxCapacity} cap
-                            </li>
-                          ))}
+                        <ul
+                          style={{
+                            listStyle: "none",
+                            padding: 0,
+                            margin: 0,
+                            fontSize: "0.9rem",
+                          }}
+                        >
+                          {reconstructedState.binConfigurations?.map(
+                            (b: any, idx: number) => (
+                              <li
+                                key={idx}
+                                style={{
+                                  padding: "0.4rem 0",
+                                  borderBottom:
+                                    "1px dashed rgba(255,255,255,0.05)",
+                                }}
+                              >
+                                Bin <strong>{b.binCode}</strong> ({b.locationId}
+                                ): {b.currentCapacity} / {b.maxCapacity} cap
+                              </li>
+                            ),
+                          )}
                         </ul>
                       )}
                     </div>
 
                     <div>
-                      <h5 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', margin: '0 0 0.5rem 0' }}>💰 Reconstructed Account Balances</h5>
+                      <h5
+                        style={{
+                          borderBottom: "1px solid var(--border-color)",
+                          paddingBottom: "0.5rem",
+                          margin: "0 0 0.5rem 0",
+                        }}
+                      >
+                        💰 Reconstructed Account Balances
+                      </h5>
                       {reconstructedState.accountBalances?.length === 0 ? (
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No accounting balances at timestamp.</p>
+                        <p
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          No accounting balances at timestamp.
+                        </p>
                       ) : (
-                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.9rem' }}>
-                          {reconstructedState.accountBalances?.map((a: any, idx: number) => (
-                            <li key={idx} style={{ padding: '0.4rem 0', borderBottom: '1px dashed rgba(255,255,255,0.05)' }}>
-                              {a.accountCode} ({a.accountName}): <span style={{ color: 'var(--accent-cyan)', fontWeight: 'bold' }}>${a.balance.toFixed(2)}</span>
-                            </li>
-                          ))}
+                        <ul
+                          style={{
+                            listStyle: "none",
+                            padding: 0,
+                            margin: 0,
+                            fontSize: "0.9rem",
+                          }}
+                        >
+                          {reconstructedState.accountBalances?.map(
+                            (a: any, idx: number) => (
+                              <li
+                                key={idx}
+                                style={{
+                                  padding: "0.4rem 0",
+                                  borderBottom:
+                                    "1px dashed rgba(255,255,255,0.05)",
+                                }}
+                              >
+                                {a.accountCode} ({a.accountName}):{" "}
+                                <span
+                                  style={{
+                                    color: "var(--accent-cyan)",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  ${a.balance.toFixed(2)}
+                                </span>
+                              </li>
+                            ),
+                          )}
                         </ul>
                       )}
                     </div>
@@ -3569,15 +5596,52 @@ function App() {
               )}
 
               {auditReplaySteps.length > 0 && (
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1.5rem', marginTop: '1.5rem' }}>
-                  <h4 style={{ margin: '0 0 1rem 0', color: 'var(--accent-purple)' }}>📜 Audit Replay Timeline ({auditReplaySteps.length} Steps)</h4>
-                  <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "8px",
+                    padding: "1.5rem",
+                    marginTop: "1.5rem",
+                  }}
+                >
+                  <h4
+                    style={{
+                      margin: "0 0 1rem 0",
+                      color: "var(--accent-purple)",
+                    }}
+                  >
+                    📜 Audit Replay Timeline ({auditReplaySteps.length} Steps)
+                  </h4>
+                  <div style={{ maxHeight: "240px", overflowY: "auto" }}>
                     {auditReplaySteps.map((step, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '1rem', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem' }}>
-                        <span style={{ color: 'var(--accent-orange)', fontWeight: 'bold' }}>#{step.sequenceNumber}</span>
-                        <span style={{ color: 'var(--accent-green)' }}>{step.eventType}</span>
-                        <span style={{ color: 'var(--text-muted)' }}>{new Date(step.timestamp).toLocaleTimeString()}</span>
-                        <code style={{ fontSize: '0.8rem', opacity: 0.8 }}>{step.hash.substring(0, 16)}...</code>
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          gap: "1rem",
+                          padding: "0.5rem 0",
+                          borderBottom: "1px solid rgba(255,255,255,0.05)",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: "var(--accent-orange)",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          #{step.sequenceNumber}
+                        </span>
+                        <span style={{ color: "var(--accent-green)" }}>
+                          {step.eventType}
+                        </span>
+                        <span style={{ color: "var(--text-muted)" }}>
+                          {new Date(step.timestamp).toLocaleTimeString()}
+                        </span>
+                        <code style={{ fontSize: "0.8rem", opacity: 0.8 }}>
+                          {step.hash.substring(0, 16)}...
+                        </code>
                       </div>
                     ))}
                   </div>
@@ -3585,9 +5649,10 @@ function App() {
               )}
             </div>
 
-
             <div className="glass-panel">
-              <h3 className="form-section-title">Compliance Ledger Entries ({complianceLedger.length})</h3>
+              <h3 className="form-section-title">
+                Compliance Ledger Entries ({complianceLedger.length})
+              </h3>
               <div className="table-wrapper">
                 <table>
                   <thead>
@@ -3603,31 +5668,62 @@ function App() {
                   <tbody>
                     {complianceLedger.length === 0 ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                          No compliance records found. Perform inventory updates to generate entries.
+                        <td
+                          colSpan={6}
+                          style={{
+                            textAlign: "center",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          No compliance records found. Perform inventory updates
+                          to generate entries.
                         </td>
                       </tr>
                     ) : (
-                      complianceLedger.map(entry => (
+                      complianceLedger.map((entry) => (
                         <tr key={entry.id}>
-                          <td><strong>#{entry.sequenceNumber}</strong></td>
                           <td>
-                            <span className="badge" style={{ backgroundColor: 'var(--accent-dim)', color: 'var(--accent-color)' }}>
+                            <strong>#{entry.sequenceNumber}</strong>
+                          </td>
+                          <td>
+                            <span
+                              className="badge"
+                              style={{
+                                backgroundColor: "var(--accent-dim)",
+                                color: "var(--accent-color)",
+                              }}
+                            >
                               {entry.eventType}
                             </span>
                           </td>
                           <td>
-                            <pre style={{ margin: 0, padding: '0.25rem', fontSize: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', overflowX: 'auto', maxWidth: '300px' }}>
+                            <pre
+                              style={{
+                                margin: 0,
+                                padding: "0.25rem",
+                                fontSize: "0.75rem",
+                                background: "rgba(0,0,0,0.2)",
+                                borderRadius: "4px",
+                                overflowX: "auto",
+                                maxWidth: "300px",
+                              }}
+                            >
                               {entry.payload}
                             </pre>
                           </td>
                           <td>
-                            <code style={{ fontSize: '0.75rem' }} title={entry.hash}>
+                            <code
+                              style={{ fontSize: "0.75rem" }}
+                              title={entry.hash}
+                            >
                               {entry.hash.substring(0, 12)}...
                             </code>
                           </td>
                           <td>
-                            <code style={{ fontSize: '0.75rem' }} title={entry.signature}>
+                            <code
+                              style={{ fontSize: "0.75rem" }}
+                              title={entry.signature}
+                            >
                               {entry.signature.substring(0, 12)}...
                             </code>
                           </td>
@@ -3642,75 +5738,159 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'admin' && (
+        {activeTab === "admin" && (
           <div className="admin-portal-container">
             {/* Horizontal Sub-tabs */}
-            <div className="glass-panel" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
-              <div className="tabs-header" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-                <button className={`btn ${adminActiveSubTab === 'users' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('users')}>
+            <div
+              className="glass-panel"
+              style={{ marginBottom: "1.5rem", padding: "1rem" }}
+            >
+              <div
+                className="tabs-header"
+                style={{
+                  display: "flex",
+                  gap: "1rem",
+                  flexWrap: "wrap",
+                  borderBottom: "1px solid var(--border-color)",
+                  paddingBottom: "0.75rem",
+                }}
+              >
+                <button
+                  className={`btn ${adminActiveSubTab === "users" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setAdminActiveSubTab("users")}
+                >
                   👥 Users
                 </button>
-                <button className={`btn ${adminActiveSubTab === 'roles' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('roles')}>
+                <button
+                  className={`btn ${adminActiveSubTab === "roles" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setAdminActiveSubTab("roles")}
+                >
                   🛡️ Roles & Permissions
                 </button>
-                <button className={`btn ${adminActiveSubTab === 'audits' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('audits')}>
+                <button
+                  className={`btn ${adminActiveSubTab === "audits" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setAdminActiveSubTab("audits")}
+                >
                   🔍 Audits & Discrepancies
                 </button>
-                <button className={`btn ${adminActiveSubTab === 'outbox' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('outbox')}>
+                <button
+                  className={`btn ${adminActiveSubTab === "outbox" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setAdminActiveSubTab("outbox")}
+                >
                   ⚡ Outbox Monitor
                 </button>
-                <button className={`btn ${adminActiveSubTab === 'tenantConfig' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('tenantConfig')}>
+                <button
+                  className={`btn ${adminActiveSubTab === "tenantConfig" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setAdminActiveSubTab("tenantConfig")}
+                >
                   ⚙️ Tenant Configuration
                 </button>
-                <button className={`btn ${adminActiveSubTab === 'kits' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('kits')}>
+                <button
+                  className={`btn ${adminActiveSubTab === "kits" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setAdminActiveSubTab("kits")}
+                >
                   📦 Kitting Desk
                 </button>
-                <button className={`btn ${adminActiveSubTab === 'quarantine' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('quarantine')}>
+                <button
+                  className={`btn ${adminActiveSubTab === "quarantine" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setAdminActiveSubTab("quarantine")}
+                >
                   ⚠️ Quarantine Locker
                 </button>
-                <button className={`btn ${adminActiveSubTab === 'valuation' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setAdminActiveSubTab('valuation')}>
+                <button
+                  className={`btn ${adminActiveSubTab === "valuation" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setAdminActiveSubTab("valuation")}
+                >
                   📈 Financial Valuation
                 </button>
-                <button className={`btn ${adminActiveSubTab === 'cache' as any ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setAdminActiveSubTab('cache' as any); handleFetchCacheStats(); }}>
+                <button
+                  className={`btn ${adminActiveSubTab === ("cache" as any) ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => {
+                    setAdminActiveSubTab("cache" as any);
+                    handleFetchCacheStats();
+                  }}
+                >
                   ⚡ Tier-2 Cache
                 </button>
               </div>
             </div>
 
-
             {/* Sub-tab Panels */}
-            {adminActiveSubTab === 'users' && (
+            {adminActiveSubTab === "users" && (
               <div className="grid-cols-2">
                 <div className="glass-panel">
                   <h3 className="form-section-title">Invite New Team Member</h3>
                   <form onSubmit={handleInviteUser}>
                     <div className="form-group">
                       <label>User Email Address</label>
-                      <input type="email" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} required placeholder="user@company.com" />
+                      <input
+                        type="email"
+                        value={newUserEmail}
+                        onChange={(e) => setNewUserEmail(e.target.value)}
+                        required
+                        placeholder="user@company.com"
+                      />
                     </div>
                     <div className="form-group">
                       <label>Assign Security Role</label>
-                      <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)}>
-                        <option value="admin">Administrator (Full Access)</option>
-                        <option value="warehouse_operator">Warehouse Operator (Ops Only)</option>
-                        <option value="accountant">Accountant (Ledger & Valuation)</option>
-                        <option value="viewer">System Observer (Read Only)</option>
+                      <select
+                        value={newUserRole}
+                        onChange={(e) => setNewUserRole(e.target.value)}
+                      >
+                        <option value="admin">
+                          Administrator (Full Access)
+                        </option>
+                        <option value="warehouse_operator">
+                          Warehouse Operator (Ops Only)
+                        </option>
+                        <option value="accountant">
+                          Accountant (Ledger & Valuation)
+                        </option>
+                        <option value="viewer">
+                          System Observer (Read Only)
+                        </option>
                       </select>
                     </div>
-                    <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading}>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={loading}
+                      aria-busy={loading}
+                    >
                       Invite Member
                     </button>
                   </form>
 
                   {invitedUser && (
-                    <div role="alert" aria-live="assertive" className="alert-box alert-success" style={{ marginTop: '1.5rem' }}>
+                    <div
+                      role="alert"
+                      aria-live="assertive"
+                      className="alert-box alert-success"
+                      style={{ marginTop: "1.5rem" }}
+                    >
                       <strong>User Invitation Code Generated:</strong>
-                      <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.9rem' }}>
-                        ID: {invitedUser.userId}<br />
-                        Temporary Key: {invitedUser.temporaryPassword || 'Simulated successfully.'}
+                      <div
+                        style={{
+                          marginTop: "0.5rem",
+                          fontFamily: "monospace",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        ID: {invitedUser.userId}
+                        <br />
+                        Temporary Key:{" "}
+                        {invitedUser.temporaryPassword ||
+                          "Simulated successfully."}
                       </div>
-                      <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', opacity: 0.8 }}>
-                        Share this security key with the user for their initial authorization.
+                      <div
+                        style={{
+                          fontSize: "0.8rem",
+                          marginTop: "0.5rem",
+                          opacity: 0.8,
+                        }}
+                      >
+                        Share this security key with the user for their initial
+                        authorization.
                       </div>
                     </div>
                   )}
@@ -3731,28 +5911,45 @@ function App() {
                       <tbody>
                         {adminUsers.length === 0 ? (
                           <tr>
-                            <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                            <td
+                              colSpan={4}
+                              style={{
+                                textAlign: "center",
+                                color: "var(--text-muted)",
+                              }}
+                            >
                               No additional organization members registered.
                             </td>
                           </tr>
                         ) : (
-                          adminUsers.map(u => (
+                          adminUsers.map((u) => (
                             <tr key={u.id}>
-                              <td><code>{u.name || u.id.split('-')[0]}</code></td>
+                              <td>
+                                <code>{u.name || u.id.split("-")[0]}</code>
+                              </td>
                               <td>{u.email}</td>
                               <td>
-                                <span className={`badge badge-${u.role === 'admin' ? 'success' : u.role === 'accountant' ? 'info' : 'warning'}`}>
+                                <span
+                                  className={`badge badge-${u.role === "admin" ? "success" : u.role === "accountant" ? "info" : "warning"}`}
+                                >
                                   {u.role.toUpperCase()}
                                 </span>
                               </td>
                               <td>
-                                <select 
-                                  value={u.role} 
-                                  onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                                  style={{ padding: '0.2rem', fontSize: '0.85rem' }}
+                                <select
+                                  value={u.role}
+                                  onChange={(e) =>
+                                    handleUpdateUserRole(u.id, e.target.value)
+                                  }
+                                  style={{
+                                    padding: "0.2rem",
+                                    fontSize: "0.85rem",
+                                  }}
                                 >
                                   <option value="admin">Admin</option>
-                                  <option value="warehouse_operator">Warehouse Operator</option>
+                                  <option value="warehouse_operator">
+                                    Warehouse Operator
+                                  </option>
                                   <option value="accountant">Accountant</option>
                                   <option value="viewer">Observer</option>
                                 </select>
@@ -3767,23 +5964,45 @@ function App() {
               </div>
             )}
 
-            {adminActiveSubTab === 'roles' && (
-              <RoleManagementPanel />
-            )}
+            {adminActiveSubTab === "roles" && <RoleManagementPanel />}
 
-            {adminActiveSubTab === 'audits' && (
+            {adminActiveSubTab === "audits" && (
               <div className="glass-panel">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h3 className="form-section-title" style={{ margin: 0 }}>Reconciliation & Inventory Auditing</h3>
-                  <button className="btn btn-primary" onClick={handleRunAudit} disabled={loading} aria-busy={loading}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <h3 className="form-section-title" style={{ margin: 0 }}>
+                    Reconciliation & Inventory Auditing
+                  </h3>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleRunAudit}
+                    disabled={loading}
+                    aria-busy={loading}
+                  >
                     ⚡ Run Reconciliation Audit
                   </button>
                 </div>
-                <p style={{ marginBottom: '1.5rem', opacity: 0.85, fontSize: '0.9rem' }}>
-                  Running the audit triggers event reconciliation, checks outbox health, and aligns Shopify records with internal database levels. Detected discrepancies will be listed below.
+                <p
+                  style={{
+                    marginBottom: "1.5rem",
+                    opacity: 0.85,
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  Running the audit triggers event reconciliation, checks outbox
+                  health, and aligns Shopify records with internal database
+                  levels. Detected discrepancies will be listed below.
                 </p>
 
-                <h3 className="form-section-title">Detected Discrepancies Log</h3>
+                <h3 className="form-section-title">
+                  Detected Discrepancies Log
+                </h3>
                 <div className="table-wrapper">
                   <table>
                     <thead>
@@ -3802,46 +6021,86 @@ function App() {
                     <tbody>
                       {discrepancies.length === 0 ? (
                         <tr>
-                          <td colSpan={9} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                          <td
+                            colSpan={9}
+                            style={{
+                              textAlign: "center",
+                              color: "var(--text-muted)",
+                            }}
+                          >
                             No active discrepancies. Everything is in sync!
                           </td>
                         </tr>
                       ) : (
-                        discrepancies.map(d => (
+                        discrepancies.map((d) => (
                           <tr key={d.id}>
-                            <td><code>{d.id.split('-')[0]}</code></td>
-                            <td><code>{d.sku}</code></td>
-                            <td><code>{d.locationId}</code></td>
+                            <td>
+                              <code>{d.id.split("-")[0]}</code>
+                            </td>
+                            <td>
+                              <code>{d.sku}</code>
+                            </td>
+                            <td>
+                              <code>{d.locationId}</code>
+                            </td>
                             <td>{d.expectedQuantity}</td>
                             <td>{d.actualQuantity}</td>
                             <td>
-                              <span style={{ color: 'var(--accent-red)', fontWeight: 'bold' }}>
+                              <span
+                                style={{
+                                  color: "var(--accent-red)",
+                                  fontWeight: "bold",
+                                }}
+                              >
                                 {d.discrepancyCount}
                               </span>
                             </td>
                             <td>
-                              <span className={`badge badge-${d.status.toLowerCase() === 'resolved' || d.status === 'RESOLVED' ? 'success' : 'error'}`}>
+                              <span
+                                className={`badge badge-${d.status.toLowerCase() === "resolved" || d.status === "RESOLVED" ? "success" : "error"}`}
+                              >
                                 {d.status.toUpperCase()}
                               </span>
                             </td>
                             <td>
-                              {d.status.toLowerCase() === 'resolved' || d.status === 'RESOLVED' ? (
+                              {d.status.toLowerCase() === "resolved" ||
+                              d.status === "RESOLVED" ? (
                                 <em>Resolved</em>
                               ) : (
-                                <input 
-                                  type="text" 
-                                  value={discrepancyNotes[d.id] || ''} 
-                                  onChange={(e) => setDiscrepancyNotes({ ...discrepancyNotes, [d.id]: e.target.value })} 
-                                  placeholder="Notes for resolution..." 
-                                  style={{ padding: '0.25rem', fontSize: '0.85rem', width: '100%', minWidth: '150px' }}
+                                <input
+                                  type="text"
+                                  value={discrepancyNotes[d.id] || ""}
+                                  onChange={(e) =>
+                                    setDiscrepancyNotes({
+                                      ...discrepancyNotes,
+                                      [d.id]: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Notes for resolution..."
+                                  style={{
+                                    padding: "0.25rem",
+                                    fontSize: "0.85rem",
+                                    width: "100%",
+                                    minWidth: "150px",
+                                  }}
                                 />
                               )}
                             </td>
                             <td>
-                              {d.status.toLowerCase() === 'resolved' || d.status === 'RESOLVED' ? (
-                                <span style={{ color: 'var(--text-muted)' }}>—</span>
+                              {d.status.toLowerCase() === "resolved" ||
+                              d.status === "RESOLVED" ? (
+                                <span style={{ color: "var(--text-muted)" }}>
+                                  —
+                                </span>
                               ) : (
-                                <button className="btn btn-primary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleResolveDiscrepancy(d.id)}>
+                                <button
+                                  className="btn btn-primary"
+                                  style={{
+                                    padding: "0.2rem 0.5rem",
+                                    fontSize: "0.75rem",
+                                  }}
+                                  onClick={() => handleResolveDiscrepancy(d.id)}
+                                >
                                   Resolve
                                 </button>
                               )}
@@ -3855,28 +6114,94 @@ function App() {
               </div>
             )}
 
-            {adminActiveSubTab === 'outbox' && (
-              <div className="grid-cols-3" style={{ gridTemplateColumns: '1fr 2fr', display: 'grid', gap: '1.5rem' }}>
+            {adminActiveSubTab === "outbox" && (
+              <div
+                className="grid-cols-3"
+                style={{
+                  gridTemplateColumns: "1fr 2fr",
+                  display: "grid",
+                  gap: "1.5rem",
+                }}
+              >
                 <div className="glass-panel">
-                  <h3 className="form-section-title">Message Broker Outbox Stats</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-                    <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>Pending Events</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-orange)' }}>{outboxStats.pendingCount}</div>
+                  <h3 className="form-section-title">
+                    Message Broker Outbox Stats
+                  </h3>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1rem",
+                      marginTop: "1rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "1rem",
+                        background: "rgba(255,255,255,0.05)",
+                        borderRadius: "8px",
+                      }}
+                    >
+                      <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+                        Pending Events
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "var(--accent-orange)",
+                        }}
+                      >
+                        {outboxStats.pendingCount}
+                      </div>
                     </div>
-                    <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>Processed Events</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-green)' }}>{outboxStats.publishedCount}</div>
+                    <div
+                      style={{
+                        padding: "1rem",
+                        background: "rgba(255,255,255,0.05)",
+                        borderRadius: "8px",
+                      }}
+                    >
+                      <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+                        Processed Events
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "var(--accent-green)",
+                        }}
+                      >
+                        {outboxStats.publishedCount}
+                      </div>
                     </div>
-                    <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>Failed Dead-Letters</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-red)' }}>{outboxStats.failedCount}</div>
+                    <div
+                      style={{
+                        padding: "1rem",
+                        background: "rgba(255,255,255,0.05)",
+                        borderRadius: "8px",
+                      }}
+                    >
+                      <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+                        Failed Dead-Letters
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "var(--accent-red)",
+                        }}
+                      >
+                        {outboxStats.failedCount}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="glass-panel">
-                  <h3 className="form-section-title">Dead Letter Queue & Event Retries</h3>
+                  <h3 className="form-section-title">
+                    Dead Letter Queue & Event Retries
+                  </h3>
                   <div className="table-wrapper">
                     <table>
                       <thead>
@@ -3891,21 +6216,48 @@ function App() {
                       <tbody>
                         {deadLetterEvents.length === 0 ? (
                           <tr>
-                            <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                              No dead-lettered events recorded. Event stream is healthy!
+                            <td
+                              colSpan={5}
+                              style={{
+                                textAlign: "center",
+                                color: "var(--text-muted)",
+                              }}
+                            >
+                              No dead-lettered events recorded. Event stream is
+                              healthy!
                             </td>
                           </tr>
                         ) : (
-                          deadLetterEvents.map(e => (
+                          deadLetterEvents.map((e) => (
                             <tr key={e.id}>
-                              <td><code>{e.id.split('-')[0]}</code></td>
-                              <td><code>{e.eventType}</code></td>
-                              <td style={{ maxWidth: '200px', wordBreak: 'break-all', fontSize: '0.8rem', color: 'var(--accent-red)' }}>
-                                {e.error || 'Message retry execution failure.'}
-                              </td>
-                              <td>{new Date(e.occurredAt).toLocaleTimeString()}</td>
                               <td>
-                                <button className="btn btn-primary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleRetryOutboxEvent(e.id)}>
+                                <code>{e.id.split("-")[0]}</code>
+                              </td>
+                              <td>
+                                <code>{e.eventType}</code>
+                              </td>
+                              <td
+                                style={{
+                                  maxWidth: "200px",
+                                  wordBreak: "break-all",
+                                  fontSize: "0.8rem",
+                                  color: "var(--accent-red)",
+                                }}
+                              >
+                                {e.error || "Message retry execution failure."}
+                              </td>
+                              <td>
+                                {new Date(e.occurredAt).toLocaleTimeString()}
+                              </td>
+                              <td>
+                                <button
+                                  className="btn btn-primary"
+                                  style={{
+                                    padding: "0.2rem 0.5rem",
+                                    fontSize: "0.75rem",
+                                  }}
+                                  onClick={() => handleRetryOutboxEvent(e.id)}
+                                >
                                   Retry Event
                                 </button>
                               </td>
@@ -3919,26 +6271,39 @@ function App() {
               </div>
             )}
 
-            {adminActiveSubTab === 'tenantConfig' && (
-              <div className="glass-panel" style={{ maxWidth: '600px', margin: '0 auto' }}>
-                <h3 className="form-section-title">Global Organization Accounting Setup</h3>
+            {adminActiveSubTab === "tenantConfig" && (
+              <div
+                className="glass-panel"
+                style={{ maxWidth: "600px", margin: "0 auto" }}
+              >
+                <h3 className="form-section-title">
+                  Global Organization Accounting Setup
+                </h3>
                 <form onSubmit={handleSaveTenantConfig}>
                   <div className="form-group">
                     <label>Accounting Reporting Method</label>
-                    <select 
-                      value={configAccountingMethod} 
-                      onChange={(e) => setConfigAccountingMethod(e.target.value as any)}
+                    <select
+                      value={configAccountingMethod}
+                      onChange={(e) =>
+                        setConfigAccountingMethod(e.target.value as any)
+                      }
                     >
-                      <option value="ACCRUAL">Accrual Accounting (Match costs to matching revenues)</option>
-                      <option value="CASH">Cash Accounting (Record when payments complete)</option>
+                      <option value="ACCRUAL">
+                        Accrual Accounting (Match costs to matching revenues)
+                      </option>
+                      <option value="CASH">
+                        Cash Accounting (Record when payments complete)
+                      </option>
                     </select>
                   </div>
 
                   <div className="form-group">
                     <label>Inventory Costing Flow Assumption Strategy</label>
-                    <select 
-                      value={configCostingMethod} 
-                      onChange={(e) => setConfigCostingMethod(e.target.value as any)}
+                    <select
+                      value={configCostingMethod}
+                      onChange={(e) =>
+                        setConfigCostingMethod(e.target.value as any)
+                      }
                     >
                       <option value="FIFO">FIFO (First-In, First-Out)</option>
                       <option value="LIFO">LIFO (Last-In, First-Out)</option>
@@ -3948,37 +6313,80 @@ function App() {
 
                   <div className="form-group">
                     <label>Default Currency</label>
-                    <input type="text" value={tenantConfig?.currencyCode || 'USD'} disabled style={{ opacity: 0.6 }} />
+                    <input
+                      type="text"
+                      value={tenantConfig?.currencyCode || "USD"}
+                      disabled
+                      style={{ opacity: 0.6 }}
+                    />
                   </div>
 
                   <div className="form-group">
                     <label>Fiscal Year Start Date (MM-DD)</label>
-                    <input type="text" value={tenantConfig?.fiscalYearStart || '01-01'} disabled style={{ opacity: 0.6 }} />
+                    <input
+                      type="text"
+                      value={tenantConfig?.fiscalYearStart || "01-01"}
+                      disabled
+                      style={{ opacity: 0.6 }}
+                    />
                   </div>
 
-                  <button type="submit" className="btn btn-primary" disabled={loading} aria-busy={loading} style={{ width: '100%' }}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={loading}
+                    aria-busy={loading}
+                    style={{ width: "100%" }}
+                  >
                     Save Accounting Policy Configurations
                   </button>
                 </form>
               </div>
             )}
 
-            {adminActiveSubTab === 'kits' && (
-              <div className="glass-panel" style={{ maxWidth: '600px', margin: '0 auto' }}>
-                <h3 className="form-section-title">Kit Assembly / Disassembly Desk</h3>
-                <p style={{ marginBottom: '1.5rem', opacity: 0.85, fontSize: '0.9rem' }}>
-                  Assemble bundled SKUs from component inventory layers or break a kit down back into individual parts.
+            {adminActiveSubTab === "kits" && (
+              <div
+                className="glass-panel"
+                style={{ maxWidth: "600px", margin: "0 auto" }}
+              >
+                <h3 className="form-section-title">
+                  Kit Assembly / Disassembly Desk
+                </h3>
+                <p
+                  style={{
+                    marginBottom: "1.5rem",
+                    opacity: 0.85,
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  Assemble bundled SKUs from component inventory layers or break
+                  a kit down back into individual parts.
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1rem",
+                  }}
+                >
                   <div className="form-group">
                     <label>Kit SKU Identifier</label>
-                    <input type="text" value={kitSku} onChange={(e) => setKitSku(e.target.value)} required placeholder="e.g. BUNDLE-IPHONE" />
+                    <input
+                      type="text"
+                      value={kitSku}
+                      onChange={(e) => setKitSku(e.target.value)}
+                      required
+                      placeholder="e.g. BUNDLE-IPHONE"
+                    />
                   </div>
 
                   <div className="form-group">
                     <label>Warehouse Location</label>
-                    <select value={kitLocationId} onChange={(e) => setKitLocationId(e.target.value)}>
+                    <select
+                      value={kitLocationId}
+                      onChange={(e) => setKitLocationId(e.target.value)}
+                    >
                       <option value="LOC-A1">LOC-A1 (Central Shelf)</option>
                       <option value="LOC-EAST">LOC-EAST (East Rack)</option>
                       <option value="LOC-WEST">LOC-WEST (West Aisle)</option>
@@ -3987,19 +6395,48 @@ function App() {
 
                   <div className="form-group">
                     <label>Quantity of Kits to Process</label>
-                    <input type="number" value={kitQty} onChange={(e) => setKitQty(Math.max(1, Number(e.target.value)))} required min={1} />
+                    <input
+                      type="number"
+                      value={kitQty}
+                      onChange={(e) =>
+                        setKitQty(Math.max(1, Number(e.target.value)))
+                      }
+                      required
+                      min={1}
+                    />
                   </div>
 
                   <div className="form-group">
                     <label>Transaction Reference (Optional)</label>
-                    <input type="text" value={kitRef} onChange={(e) => setKitRef(e.target.value)} placeholder="Auto-generated if empty" />
+                    <input
+                      type="text"
+                      value={kitRef}
+                      onChange={(e) => setKitRef(e.target.value)}
+                      placeholder="Auto-generated if empty"
+                    />
                   </div>
 
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                    <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={handleAssembleKit} disabled={loading} aria-busy={loading}>
+                  <div
+                    style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}
+                  >
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{ flex: 1 }}
+                      onClick={handleAssembleKit}
+                      disabled={loading}
+                      aria-busy={loading}
+                    >
                       🛠️ Assemble Kit
                     </button>
-                    <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={handleDisassembleKit} disabled={loading} aria-busy={loading}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ flex: 1 }}
+                      onClick={handleDisassembleKit}
+                      disabled={loading}
+                      aria-busy={loading}
+                    >
                       💥 Disassemble Kit
                     </button>
                   </div>
@@ -4007,11 +6444,21 @@ function App() {
               </div>
             )}
 
-            {adminActiveSubTab === 'quarantine' && (
+            {adminActiveSubTab === "quarantine" && (
               <div className="glass-panel">
-                <h3 className="form-section-title">Quarantine Locker (Isolated Returns / Damage)</h3>
-                <p style={{ marginBottom: '1.5rem', opacity: 0.85, fontSize: '0.9rem' }}>
-                  Items failed during quality verification audits or damaged returns are isolated here. Admins can choose to release them back to inventory or reject/discard them permanently.
+                <h3 className="form-section-title">
+                  Quarantine Locker (Isolated Returns / Damage)
+                </h3>
+                <p
+                  style={{
+                    marginBottom: "1.5rem",
+                    opacity: 0.85,
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  Items failed during quality verification audits or damaged
+                  returns are isolated here. Admins can choose to release them
+                  back to inventory or reject/discard them permanently.
                 </p>
                 <div className="table-wrapper">
                   <table>
@@ -4030,16 +6477,29 @@ function App() {
                     <tbody>
                       {quarantinedItems.length === 0 ? (
                         <tr>
-                          <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                            No quarantined items isolated. Excellent warehouse quality controls!
+                          <td
+                            colSpan={8}
+                            style={{
+                              textAlign: "center",
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            No quarantined items isolated. Excellent warehouse
+                            quality controls!
                           </td>
                         </tr>
                       ) : (
-                        quarantinedItems.map(q => (
+                        quarantinedItems.map((q) => (
                           <tr key={q.id}>
-                            <td><code>{q.id.split('-')[0]}</code></td>
-                            <td><code>{q.sku}</code></td>
-                            <td><code>{q.locationId}</code></td>
+                            <td>
+                              <code>{q.id.split("-")[0]}</code>
+                            </td>
+                            <td>
+                              <code>{q.sku}</code>
+                            </td>
+                            <td>
+                              <code>{q.locationId}</code>
+                            </td>
                             <td>{q.quantity}</td>
                             <td>{q.reason}</td>
                             <td>
@@ -4048,17 +6508,38 @@ function App() {
                               </span>
                             </td>
                             <td>
-                              <select 
-                                value={quarantineResolutions[q.id] || 'RELEASED'} 
-                                onChange={(e) => setQuarantineResolutions({ ...quarantineResolutions, [q.id]: e.target.value })}
-                                style={{ padding: '0.2rem', fontSize: '0.85rem' }}
+                              <select
+                                value={
+                                  quarantineResolutions[q.id] || "RELEASED"
+                                }
+                                onChange={(e) =>
+                                  setQuarantineResolutions({
+                                    ...quarantineResolutions,
+                                    [q.id]: e.target.value,
+                                  })
+                                }
+                                style={{
+                                  padding: "0.2rem",
+                                  fontSize: "0.85rem",
+                                }}
                               >
-                                <option value="RELEASED">Release to General Stock (Reconcile)</option>
-                                <option value="REJECTED">Reject / Discard Batch (Write-Off)</option>
+                                <option value="RELEASED">
+                                  Release to General Stock (Reconcile)
+                                </option>
+                                <option value="REJECTED">
+                                  Reject / Discard Batch (Write-Off)
+                                </option>
                               </select>
                             </td>
                             <td>
-                              <button className="btn btn-primary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleResolveQuarantine(q.id)}>
+                              <button
+                                className="btn btn-primary"
+                                style={{
+                                  padding: "0.2rem 0.5rem",
+                                  fontSize: "0.75rem",
+                                }}
+                                onClick={() => handleResolveQuarantine(q.id)}
+                              >
                                 Submit Resolve
                               </button>
                             </td>
@@ -4071,16 +6552,35 @@ function App() {
               </div>
             )}
 
-            {adminActiveSubTab === 'valuation' && (
+            {adminActiveSubTab === "valuation" && (
               <div className="glass-panel">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h3 className="form-section-title" style={{ margin: 0 }}>Asset Valuation Breakdown</h3>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Costing Method:</label>
-                    <select 
-                      value={valuationCostingMethod} 
-                      onChange={(e) => setValuationCostingMethod(e.target.value)}
-                      style={{ padding: '0.25rem', fontSize: '0.85rem' }}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <h3 className="form-section-title" style={{ margin: 0 }}>
+                    Asset Valuation Breakdown
+                  </h3>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "0.5rem",
+                      alignItems: "center",
+                    }}
+                  >
+                    <label style={{ fontSize: "0.85rem", fontWeight: "bold" }}>
+                      Costing Method:
+                    </label>
+                    <select
+                      value={valuationCostingMethod}
+                      onChange={(e) =>
+                        setValuationCostingMethod(e.target.value)
+                      }
+                      style={{ padding: "0.25rem", fontSize: "0.85rem" }}
                     >
                       <option value="FIFO">FIFO (First-In, First-Out)</option>
                       <option value="LIFO">LIFO (Last-In, First-Out)</option>
@@ -4105,15 +6605,25 @@ function App() {
                     <tbody>
                       {valuationItems.length === 0 ? (
                         <tr>
-                          <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                          <td
+                            colSpan={7}
+                            style={{
+                              textAlign: "center",
+                              color: "var(--text-muted)",
+                            }}
+                          >
                             No active asset lines recorded.
                           </td>
                         </tr>
                       ) : (
-                        valuationItems.map(v => (
+                        valuationItems.map((v) => (
                           <tr key={v.variantId}>
-                            <td><code>{v.variantId.split('-')[0]}</code></td>
-                            <td><code>{v.sku}</code></td>
+                            <td>
+                              <code>{v.variantId.split("-")[0]}</code>
+                            </td>
+                            <td>
+                              <code>{v.sku}</code>
+                            </td>
                             <td>{v.name}</td>
                             <td>
                               <span className="badge badge-info">
@@ -4123,7 +6633,9 @@ function App() {
                             <td>{v.totalQuantity}</td>
                             <td>${(v.unitCostCents / 100).toFixed(2)}</td>
                             <td>
-                              <strong>${(v.totalValueCents / 100).toFixed(2)}</strong>
+                              <strong>
+                                ${(v.totalValueCents / 100).toFixed(2)}
+                              </strong>
                             </td>
                           </tr>
                         ))
@@ -4134,45 +6646,194 @@ function App() {
               </div>
             )}
 
-            {adminActiveSubTab === ('cache' as any) && (
+            {adminActiveSubTab === ("cache" as any) && (
               <div className="glass-panel">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "1.5rem",
+                  }}
+                >
                   <div>
-                    <h3 className="form-section-title" style={{ margin: 0 }}>⚡ Tier-2 Distributed Redis Cache</h3>
-                    <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
-                      High-performance distributed caching layer in front of DB repositories with pub/sub outbox invalidation.
+                    <h3 className="form-section-title" style={{ margin: 0 }}>
+                      ⚡ Tier-2 Distributed Redis Cache
+                    </h3>
+                    <p
+                      style={{
+                        color: "var(--text-muted)",
+                        margin: "0.25rem 0 0 0",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      High-performance distributed caching layer in front of DB
+                      repositories with pub/sub outbox invalidation.
                     </p>
                   </div>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button onClick={handleFetchCacheStats} className="btn btn-secondary">
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    <button
+                      onClick={handleFetchCacheStats}
+                      className="btn btn-secondary"
+                    >
                       🔄 Refresh Cache Stats
                     </button>
-                    <button onClick={handleFlushCache} className="btn btn-danger">
+                    <button
+                      onClick={handleFlushCache}
+                      className="btn btn-danger"
+                    >
                       🔥 Flush Tier-2 Cache
                     </button>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Cache Hits</div>
-                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-green)' }}>{cacheStats?.hits ?? 120}</div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                    gap: "1.5rem",
+                    marginBottom: "2rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      padding: "1.25rem",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border-color)",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "var(--text-muted)",
+                        marginBottom: "0.25rem",
+                      }}
+                    >
+                      Cache Hits
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "2rem",
+                        fontWeight: "bold",
+                        color: "var(--accent-green)",
+                      }}
+                    >
+                      {cacheStats?.hits ?? 120}
+                    </div>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Cache Misses</div>
-                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-orange)' }}>{cacheStats?.misses ?? 15}</div>
+                  <div
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      padding: "1.25rem",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border-color)",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "var(--text-muted)",
+                        marginBottom: "0.25rem",
+                      }}
+                    >
+                      Cache Misses
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "2rem",
+                        fontWeight: "bold",
+                        color: "var(--accent-orange)",
+                      }}
+                    >
+                      {cacheStats?.misses ?? 15}
+                    </div>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Hit Ratio</div>
-                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-cyan)' }}>{cacheStats?.hitRatio ?? 88.89}%</div>
+                  <div
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      padding: "1.25rem",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border-color)",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "var(--text-muted)",
+                        marginBottom: "0.25rem",
+                      }}
+                    >
+                      Hit Ratio
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "2rem",
+                        fontWeight: "bold",
+                        color: "var(--accent-cyan)",
+                      }}
+                    >
+                      {cacheStats?.hitRatio ?? 88.89}%
+                    </div>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Outbox Invalidations</div>
-                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-purple)' }}>{cacheStats?.invalidations ?? 4}</div>
+                  <div
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      padding: "1.25rem",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border-color)",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "var(--text-muted)",
+                        marginBottom: "0.25rem",
+                      }}
+                    >
+                      Outbox Invalidations
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "2rem",
+                        fontWeight: "bold",
+                        color: "var(--accent-purple)",
+                      }}
+                    >
+                      {cacheStats?.invalidations ?? 4}
+                    </div>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Active Cached Keys</div>
-                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff' }}>{cacheStats?.activeKeysCount ?? 42}</div>
+                  <div
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      padding: "1.25rem",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border-color)",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "var(--text-muted)",
+                        marginBottom: "0.25rem",
+                      }}
+                    >
+                      Active Cached Keys
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "2rem",
+                        fontWeight: "bold",
+                        color: "#fff",
+                      }}
+                    >
+                      {cacheStats?.activeKeysCount ?? 42}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -4180,29 +6841,44 @@ function App() {
           </div>
         )}
 
-
-        {activeTab === 'rfid' && (
-          <RfidPanel tenantId={tenantId} client={client} locations={wmsLocations} />
+        {activeTab === "rfid" && (
+          <RfidPanel
+            tenantId={tenantId}
+            client={client}
+            locations={wmsLocations}
+          />
         )}
 
-        {activeTab === 'autonomous' && (
-          <AutonomousInventoryDashboard />
+        {activeTab === "autonomous" && <AutonomousInventoryDashboard />}
+        {(activeTab as string) === "cv-gateway" && <CVGatewayDashboard />}
+        {activeTab === "anomaly-detection" && (
+          <AnomalyDetectionPanel api={client} />
         )}
-        {(activeTab as string) === 'cv-gateway' && (
-          <CVGatewayDashboard />
+        {activeTab === "rebalancing" && <RebalancingMatrixPanel api={client} />}
+        {activeTab === "conformance" && (
+          <ConformanceDashboardPanel tenantId={tenantId} />
         )}
-        {activeTab === 'anomaly-detection' && <AnomalyDetectionPanel api={client} />}
-        {activeTab === 'rebalancing' && <RebalancingMatrixPanel api={client} />}
-        {activeTab === 'conformance' && <ConformanceDashboardPanel tenantId={tenantId} />}
-        {activeTab === 'api-specs' && <ApiSpecViewerPanel />}
-        {activeTab === 'logistics-erp' && <LogisticsErpPanel api={client} />}
-        {(activeTab as string) === 'reverse-logistics' && <ReverseLogisticsSupplierPanel api={client} />}
-        {(activeTab as string) === 'thermal-ar' && <ThermalPrintingArPanel api={client} />}
-        {(activeTab as string) === 'digital-twin' && <DigitalTwinCopilotPanel api={client} />}
-        {(activeTab as string) === 'esg' && <EsgEmissionsPanel api={client} />}
-        {(activeTab as string) === 'reporting' && <ReportingDashboardPanel client={client} tenantId={tenantId} />}
-        {(activeTab as string) === 'intercompany' && <IntercompanyPanel tenantId={tenantId} />}
-        {(activeTab as string) === 'api-usage' && <ApiUsageDashboardPanel tenantId={tenantId} />}
+        {activeTab === "api-specs" && <ApiSpecViewerPanel />}
+        {activeTab === "logistics-erp" && <LogisticsErpPanel api={client} />}
+        {(activeTab as string) === "reverse-logistics" && (
+          <ReverseLogisticsSupplierPanel api={client} />
+        )}
+        {(activeTab as string) === "thermal-ar" && (
+          <ThermalPrintingArPanel api={client} />
+        )}
+        {(activeTab as string) === "digital-twin" && (
+          <DigitalTwinCopilotPanel api={client} />
+        )}
+        {(activeTab as string) === "esg" && <EsgEmissionsPanel api={client} />}
+        {(activeTab as string) === "reporting" && (
+          <ReportingDashboardPanel client={client} tenantId={tenantId} />
+        )}
+        {(activeTab as string) === "intercompany" && (
+          <IntercompanyPanel tenantId={tenantId} />
+        )}
+        {(activeTab as string) === "api-usage" && (
+          <ApiUsageDashboardPanel tenantId={tenantId} />
+        )}
       </div>
     </div>
   );
