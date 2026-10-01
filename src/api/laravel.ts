@@ -247,7 +247,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
-    return this.request("GET", `/api/shopify/connections?tenantId=${tenantId}`);
+    return this.request("GET", `/api/shopify/connections?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async getConnections(tenantId: string): Promise<any> {
@@ -278,7 +278,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     try {
       const data = await this.request(
         "GET",
-        `/api/onboardings?tenantId=${tenantId}`,
+        `/api/onboardings?tenantId=${encodeURIComponent(tenantId)}`,
       );
       return data || [];
     } catch {
@@ -587,7 +587,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     try {
       const data = await this.request(
         "GET",
-        `/api/reorder-policies?tenantId=${tenantId}`,
+        `/api/reorder-policies?tenantId=${encodeURIComponent(tenantId)}`,
       );
       return (data || []).map((p: any) => ({
         sku: p.sku,
@@ -624,7 +624,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getWebhooks(tenantId: string): Promise<WebhookSubscription[]> {
     const data = await this.request(
       "GET",
-      `/api/webhooks?tenantId=${tenantId}`,
+      `/api/webhooks?tenantId=${encodeURIComponent(tenantId)}`,
     );
     return (data || []).map((w: any) => ({
       id: w.id,
@@ -647,14 +647,14 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async deleteWebhook(tenantId: string, id: string): Promise<void> {
-    await this.request("DELETE", `/api/webhooks/${id}?tenantId=${tenantId}`);
+    await this.request("DELETE", `/api/webhooks/${id}?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async getWebhookDeliveries(tenantId: string): Promise<WebhookDeliveryLog[]> {
     try {
       const data = await this.request(
         "GET",
-        `/api/webhooks/deliveries?tenantId=${tenantId}`,
+        `/api/webhooks/deliveries?tenantId=${encodeURIComponent(tenantId)}`,
       );
       return (data || []).map((d: any) => ({
         id: d.id,
@@ -673,7 +673,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getWarehouseLocations(tenantId: string): Promise<WarehouseLocation[]> {
     const data = await this.request(
       "GET",
-      `/api/warehouse-locations?tenantId=${tenantId}`,
+      `/api/warehouse-locations?tenantId=${encodeURIComponent(tenantId)}`,
     );
     return (data || []).map((l: any) => ({
       id: l.id,
@@ -702,7 +702,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async deleteWarehouseLocation(tenantId: string, id: string): Promise<void> {
     await this.request(
       "DELETE",
-      `/api/warehouse-locations/${id}?tenantId=${tenantId}`,
+      `/api/warehouse-locations/${id}?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
@@ -752,7 +752,7 @@ export class LaravelRESTAdapter implements InventoryClient {
         const chunk = ids.slice(i, i + CHUNK_SIZE);
         const response = await this.request(
           "GET",
-          `/api/purchase-orders?tenantId=${tenantId}&ids=${chunk.join(",")}`,
+          `/api/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&ids=${chunk.join(",")}`,
         );
 
         const bulkData = response?.data || response || [];
@@ -845,20 +845,20 @@ export class LaravelRESTAdapter implements InventoryClient {
   ): Promise<any[]> {
     return this.request(
       "GET",
-      `/api/inventory/fefo-pick?sku=${sku}&quantity=${quantity}&tenantId=${tenantId}`,
+      `/api/inventory/fefo-pick?sku=${sku}&quantity=${quantity}&tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
   async traceRecall(tenantId: string, lotNumber: string): Promise<any> {
     return this.request(
       "GET",
-      `/api/inventory/reports/recall/${lotNumber}?tenantId=${tenantId}`,
+      `/api/inventory/reports/recall/${lotNumber}?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
   // --- Unified Admin Portal Operations for Laravel ---
   async getUsers(tenantId: string): Promise<User[]> {
-    const res = await this.request("GET", `/api/users?tenantId=${tenantId}`);
+    const res = await this.request("GET", `/api/users?tenantId=${encodeURIComponent(tenantId)}`);
     return res?.users || [];
   }
 
@@ -891,7 +891,7 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   // RBAC
   async getRoles(tenantId: string): Promise<Role[]> {
-    return this.request("GET", `/api/roles?tenantId=${tenantId}`);
+    return this.request("GET", `/api/roles?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async getPermissions(): Promise<Permission[]> {
@@ -932,7 +932,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]> {
     const res = await this.request(
       "GET",
-      `/api/audit/discrepancies?tenantId=${tenantId}`,
+      `/api/audit/discrepancies?tenantId=${encodeURIComponent(tenantId)}`,
     );
     return res || [];
   }
@@ -1056,7 +1056,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     try {
       const res = await this.request(
         "GET",
-        `/api/returns/quarantine?tenantId=${tenantId}`,
+        `/api/returns/quarantine?tenantId=${encodeURIComponent(tenantId)}`,
       );
       return (res || []).map((q: any) => ({
         id: q.id,
@@ -1091,7 +1091,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     try {
       const valSummary = await this.request(
         "GET",
-        `/api/reports/valuation?tenantId=${tenantId}`,
+        `/api/reports/valuation?tenantId=${encodeURIComponent(tenantId)}`,
       );
       const prodData = await this.request("GET", "/api/catalog/products");
       const products = prodData.products || [];
@@ -1146,14 +1146,14 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getSlottingSuggestions(tenantId: string): Promise<any[]> {
     return await this.request(
       "GET",
-      `/api/warehouse-locations/slotting-suggestions?tenantId=${tenantId}`,
+      `/api/warehouse-locations/slotting-suggestions?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
   async getComplianceLedger(tenantId: string): Promise<any[]> {
     return await this.request(
       "GET",
-      `/api/compliance/ledger?tenantId=${tenantId}`,
+      `/api/compliance/ledger?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
@@ -1166,21 +1166,21 @@ export class LaravelRESTAdapter implements InventoryClient {
   }> {
     return await this.request(
       "POST",
-      `/api/compliance/verify?tenantId=${tenantId}`,
+      `/api/compliance/verify?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
   async reconstructState(tenantId: string, timestamp?: string): Promise<any> {
     const url = timestamp
-      ? `/api/compliance/reconstruct?tenantId=${tenantId}&timestamp=${encodeURIComponent(timestamp)}`
-      : `/api/compliance/reconstruct?tenantId=${tenantId}`;
+      ? `/api/compliance/reconstruct?tenantId=${encodeURIComponent(tenantId)}&timestamp=${encodeURIComponent(timestamp)}`
+      : `/api/compliance/reconstruct?tenantId=${encodeURIComponent(tenantId)}`;
     return await this.request("GET", url);
   }
 
   async replayAudit(tenantId: string, upToTimestamp?: string): Promise<any[]> {
     const url = upToTimestamp
-      ? `/api/compliance/replay?tenantId=${tenantId}&timestamp=${encodeURIComponent(upToTimestamp)}`
-      : `/api/compliance/replay?tenantId=${tenantId}`;
+      ? `/api/compliance/replay?tenantId=${encodeURIComponent(tenantId)}&timestamp=${encodeURIComponent(upToTimestamp)}`
+      : `/api/compliance/replay?tenantId=${encodeURIComponent(tenantId)}`;
     return await this.request("GET", url);
   }
 
@@ -1198,7 +1198,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     tenantId?: string,
   ): Promise<{ success: boolean; clearedKeysCount: number }> {
     const url = tenantId
-      ? `/api/admin/cache/clear?tenantId=${tenantId}`
+      ? `/api/admin/cache/clear?tenantId=${encodeURIComponent(tenantId)}`
       : `/api/admin/cache/clear`;
     return await this.request("POST", url);
   }
@@ -1206,7 +1206,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getRfidTags(tenantId: string): Promise<any[]> {
     const res = await this.request(
       "GET",
-      `/api/rfid/tags?tenantId=${tenantId}`,
+      `/api/rfid/tags?tenantId=${encodeURIComponent(tenantId)}`,
     );
     return res.tags || [];
   }
@@ -1217,7 +1217,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     sku: string,
     serialNumber: string,
   ): Promise<void> {
-    await this.request("POST", `/api/rfid/assign?tenantId=${tenantId}`, {
+    await this.request("POST", `/api/rfid/assign?tenantId=${encodeURIComponent(tenantId)}`, {
       epc,
       sku,
       serialNumber,
@@ -1229,7 +1229,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     locationId: string,
     tags: string[],
   ): Promise<void> {
-    await this.request("POST", `/api/rfid/simulate-scan?tenantId=${tenantId}`, {
+    await this.request("POST", `/api/rfid/simulate-scan?tenantId=${encodeURIComponent(tenantId)}`, {
       locationId,
       tags,
     });
@@ -1312,7 +1312,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getRebalanceMatrix(tenantId: string): Promise<any> {
     return await this.request(
       "GET",
-      `/api/rebalance/matrix?tenantId=${tenantId}`,
+      `/api/rebalance/matrix?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
@@ -1347,7 +1347,7 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   // Reporting & Analytics
   async getReportDefinitions(tenantId: string): Promise<any[]> {
-    return await this.request("GET", `/api/reports?tenantId=${tenantId}`);
+    return await this.request("GET", `/api/reports?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async createReportDefinition(tenantId: string, payload: any): Promise<any> {
@@ -1379,7 +1379,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async getDashboardWidgets(tenantId: string): Promise<any[]> {
-    return await this.request("GET", `/api/widgets?tenantId=${tenantId}`);
+    return await this.request("GET", `/api/widgets?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async saveDashboardWidget(tenantId: string, widget: any): Promise<any> {
@@ -1408,7 +1408,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     });
   }
   async getCycleCounts(tenantId: string): Promise<any[]> {
-    return await this.request("GET", `/api/cycle-count?tenantId=${tenantId}`);
+    return await this.request("GET", `/api/cycle-count?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async submitASN(
@@ -1429,14 +1429,14 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
     return await this.request(
       "GET",
-      `/api/supplier/asn?tenantId=${tenantId}&supplierId=${supplierId}`,
+      `/api/supplier/asn?tenantId=${encodeURIComponent(tenantId)}&supplierId=${supplierId}`,
     );
   }
 
   async getNotifications(tenantId: string, userId: string): Promise<any[]> {
     return await this.request(
       "GET",
-      `/api/notifications?tenantId=${tenantId}&userId=${userId}`,
+      `/api/notifications?tenantId=${encodeURIComponent(tenantId)}&userId=${userId}`,
     );
   }
   async markNotificationRead(id: string): Promise<void> {
@@ -1444,7 +1444,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async generateAgingReport(tenantId: string): Promise<any> {
-    return await this.request("GET", `/api/aging/report?tenantId=${tenantId}`);
+    return await this.request("GET", `/api/aging/report?tenantId=${encodeURIComponent(tenantId)}`);
   }
 
   async createLegalEntity(
@@ -1464,7 +1464,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getLegalEntities(tenantId: string): Promise<any[]> {
     return await this.request(
       "GET",
-      `/api/intercompany/entities?tenantId=${tenantId}`,
+      `/api/intercompany/entities?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
@@ -1484,11 +1484,11 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getIntercompanyTransfers(tenantId: string): Promise<any[]> {
     return await this.request(
       "GET",
-      `/api/intercompany/transfers?tenantId=${tenantId}`,
+      `/api/intercompany/transfers?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
   async getApiUsageMetrics(tenantId: string): Promise<any[]> {
-    return await this.request("GET", `/api/usage?tenantId=${tenantId}`);
+    return await this.request("GET", `/api/usage?tenantId=${encodeURIComponent(tenantId)}`);
   }
 }
