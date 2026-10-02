@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install app dependencies
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install
 
 # Copy source files and build production bundle
 COPY . .
