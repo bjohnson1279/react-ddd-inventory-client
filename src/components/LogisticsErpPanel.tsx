@@ -1,36 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface LogisticsErpPanelProps {
   api?: any;
 }
 
-export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'rates' | 'label' | 'erp'>('rates');
+export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({
+  api,
+}) => {
+  const [activeSubTab, setActiveSubTab] = useState<"rates" | "label" | "erp">(
+    "rates",
+  );
 
   // Rates State
-  const [carrier, setCarrier] = useState('FEDEX');
-  const [originPostal, setOriginPostal] = useState('10001');
-  const [destPostal, setDestPostal] = useState('90210');
-  const [weightKg, setWeightKg] = useState('4.5');
-  const [serviceLevel, setServiceLevel] = useState('FEDEX_EXPRESS_SAVER');
+  const [carrier, setCarrier] = useState("FEDEX");
+  const [originPostal, setOriginPostal] = useState("10001");
+  const [destPostal, setDestPostal] = useState("90210");
+  const [weightKg, setWeightKg] = useState("4.5");
+  const [serviceLevel, setServiceLevel] = useState("FEDEX_EXPRESS_SAVER");
   const [rateResult, setRateResult] = useState<any>(null);
 
   // Label State
-  const [labelCarrier, setLabelCarrier] = useState('UPS');
-  const [recipientName, setRecipientName] = useState('Jane Doe');
-  const [shippingAddress, setShippingAddress] = useState('123 Enterprise Way, Suite 400, Austin, TX 78701');
-  const [labelWeight, setLabelWeight] = useState('2.5');
-  const [labelFormat, setLabelFormat] = useState<'ZPL' | 'PDF' | 'BOTH'>('BOTH');
+  const [labelCarrier, setLabelCarrier] = useState("UPS");
+  const [recipientName, setRecipientName] = useState("Jane Doe");
+  const [shippingAddress, setShippingAddress] = useState(
+    "123 Enterprise Way, Suite 400, Austin, TX 78701",
+  );
+  const [labelWeight, setLabelWeight] = useState("2.5");
+  const [labelFormat, setLabelFormat] = useState<"ZPL" | "PDF" | "BOTH">(
+    "BOTH",
+  );
   const [labelResult, setLabelResult] = useState<any>(null);
 
   // ERP State
-  const [erpProvider, setErpProvider] = useState('QUICKBOOKS');
-  const [referenceId, setReferenceId] = useState(`SO-${crypto.randomUUID().split('-')[0]}`);
-  const [memo, setMemo] = useState('Inventory dispatch revenue posting');
-  const [accountCode, setAccountCode] = useState('1200');
-  const [amountCents, setAmountCents] = useState('45000');
-  const [postingType, setPostingType] = useState('DEBIT');
-  const [apiKey, setApiKey] = useState('');
+  const [erpProvider, setErpProvider] = useState("QUICKBOOKS");
+  const [referenceId, setReferenceId] = useState(
+    `SO-${crypto.randomUUID().split("-")[0]}`,
+  );
+  const [memo, setMemo] = useState("Inventory dispatch revenue posting");
+  const [accountCode, setAccountCode] = useState("1200");
+  const [amountCents, setAmountCents] = useState("45000");
+  const [postingType, setPostingType] = useState("DEBIT");
+  const [apiKey, setApiKey] = useState("");
   const [erpResult, setErpResult] = useState<any>(null);
 
   const [loading, setLoading] = useState(false);
@@ -39,7 +49,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
   const handleCalculateRates = async () => {
     setLoading(true);
     setError(null);
-    const activeToken = localStorage.getItem('auth_token') || '';
+    const activeToken = localStorage.getItem("auth_token") || "";
     try {
       if (api && api.calculateShippingRates) {
         const res = await api.calculateShippingRates({
@@ -52,11 +62,11 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
         setRateResult(res);
       } else {
         // Direct REST fallback call
-        const response = await fetch('/api/shipping/quote', {
-          method: 'POST',
+        const response = await fetch("/api/shipping/quote", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+            "Content-Type": "application/json",
+            ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
           },
           body: JSON.stringify({
             carrier,
@@ -67,11 +77,12 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
           }),
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to fetch rates');
+        if (!response.ok)
+          throw new Error(data.error || "Failed to fetch rates");
         setRateResult(data);
       }
     } catch (err: any) {
-      setError(err.message || 'Error calculating rates');
+      setError(err.message || "Error calculating rates");
     } finally {
       setLoading(false);
     }
@@ -80,7 +91,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
   const handleGenerateLabel = async () => {
     setLoading(true);
     setError(null);
-    const activeToken = localStorage.getItem('auth_token') || '';
+    const activeToken = localStorage.getItem("auth_token") || "";
     try {
       if (api && api.generateShippingLabel) {
         const res = await api.generateShippingLabel({
@@ -92,11 +103,11 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
         });
         setLabelResult(res);
       } else {
-        const response = await fetch('/api/shipping/label', {
-          method: 'POST',
+        const response = await fetch("/api/shipping/label", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+            "Content-Type": "application/json",
+            ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
           },
           body: JSON.stringify({
             carrier: labelCarrier,
@@ -107,11 +118,12 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
           }),
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to generate label');
+        if (!response.ok)
+          throw new Error(data.error || "Failed to generate label");
         setLabelResult(data);
       }
     } catch (err: any) {
-      setError(err.message || 'Error generating label');
+      setError(err.message || "Error generating label");
     } finally {
       setLoading(false);
     }
@@ -120,7 +132,7 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
   const handleSyncErp = async () => {
     setLoading(true);
     setError(null);
-    const activeToken = localStorage.getItem('auth_token') || '';
+    const activeToken = localStorage.getItem("auth_token") || "";
     try {
       const payload = {
         provider: erpProvider,
@@ -141,20 +153,21 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
         const res = await api.syncERPJournal(payload);
         setErpResult(res);
       } else {
-        const response = await fetch('/api/erp/sync', {
-          method: 'POST',
+        const response = await fetch("/api/erp/sync", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+            "Content-Type": "application/json",
+            ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
           },
           body: JSON.stringify(payload),
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to sync ERP journal');
+        if (!response.ok)
+          throw new Error(data.error || "Failed to sync ERP journal");
         setErpResult(data);
       }
     } catch (err: any) {
-      setError(err.message || 'Error syncing ERP journal');
+      setError(err.message || "Error syncing ERP journal");
     } finally {
       setLoading(false);
     }
@@ -169,38 +182,40 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
             Enterprise Logistics & ERP Integrations
           </h2>
           <p className="text-sm text-slate-400 mt-1">
-            Calculate carrier rates, generate thermal ZPL/PDF shipping labels, and sync double-entry journal postings to QuickBooks, NetSuite, and Xero.
+            Calculate carrier rates, generate thermal ZPL/PDF shipping labels,
+            and sync double-entry journal postings to QuickBooks, NetSuite, and
+            Xero.
           </p>
         </div>
 
         {/* Sub-tabs */}
         <div className="flex items-center space-x-2 bg-slate-800/80 p-1.5 rounded-lg border border-slate-700">
           <button
-            onClick={() => setActiveSubTab('rates')}
+            onClick={() => setActiveSubTab("rates")}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-              activeSubTab === 'rates'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-slate-200'
+              activeSubTab === "rates"
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
+                : "text-slate-400 hover:text-slate-200"
             }`}
           >
             🚚 Carrier Rates
           </button>
           <button
-            onClick={() => setActiveSubTab('label')}
+            onClick={() => setActiveSubTab("label")}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-              activeSubTab === 'label'
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-slate-200'
+              activeSubTab === "label"
+                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg"
+                : "text-slate-400 hover:text-slate-200"
             }`}
           >
             🏷️ Label Generator
           </button>
           <button
-            onClick={() => setActiveSubTab('erp')}
+            onClick={() => setActiveSubTab("erp")}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-              activeSubTab === 'erp'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-slate-200'
+              activeSubTab === "erp"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg"
+                : "text-slate-400 hover:text-slate-200"
             }`}
           >
             📊 ERP Sync
@@ -209,21 +224,36 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
       </div>
 
       {error && (
-        <div role="alert" aria-live="assertive" className="p-4 bg-red-950/60 border border-red-500/50 rounded-lg text-red-200 text-sm flex items-center justify-between">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="p-4 bg-red-950/60 border border-red-500/50 rounded-lg text-red-200 text-sm flex items-center justify-between"
+        >
           <span>⚠️ {error}</span>
-          <button onClick={() => setError(null)} aria-label="Dismiss error" title="Dismiss error" className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded">×</button>
+          <button
+            onClick={() => setError(null)}
+            aria-label="Dismiss error"
+            title="Dismiss error"
+            className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"
+          >
+            ×
+          </button>
         </div>
       )}
 
       {/* Subtab 1: Carrier Rates */}
-      {activeSubTab === 'rates' && (
+      {activeSubTab === "rates" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-slate-800/50 p-5 rounded-lg border border-slate-700/60 space-y-4">
-            <h3 className="text-lg font-semibold text-blue-300">Carrier Quote Request</h3>
-            
+            <h3 className="text-lg font-semibold text-blue-300">
+              Carrier Quote Request
+            </h3>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Carrier Provider</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Carrier Provider
+                </label>
                 <select
                   value={carrier}
                   onChange={(e) => setCarrier(e.target.value)}
@@ -237,7 +267,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Service Level</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Service Level
+                </label>
                 <input
                   type="text"
                   value={serviceLevel}
@@ -249,7 +281,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Origin Zip</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Origin Zip
+                </label>
                 <input
                   type="text"
                   value={originPostal}
@@ -258,7 +292,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Destination Zip</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Destination Zip
+                </label>
                 <input
                   type="text"
                   value={destPostal}
@@ -267,7 +303,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Weight (kg)</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Weight (kg)
+                </label>
                 <input
                   type="number"
                   step="0.1"
@@ -280,48 +318,66 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
             <button
               onClick={handleCalculateRates}
-              disabled={loading} aria-busy={loading}
+              disabled={loading}
+              aria-busy={loading}
               className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-lg shadow-md transition-all disabled:opacity-50"
             >
-              {loading ? 'Calculating Rate...' : 'Calculate Shipping Rate'}
+              {loading ? "Calculating Rate..." : "Calculate Shipping Rate"}
             </button>
           </div>
 
           <div className="bg-slate-800/50 p-5 rounded-lg border border-slate-700/60 flex flex-col justify-between">
-            <h3 className="text-lg font-semibold text-indigo-300 mb-4">Rate Breakdown Quote</h3>
+            <h3 className="text-lg font-semibold text-indigo-300 mb-4">
+              Rate Breakdown Quote
+            </h3>
             {rateResult ? (
               <div className="space-y-4">
                 <div className="p-4 bg-slate-900/80 rounded-lg border border-indigo-500/30 space-y-2">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-400">Carrier:</span>
-                    <span className="font-semibold text-indigo-400">{rateResult.carrier}</span>
+                    <span className="font-semibold text-indigo-400">
+                      {rateResult.carrier}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-400">Service Level:</span>
-                    <span className="text-slate-200">{rateResult.serviceLevel}</span>
+                    <span className="text-slate-200">
+                      {rateResult.serviceLevel}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-400">Est. Delivery:</span>
-                    <span className="text-emerald-400 font-medium">{rateResult.estimatedDeliveryDays} Business Days</span>
+                    <span className="text-emerald-400 font-medium">
+                      {rateResult.estimatedDeliveryDays} Business Days
+                    </span>
                   </div>
                   <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-sm">
                     <span className="text-slate-400">Base Freight:</span>
-                    <span className="text-slate-300">${(rateResult.baseRateCents / 100).toFixed(2)}</span>
+                    <span className="text-slate-300">
+                      ${(rateResult.baseRateCents / 100).toFixed(2)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-400">Fuel Surcharge:</span>
-                    <span className="text-slate-300">${(rateResult.fuelSurchargeCents / 100).toFixed(2)}</span>
+                    <span className="text-slate-300">
+                      ${(rateResult.fuelSurchargeCents / 100).toFixed(2)}
+                    </span>
                   </div>
                   <div className="border-t border-slate-700 pt-2 flex justify-between items-center text-base font-bold">
                     <span className="text-slate-100">Total Rate:</span>
-                    <span className="text-2xl text-emerald-400">${(rateResult.totalRateCents / 100).toFixed(2)} {rateResult.currency}</span>
+                    <span className="text-2xl text-emerald-400">
+                      ${(rateResult.totalRateCents / 100).toFixed(2)}{" "}
+                      {rateResult.currency}
+                    </span>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-12">
                 <span className="text-4xl mb-2">📦</span>
-                <p className="text-sm">Submit shipping parameters to view rate calculation.</p>
+                <p className="text-sm">
+                  Submit shipping parameters to view rate calculation.
+                </p>
               </div>
             )}
           </div>
@@ -329,14 +385,18 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
       )}
 
       {/* Subtab 2: Label Generator */}
-      {activeSubTab === 'label' && (
+      {activeSubTab === "label" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-slate-800/50 p-5 rounded-lg border border-slate-700/60 space-y-4">
-            <h3 className="text-lg font-semibold text-purple-300">Label Generator Parameters</h3>
-            
+            <h3 className="text-lg font-semibold text-purple-300">
+              Label Generator Parameters
+            </h3>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Carrier</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Carrier
+                </label>
                 <select
                   value={labelCarrier}
                   onChange={(e) => setLabelCarrier(e.target.value)}
@@ -350,7 +410,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Label Format</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Label Format
+                </label>
                 <select
                   value={labelFormat}
                   onChange={(e) => setLabelFormat(e.target.value as any)}
@@ -364,7 +426,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Recipient Name</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">
+                Recipient Name
+              </label>
               <input
                 type="text"
                 value={recipientName}
@@ -374,7 +438,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Shipping Address</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">
+                Shipping Address
+              </label>
               <textarea
                 value={shippingAddress}
                 onChange={(e) => setShippingAddress(e.target.value)}
@@ -385,27 +451,36 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
             <button
               onClick={handleGenerateLabel}
-              disabled={loading} aria-busy={loading}
+              disabled={loading}
+              aria-busy={loading}
               className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium rounded-lg shadow-md transition-all disabled:opacity-50"
             >
-              {loading ? 'Generating Label...' : 'Generate Thermal / PDF Label'}
+              {loading ? "Generating Label..." : "Generate Thermal / PDF Label"}
             </button>
           </div>
 
           <div className="bg-slate-800/50 p-5 rounded-lg border border-slate-700/60 flex flex-col justify-between space-y-4">
-            <h3 className="text-lg font-semibold text-purple-300">Generated Shipping Artifacts</h3>
+            <h3 className="text-lg font-semibold text-purple-300">
+              Generated Shipping Artifacts
+            </h3>
             {labelResult ? (
               <div className="space-y-4 text-xs font-mono">
                 <div className="p-3 bg-slate-900 rounded-md border border-purple-500/30 flex justify-between items-center">
                   <span className="text-slate-400">Tracking Number:</span>
-                  <span className="font-bold text-emerald-400 text-sm">{labelResult.trackingNumber}</span>
+                  <span className="font-bold text-emerald-400 text-sm">
+                    {labelResult.trackingNumber}
+                  </span>
                 </div>
 
                 {labelResult.zplString && (
                   <div className="space-y-1">
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400 font-sans text-xs">Thermal Printer Command (ZPL):</span>
-                      <span className="text-[10px] text-purple-400 font-sans">4x6 Direct Thermal</span>
+                      <span className="text-slate-400 font-sans text-xs">
+                        Thermal Printer Command (ZPL):
+                      </span>
+                      <span className="text-[10px] text-purple-400 font-sans">
+                        4x6 Direct Thermal
+                      </span>
                     </div>
                     <pre className="p-3 bg-slate-950 rounded border border-slate-800 text-purple-300 text-[11px] overflow-x-auto whitespace-pre-wrap">
                       {labelResult.zplString}
@@ -415,7 +490,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
                 {labelResult.pdfBase64 && (
                   <div className="space-y-1">
-                    <span className="text-slate-400 font-sans text-xs">PDF Document Stream (Base64 Snippet):</span>
+                    <span className="text-slate-400 font-sans text-xs">
+                      PDF Document Stream (Base64 Snippet):
+                    </span>
                     <pre className="p-2 bg-slate-950 rounded border border-slate-800 text-emerald-400 text-[11px] overflow-x-auto truncate">
                       {labelResult.pdfBase64}
                     </pre>
@@ -424,8 +501,19 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
                 {labelResult.bolUrl && (
                   <div className="p-2 bg-indigo-950/40 rounded border border-indigo-500/40 flex justify-between items-center">
-                    <span className="text-indigo-300 font-sans">Bill of Lading (BOL):</span>
-                    <a href={/^https?:/i.test(labelResult.bolUrl) ? labelResult.bolUrl : 'about:blank'} target="_blank" rel="noopener noreferrer" className="text-indigo-400 underline font-sans">
+                    <span className="text-indigo-300 font-sans">
+                      Bill of Lading (BOL):
+                    </span>
+                    <a
+                      href={
+                        /^https?:/i.test(labelResult.bolUrl)
+                          ? labelResult.bolUrl
+                          : "about:blank"
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-400 underline font-sans"
+                    >
                       Download LTL BOL PDF
                     </a>
                   </div>
@@ -434,7 +522,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-12">
                 <span className="text-4xl mb-2">🏷️</span>
-                <p className="text-sm">Generate label to view ZPL thermal strings and PDF payloads.</p>
+                <p className="text-sm">
+                  Generate label to view ZPL thermal strings and PDF payloads.
+                </p>
               </div>
             )}
           </div>
@@ -442,27 +532,37 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
       )}
 
       {/* Subtab 3: ERP Sync */}
-      {activeSubTab === 'erp' && (
+      {activeSubTab === "erp" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-slate-800/50 p-5 rounded-lg border border-slate-700/60 space-y-4">
-            <h3 className="text-lg font-semibold text-emerald-300">ERP Accounting Sync Input</h3>
+            <h3 className="text-lg font-semibold text-emerald-300">
+              ERP Accounting Sync Input
+            </h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Target ERP System</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Target ERP System
+                </label>
                 <select
                   value={erpProvider}
                   onChange={(e) => setErpProvider(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
                 >
-                  <option value="QUICKBOOKS">Intuit QuickBooks Online (V3 API)</option>
-                  <option value="NETSUITE">Oracle NetSuite (SuiteTalk REST)</option>
+                  <option value="QUICKBOOKS">
+                    Intuit QuickBooks Online (V3 API)
+                  </option>
+                  <option value="NETSUITE">
+                    Oracle NetSuite (SuiteTalk REST)
+                  </option>
                   <option value="XERO">Xero Accounting (ManualJournals)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Reference ID</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Reference ID
+                </label>
                 <input
                   type="text"
                   value={referenceId}
@@ -474,7 +574,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Account Code</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Account Code
+                </label>
                 <input
                   type="text"
                   value={accountCode}
@@ -483,7 +585,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Amount (Cents)</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Amount (Cents)
+                </label>
                 <input
                   type="number"
                   value={amountCents}
@@ -492,7 +596,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Type</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Type
+                </label>
                 <select
                   value={postingType}
                   onChange={(e) => setPostingType(e.target.value)}
@@ -505,10 +611,12 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">API Key / Auth Token (Set to "mock" for fallback mode)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">
+                API Key / Auth Token (Set to "mock" for fallback mode)
+              </label>
               <input
                 type="password"
-                autoComplete="off"
+                autoComplete="new-password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
@@ -517,15 +625,20 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
 
             <button
               onClick={handleSyncErp}
-              disabled={loading} aria-busy={loading}
+              disabled={loading}
+              aria-busy={loading}
               className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-lg shadow-md transition-all disabled:opacity-50"
             >
-              {loading ? 'Posting Journal Entry...' : 'Post Journal Entry to ERP'}
+              {loading
+                ? "Posting Journal Entry..."
+                : "Post Journal Entry to ERP"}
             </button>
           </div>
 
           <div className="bg-slate-800/50 p-5 rounded-lg border border-slate-700/60 flex flex-col justify-between">
-            <h3 className="text-lg font-semibold text-emerald-300 mb-4">ERP Sync Confirmation</h3>
+            <h3 className="text-lg font-semibold text-emerald-300 mb-4">
+              ERP Sync Confirmation
+            </h3>
             {erpResult ? (
               <div className="space-y-4">
                 <div className="p-4 bg-slate-900/90 rounded-lg border border-emerald-500/40 space-y-3">
@@ -537,15 +650,23 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-400">Provider:</span>
-                    <span className="font-semibold text-emerald-300">{erpResult.provider}</span>
+                    <span className="font-semibold text-emerald-300">
+                      {erpResult.provider}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-400">External ERP Journal ID:</span>
-                    <span className="font-mono text-indigo-300">{erpResult.externalJournalId}</span>
+                    <span className="text-slate-400">
+                      External ERP Journal ID:
+                    </span>
+                    <span className="font-mono text-indigo-300">
+                      {erpResult.externalJournalId}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-400">Posted Amount:</span>
-                    <span className="font-bold text-slate-100">${(erpResult.postedAmountCents / 100).toFixed(2)}</span>
+                    <span className="font-bold text-slate-100">
+                      ${(erpResult.postedAmountCents / 100).toFixed(2)}
+                    </span>
                   </div>
                   <div className="p-3 bg-slate-950 rounded border border-slate-800 text-xs text-slate-300">
                     {erpResult.message}
@@ -555,7 +676,9 @@ export const LogisticsErpPanel: React.FC<LogisticsErpPanelProps> = ({ api }) => 
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-12">
                 <span className="text-4xl mb-2">📊</span>
-                <p className="text-sm">Submit journal parameters to test ERP adapter sync.</p>
+                <p className="text-sm">
+                  Submit journal parameters to test ERP adapter sync.
+                </p>
               </div>
             )}
           </div>
