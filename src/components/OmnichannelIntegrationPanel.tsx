@@ -106,15 +106,39 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
       </h2>
 
       {error && (
-        <div role="alert" aria-live="assertive" className="mb-4 p-3 bg-red-100 text-red-700 rounded flex items-center justify-between">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="mb-4 p-3 bg-red-100 text-red-700 rounded flex items-center justify-between"
+        >
           <span>{error}</span>
-          <button type="button" onClick={() => setError("")} aria-label="Dismiss error" title="Dismiss error" className="text-red-700 hover:text-red-900 font-bold ml-2">×</button>
+          <button
+            type="button"
+            onClick={() => setError("")}
+            aria-label="Dismiss error"
+            title="Dismiss error"
+            className="text-red-700 hover:text-red-900 font-bold ml-2"
+          >
+            ×
+          </button>
         </div>
       )}
       {success && (
-        <div role="alert" aria-live="polite" className="mb-4 p-3 bg-green-100 text-green-700 rounded flex items-center justify-between">
+        <div
+          role="alert"
+          aria-live="polite"
+          className="mb-4 p-3 bg-green-100 text-green-700 rounded flex items-center justify-between"
+        >
           <span>{success}</span>
-          <button type="button" onClick={() => setSuccess("")} aria-label="Dismiss success message" title="Dismiss success message" className="text-green-700 hover:text-green-900 font-bold ml-2">×</button>
+          <button
+            type="button"
+            onClick={() => setSuccess("")}
+            aria-label="Dismiss success message"
+            title="Dismiss success message"
+            className="text-green-700 hover:text-green-900 font-bold ml-2"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -149,7 +173,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
               <input
                 id="amazonAuthToken"
                 type="password"
-                autoComplete="off"
+                autoComplete="new-password"
                 value={amazonAuthToken}
                 onChange={(e) => setAmazonAuthToken(e.target.value)}
                 className="w-full border rounded p-2 text-sm"
@@ -230,7 +254,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
               <input
                 id="wooSecret"
                 type="password"
-                autoComplete="off"
+                autoComplete="new-password"
                 value={wooSecret}
                 onChange={(e) => setWooSecret(e.target.value)}
                 className="w-full border rounded p-2 text-sm"
@@ -279,7 +303,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
               <input
                 id="shopifyToken"
                 type="password"
-                autoComplete="off"
+                autoComplete="new-password"
                 value={shopifyToken}
                 onChange={(e) => setShopifyToken(e.target.value)}
                 className="w-full border rounded p-2 text-sm"

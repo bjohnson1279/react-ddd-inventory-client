@@ -117,3 +117,8 @@
 - **Strictly Append-Only Journaling**: When adding learnings to `.jules/*.md`, append strictly at the end of the file. Do not rewrite, deduplicate, or remove lines beginning with `## YYYY-MM-DD`.
 - **Surgical Scope Quarantine**: Modify only the files directly involved in the issue and their corresponding test fixtures. Do not delete, rename, or perform drive-by cleanups of unrelated root-level scripts or legacy files.
 - **Coupled Test Fixture Awareness for Security Invariants**: When changing fail-open fallback behavior (such as hardening decryption to fail closed), always update upstream test mocks that rely on plaintext credentials or mock values.
+
+## 2024-05-24 - API Token Auto-fill Prevention
+**Vulnerability:** Password inputs for sensitive API tokens used `autoComplete="off"`, which modern browsers and password managers often ignore.
+**Learning:** This can lead to them auto-filling user login passwords into API token fields, or incorrectly prompting to save API tokens as user passwords, leaking secrets or confusing users.
+**Prevention:** Use `autoComplete="new-password"` for sensitive API token inputs (that are not user login passwords) to reliably disable password manager interference.
