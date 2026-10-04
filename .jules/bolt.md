@@ -142,3 +142,6 @@
 - **Strictly Append-Only Journaling**: When adding learnings to `.jules/*.md`, append strictly at the end of the file. Do not rewrite, deduplicate, or remove lines beginning with `## YYYY-MM-DD`.
 - **Surgical Scope Quarantine**: Modify only the files directly involved in the issue and their corresponding test fixtures. Do not delete, rename, or perform drive-by cleanups of unrelated root-level scripts or legacy files.
 - **Coupled Test Fixture Awareness for Security Invariants**: When changing fail-open fallback behavior (such as hardening decryption to fail closed), always update upstream test mocks that rely on plaintext credentials or mock values.
+## 2024-05-18 - Chunking Promise.all for HTTP Request Concurrency
+**Learning:** In frontend API adapters handling massive catalogs, `Promise.all` triggers a thundering herd of HTTP connections. This often results in socket exhaustion (e.g., `EMFILE` or `EADDRNOTAVAIL`), proxy overloads, and N+1 API stalls, defeating the intended concurrency benefits.
+**Action:** When making concurrent HTTP requests inside iteration loops, replace raw `Promise.all` arrays with chunked arrays that process requests in limited batches (e.g., `CHUNK_SIZE = 10`) sequentially, or use connection pooling where supported.
