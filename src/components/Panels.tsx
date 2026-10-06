@@ -2874,7 +2874,6 @@ export const RfidPanel: React.FC<{
 
   // Metrics
   const totalProcessedBatches = scanEvents.length;
-  // ⚡ Bolt: Replace double O(N) .reduce() with a single-pass O(N) for-loop to calculate continuous stream metrics without callback overhead
   const { totalMatched, totalScanned, averageMatchRate } = React.useMemo(() => {
     let matched = 0;
     let scanned = 0;
