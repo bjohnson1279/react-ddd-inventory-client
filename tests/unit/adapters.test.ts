@@ -1,179 +1,246 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GraphQLAdapter } from '../../src/api/graphql';
-import { ExpressRESTAdapter } from '../../src/api/express';
-import { LaravelRESTAdapter } from '../../src/api/laravel';
-import { PythonRESTAdapter } from '../../src/api/python';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { GraphQLAdapter } from "../../src/api/graphql";
+import { ExpressRESTAdapter } from "../../src/api/express";
+import { LaravelRESTAdapter } from "../../src/api/laravel";
+import { PythonRESTAdapter } from "../../src/api/python";
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => { store[key] = value.toString(); },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { store = {}; }
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
   };
 })();
-Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+Object.defineProperty(global, "localStorage", { value: localStorageMock });
 
-describe('Inventory Backend API Adapters', () => {
+describe("Inventory Backend API Adapters", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
   });
 
-  describe('GraphQLAdapter', () => {
-    it('should correctly perform login and retrieve token', async () => {
+  describe("GraphQLAdapter", () => {
+    it("should correctly perform login and retrieve token", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
-          data: { login: 'mock-gql-jwt-token' }
-        })
+          data: { login: "mock-gql-jwt-token" },
+        }),
       });
       global.fetch = mockFetch;
 
       const adapter = new GraphQLAdapter();
-      const token = await adapter.login('tenant-1', 'admin', 'admin', 'password');
+      const token = await adapter.login(
+        "tenant-1",
+        "admin",
+        "admin",
+        "password",
+      );
 
-      expect(token).toBe('mock-gql-jwt-token');
+      expect(token).toBe("mock-gql-jwt-token");
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:4000/graphql',
+        "http://localhost:4000/graphql",
         expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({ 'Content-Type': 'application/json' })
-        })
+          method: "POST",
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+          }),
+        }),
       );
     });
   });
 
-  describe('ExpressRESTAdapter', () => {
-    it('should attempt setup when login credentials fail', async () => {
-      const mockFetch = vi.fn()
+  describe("ExpressRESTAdapter", () => {
+    it("should attempt setup when login credentials fail", async () => {
+      const mockFetch = vi
+        .fn()
         // First login attempt fails (401 Unauthorized)
         .mockResolvedValueOnce({
           ok: false,
           status: 401,
-          text: async () => JSON.stringify({ error: 'Invalid credentials' })
+          text: async () => JSON.stringify({ error: "Invalid credentials" }),
         })
         // Setup registration succeeds
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ message: 'Setup completed' })
+          json: async () => ({ message: "Setup completed" }),
         })
         // Second login attempt succeeds
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ token: 'mock-express-jwt-token' })
+          json: async () => ({ token: "mock-express-jwt-token" }),
         });
       global.fetch = mockFetch;
 
       const adapter = new ExpressRESTAdapter();
-      const token = await adapter.login('tenant-test', 'admin-user', 'admin', 'password');
+      const token = await adapter.login(
+        "tenant-test",
+        "admin-user",
+        "admin",
+        "password",
+      );
 
-      expect(token).toBe('mock-express-jwt-token');
+      expect(token).toBe("mock-express-jwt-token");
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
 
-    it('should query slotting suggestions route successfully', async () => {
+    it("should query slotting suggestions route successfully", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => [{ sku: 'SKU-A', currentLocationId: 'loc-1', estimatedSavings: 100 }]
+        json: async () => [
+          { sku: "SKU-A", currentLocationId: "loc-1", estimatedSavings: 100 },
+        ],
       });
       global.fetch = mockFetch;
       const adapter = new ExpressRESTAdapter();
-      const suggestions = await adapter.getSlottingSuggestions('tenant-test');
+      const suggestions = await adapter.getSlottingSuggestions("tenant-test");
       expect(suggestions).toHaveLength(1);
-      expect(suggestions[0].sku).toBe('SKU-A');
+      expect(suggestions[0].sku).toBe("SKU-A");
     });
 
-    it('should verify compliance ledger successfully', async () => {
+    it("should verify compliance ledger successfully", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ isValid: true })
+        json: async () => ({ isValid: true }),
       });
       global.fetch = mockFetch;
       const adapter = new ExpressRESTAdapter();
-      const result = await adapter.verifyComplianceLedger('tenant-1');
+      const result = await adapter.verifyComplianceLedger("tenant-1");
       expect(result).toEqual({ isValid: true });
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/compliance/verify?tenantId=tenant-1',
-        expect.objectContaining({ method: 'POST' })
+        "http://localhost:5000/api/compliance/verify?tenantId=tenant-1",
+        expect.objectContaining({ method: "POST" }),
       );
     });
 
-    it('should handle compliance ledger verification failure with reason', async () => {
+    it("should handle compliance ledger verification failure with reason", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ isValid: false, failedSequenceNumber: 5, reason: 'mismatch' })
+        json: async () => ({
+          isValid: false,
+          failedSequenceNumber: 5,
+          reason: "mismatch",
+        }),
       });
       global.fetch = mockFetch;
       const adapter = new ExpressRESTAdapter();
-      const result = await adapter.verifyComplianceLedger('tenant-1');
-      expect(result).toEqual({ isValid: false, failedSequenceNumber: 5, reason: 'mismatch' });
+      const result = await adapter.verifyComplianceLedger("tenant-1");
+      expect(result).toEqual({
+        isValid: false,
+        failedSequenceNumber: 5,
+        reason: "mismatch",
+      });
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/compliance/verify?tenantId=tenant-1',
-        expect.objectContaining({ method: 'POST' })
+        "http://localhost:5000/api/compliance/verify?tenantId=tenant-1",
+        expect.objectContaining({ method: "POST" }),
       );
     });
 
-    it('should parse non-JSON error response correctly and throw', async () => {
+    it("should parse JSON error object with error field", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ error: "Invalid SKU provided" }),
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+
+      await expect(adapter.getInventoryItems()).rejects.toThrow(
+        "Invalid SKU provided",
+      );
+    });
+
+    it("should fallback to HTTP status error if JSON error object lacks error field", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ message: "Validation failed" }),
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+
+      await expect(adapter.getInventoryItems()).rejects.toThrow(
+        "HTTP 400 Error",
+      );
+    });
+
+    it("should parse non-JSON error response correctly and throw", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 502,
-        text: async () => 'Bad Gateway'
+        text: async () => "Bad Gateway",
       });
       global.fetch = mockFetch;
       const adapter = new ExpressRESTAdapter();
 
-      await expect(adapter.getInventoryItems()).rejects.toThrow('Bad Gateway');
+      await expect(adapter.getInventoryItems()).rejects.toThrow("Bad Gateway");
     });
 
-    it('should fallback to HTTP status error if error text is empty', async () => {
+    it("should fallback to HTTP status error if error text is empty", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
-        text: async () => ''
+        text: async () => "",
       });
       global.fetch = mockFetch;
       const adapter = new ExpressRESTAdapter();
 
-      await expect(adapter.getInventoryItems()).rejects.toThrow('HTTP 500 Error');
+      await expect(adapter.getInventoryItems()).rejects.toThrow(
+        "HTTP 500 Error",
+      );
     });
   });
 
-  describe('LaravelRESTAdapter', () => {
-    it('should throw an error with raw text when response is not ok and not JSON', async () => {
+  describe("LaravelRESTAdapter", () => {
+    it("should throw an error with raw text when response is not ok and not JSON", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
-        text: async () => 'Internal Server Error String'
+        text: async () => "Internal Server Error String",
       });
       global.fetch = mockFetch;
 
       const adapter = new LaravelRESTAdapter();
-      await expect(adapter.getSlottingSuggestions('t1')).rejects.toThrow('Internal Server Error String');
+      await expect(adapter.getSlottingSuggestions("t1")).rejects.toThrow(
+        "Internal Server Error String",
+      );
     });
 
-    it('should query catalog and gather stock for each SKU sequentially', async () => {
-      const mockFetch = vi.fn()
+    it("should query catalog and gather stock for each SKU sequentially", async () => {
+      const mockFetch = vi
+        .fn()
         // Product list request
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
             products: [
               {
-                id: 'p-1',
-                name: 'Product 1',
+                id: "p-1",
+                name: "Product 1",
                 variants: [
-                  { id: 'v-1', sku: 'SKU-A', tracking_mode: 'quantity', attributes: [] }
-                ]
-              }
-            ]
-          })
+                  {
+                    id: "v-1",
+                    sku: "SKU-A",
+                    tracking_mode: "quantity",
+                    attributes: [],
+                  },
+                ],
+              },
+            ],
+          }),
         })
         // SKU stock query
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ available_quantity: 42, location_id: 'loc-A' })
+          json: async () => ({ available_quantity: 42, location_id: "loc-A" }),
         });
       global.fetch = mockFetch;
 
@@ -182,265 +249,325 @@ describe('Inventory Backend API Adapters', () => {
 
       expect(items).toHaveLength(1);
       expect(items[0]).toEqual({
-        id: 'v-1-stock',
-        sku: 'SKU-A',
-        locationId: 'loc-A',
+        id: "v-1-stock",
+        sku: "SKU-A",
+        locationId: "loc-A",
         quantity: 42,
-        version: 1
+        version: 1,
       });
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
-    it('should query slotting suggestions route successfully', async () => {
+    it("should query slotting suggestions route successfully", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => [{ sku: 'SKU-A', currentLocationId: 'loc-1', estimatedSavings: 100 }]
+        json: async () => [
+          { sku: "SKU-A", currentLocationId: "loc-1", estimatedSavings: 100 },
+        ],
       });
       global.fetch = mockFetch;
       const adapter = new LaravelRESTAdapter();
-      const suggestions = await adapter.getSlottingSuggestions('tenant-test');
+      const suggestions = await adapter.getSlottingSuggestions("tenant-test");
       expect(suggestions).toHaveLength(1);
-      expect(suggestions[0].sku).toBe('SKU-A');
+      expect(suggestions[0].sku).toBe("SKU-A");
     });
 
-    it('should connect to Server-Sent Events and capture barcode scans', async () => {
+    it("should connect to Server-Sent Events and capture barcode scans", async () => {
       const mockReader = {
-        read: vi.fn().mockResolvedValueOnce({
-          done: false,
-          value: new TextEncoder().encode('data: ' + JSON.stringify({
-            type: 'BarcodeScanned',
-            scanValue: '9988776655',
-            symbology: 'EAN-13',
-            context: 'receive',
-            status: 'success',
-            time: '2026-07-15T12:00:00Z'
-          }) + '\n\n')
-        }).mockResolvedValueOnce({ done: true })
+        read: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              "data: " +
+                JSON.stringify({
+                  type: "BarcodeScanned",
+                  scanValue: "9988776655",
+                  symbology: "EAN-13",
+                  context: "receive",
+                  status: "success",
+                  time: "2026-07-15T12:00:00Z",
+                }) +
+                "\n\n",
+            ),
+          })
+          .mockResolvedValueOnce({ done: true }),
       };
-      
+
       const mockFetch = vi.fn().mockResolvedValue({
-        body: { getReader: () => mockReader }
+        body: { getReader: () => mockReader },
       });
       global.fetch = mockFetch as any;
 
-      localStorage.setItem('auth_token', 'test-auth-token-999');
+      localStorage.setItem("auth_token", "test-auth-token-999");
 
       const adapter = new LaravelRESTAdapter();
       const onScan = vi.fn();
-      const unsubscribe = adapter.subscribeBarcodeScans('tenant-1', onScan);
+      const unsubscribe = adapter.subscribeBarcodeScans("tenant-1", onScan);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/notifications/subscribe',
+        "http://localhost:8000/api/notifications/subscribe",
         expect.objectContaining({
-          headers: { 'Accept': 'text/event-stream', 'Authorization': 'Bearer test-auth-token-999' },
-          signal: expect.any(AbortSignal)
-        })
+          headers: {
+            Accept: "text/event-stream",
+            Authorization: "Bearer test-auth-token-999",
+          },
+          signal: expect.any(AbortSignal),
+        }),
       );
 
       // wait for stream to process
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 50));
 
       expect(onScan).toHaveBeenCalledWith({
-        scanValue: '9988776655',
-        symbology: 'EAN-13',
-        context: 'receive',
-        status: 'success',
-        time: '2026-07-15T12:00:00Z'
+        scanValue: "9988776655",
+        symbology: "EAN-13",
+        context: "receive",
+        status: "success",
+        time: "2026-07-15T12:00:00Z",
       });
 
       unsubscribe();
     });
 
-    it('should query rfid tags, assign, and subscribe', async () => {
-      const mockFetch = vi.fn()
+    it("should query rfid tags, assign, and subscribe", async () => {
+      const mockFetch = vi
+        .fn()
         // getRfidTags
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ tags: [{ epc: 'EPC-1', sku: 'SKU-A', serial_number: 'SN-1' }] })
+          json: async () => ({
+            tags: [{ epc: "EPC-1", sku: "SKU-A", serial_number: "SN-1" }],
+          }),
         })
         // assignRfidTag
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ message: 'Tag assigned successfully' })
+          json: async () => ({ message: "Tag assigned successfully" }),
         })
         // simulateRfidScan
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ message: 'RFID scan simulation published.' })
+          json: async () => ({ message: "RFID scan simulation published." }),
         });
       global.fetch = mockFetch;
 
       const adapter = new LaravelRESTAdapter();
-      const tags = await adapter.getRfidTags('tenant-1');
+      const tags = await adapter.getRfidTags("tenant-1");
       expect(tags).toHaveLength(1);
-      expect(tags[0].epc).toBe('EPC-1');
+      expect(tags[0].epc).toBe("EPC-1");
 
-      await adapter.assignRfidTag('tenant-1', 'EPC-1', 'SKU-A', 'SN-1');
-      await adapter.simulateRfidScan('tenant-1', 'LOC-A', ['EPC-1']);
+      await adapter.assignRfidTag("tenant-1", "EPC-1", "SKU-A", "SN-1");
+      await adapter.simulateRfidScan("tenant-1", "LOC-A", ["EPC-1"]);
       expect(mockFetch).toHaveBeenCalledTimes(3);
 
       // subscribeRfidScans
       const mockReader = {
-        read: vi.fn().mockResolvedValueOnce({
-          done: false,
-          value: new TextEncoder().encode('data: ' + JSON.stringify({
-            type: 'rfid_scan_processed',
-            message: JSON.stringify({
-              id: 'batch-1',
-              tenantId: 'tenant-1',
-              locationId: 'LOC-A',
-              totalCount: 1,
-              matchedCount: 1,
-              unmatchedCount: 0,
-              unmatchedEpcs: []
-            })
-          }) + '\n\n')
-        }).mockResolvedValueOnce({ done: true })
+        read: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              "data: " +
+                JSON.stringify({
+                  type: "rfid_scan_processed",
+                  message: JSON.stringify({
+                    id: "batch-1",
+                    tenantId: "tenant-1",
+                    locationId: "LOC-A",
+                    totalCount: 1,
+                    matchedCount: 1,
+                    unmatchedCount: 0,
+                    unmatchedEpcs: [],
+                  }),
+                }) +
+                "\n\n",
+            ),
+          })
+          .mockResolvedValueOnce({ done: true }),
       };
 
       const mockFetchSse = vi.fn().mockResolvedValue({
-        body: { getReader: () => mockReader }
+        body: { getReader: () => mockReader },
       });
       global.fetch = mockFetchSse as any;
-      localStorage.setItem('auth_token', 'test-auth-token-999');
+      localStorage.setItem("auth_token", "test-auth-token-999");
 
       const onScanProcessed = vi.fn();
-      const unsubscribe = adapter.subscribeRfidScans('tenant-1', onScanProcessed);
+      const unsubscribe = adapter.subscribeRfidScans(
+        "tenant-1",
+        onScanProcessed,
+      );
 
       expect(mockFetchSse).toHaveBeenCalledWith(
-        'http://localhost:8000/api/notifications/subscribe',
+        "http://localhost:8000/api/notifications/subscribe",
         expect.objectContaining({
-          headers: { 'Accept': 'text/event-stream', 'Authorization': 'Bearer test-auth-token-999' },
-          signal: expect.any(AbortSignal)
-        })
+          headers: {
+            Accept: "text/event-stream",
+            Authorization: "Bearer test-auth-token-999",
+          },
+          signal: expect.any(AbortSignal),
+        }),
       );
 
       // wait for stream to process
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 50));
 
       expect(onScanProcessed).toHaveBeenCalledWith({
-        id: 'batch-1',
-        tenantId: 'tenant-1',
-        locationId: 'LOC-A',
+        id: "batch-1",
+        tenantId: "tenant-1",
+        locationId: "LOC-A",
         totalCount: 1,
         matchedCount: 1,
         unmatchedCount: 0,
-        unmatchedEpcs: []
+        unmatchedEpcs: [],
       });
       unsubscribe();
     });
   });
 
-  describe('GraphQLAdapter RFID methods', () => {
-    it('should query rfid tags, assign, and simulate scans', async () => {
-      const mockFetch = vi.fn()
+  describe("GraphQLAdapter RFID methods", () => {
+    it("should query rfid tags, assign, and simulate scans", async () => {
+      const mockFetch = vi
+        .fn()
         // getRfidTags
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
-            data: { rfidTags: [{ epc: 'EPC-GQL-1', sku: 'SKU-GQL', serialNumber: 'SN-GQL', status: 'ACTIVE' }] }
-          })
+            data: {
+              rfidTags: [
+                {
+                  epc: "EPC-GQL-1",
+                  sku: "SKU-GQL",
+                  serialNumber: "SN-GQL",
+                  status: "ACTIVE",
+                },
+              ],
+            },
+          }),
         })
         // assignRfidTag
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
-            data: { assignRfidTag: true }
-          })
+            data: { assignRfidTag: true },
+          }),
         })
         // simulateRfidScan
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
-            data: { simulateRfidScan: true }
-          })
+            data: { simulateRfidScan: true },
+          }),
         });
       global.fetch = mockFetch;
 
       const adapter = new GraphQLAdapter();
-      const tags = await adapter.getRfidTags('tenant-1');
+      const tags = await adapter.getRfidTags("tenant-1");
       expect(tags).toHaveLength(1);
-      expect(tags[0].epc).toBe('EPC-GQL-1');
+      expect(tags[0].epc).toBe("EPC-GQL-1");
 
-      await adapter.assignRfidTag('tenant-1', 'EPC-GQL-1', 'SKU-GQL', 'SN-GQL');
-      await adapter.simulateRfidScan('tenant-1', 'LOC-A', ['EPC-GQL-1']);
+      await adapter.assignRfidTag("tenant-1", "EPC-GQL-1", "SKU-GQL", "SN-GQL");
+      await adapter.simulateRfidScan("tenant-1", "LOC-A", ["EPC-GQL-1"]);
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
 
-  describe('ExpressRESTAdapter RFID methods', () => {
-    it('should query rfid tags, assign, and simulate scans', async () => {
-      const mockFetch = vi.fn()
+  describe("ExpressRESTAdapter RFID methods", () => {
+    it("should query rfid tags, assign, and simulate scans", async () => {
+      const mockFetch = vi
+        .fn()
         // getRfidTags
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ tags: [{ epc: 'EPC-EXP-1', sku: 'SKU-EXP', serialNumber: 'SN-EXP', status: 'ACTIVE' }] })
+          json: async () => ({
+            tags: [
+              {
+                epc: "EPC-EXP-1",
+                sku: "SKU-EXP",
+                serialNumber: "SN-EXP",
+                status: "ACTIVE",
+              },
+            ],
+          }),
         })
         // assignRfidTag
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ message: 'Tag assigned successfully' })
+          json: async () => ({ message: "Tag assigned successfully" }),
         })
         // simulateRfidScan
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ message: 'RFID scan simulation published.' })
+          json: async () => ({ message: "RFID scan simulation published." }),
         });
       global.fetch = mockFetch;
 
       const adapter = new ExpressRESTAdapter();
-      const tags = await adapter.getRfidTags('tenant-1');
+      const tags = await adapter.getRfidTags("tenant-1");
       expect(tags).toHaveLength(1);
-      expect(tags[0].epc).toBe('EPC-EXP-1');
+      expect(tags[0].epc).toBe("EPC-EXP-1");
 
-      await adapter.assignRfidTag('tenant-1', 'EPC-EXP-1', 'SKU-EXP', 'SN-EXP');
-      await adapter.simulateRfidScan('tenant-1', 'LOC-A', ['EPC-EXP-1']);
+      await adapter.assignRfidTag("tenant-1", "EPC-EXP-1", "SKU-EXP", "SN-EXP");
+      await adapter.simulateRfidScan("tenant-1", "LOC-A", ["EPC-EXP-1"]);
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
-  describe('PythonRESTAdapter', () => {
-    it('should query slotting suggestions route successfully', async () => {
+  describe("PythonRESTAdapter", () => {
+    it("should query slotting suggestions route successfully", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => [{ sku: 'SKU-A', currentLocationId: 'loc-1', estimatedSavings: 100 }]
+        json: async () => [
+          { sku: "SKU-A", currentLocationId: "loc-1", estimatedSavings: 100 },
+        ],
       });
       global.fetch = mockFetch;
       const adapter = new PythonRESTAdapter();
-      const suggestions = await adapter.getSlottingSuggestions('tenant-test');
+      const suggestions = await adapter.getSlottingSuggestions("tenant-test");
       expect(suggestions).toHaveLength(1);
-      expect(suggestions[0].sku).toBe('SKU-A');
+      expect(suggestions[0].sku).toBe("SKU-A");
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8000/warehouse-locations/slotting-suggestions?tenantId=tenant-test',
-        expect.objectContaining({ method: 'GET' })
+        "http://localhost:8000/warehouse-locations/slotting-suggestions?tenantId=tenant-test",
+        expect.objectContaining({ method: "GET" }),
       );
     });
 
-    it('should query rfid tags, assign, and simulate scans', async () => {
-      const mockFetch = vi.fn()
+    it("should query rfid tags, assign, and simulate scans", async () => {
+      const mockFetch = vi
+        .fn()
         // getRfidTags
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ tags: [{ epc: 'EPC-PY-1', sku: 'SKU-PY', serialNumber: 'SN-PY', status: 'ACTIVE' }] })
+          json: async () => ({
+            tags: [
+              {
+                epc: "EPC-PY-1",
+                sku: "SKU-PY",
+                serialNumber: "SN-PY",
+                status: "ACTIVE",
+              },
+            ],
+          }),
         })
         // assignRfidTag
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ message: 'Tag assigned successfully' })
+          json: async () => ({ message: "Tag assigned successfully" }),
         })
         // simulateRfidScan
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ message: 'RFID scan simulation published.' })
+          json: async () => ({ message: "RFID scan simulation published." }),
         });
       global.fetch = mockFetch;
 
       const adapter = new PythonRESTAdapter();
-      const tags = await adapter.getRfidTags('tenant-1');
+      const tags = await adapter.getRfidTags("tenant-1");
       expect(tags).toHaveLength(1);
-      expect(tags[0].epc).toBe('EPC-PY-1');
+      expect(tags[0].epc).toBe("EPC-PY-1");
 
-      await adapter.assignRfidTag('tenant-1', 'EPC-PY-1', 'SKU-PY', 'SN-PY');
-      await adapter.simulateRfidScan('tenant-1', 'LOC-A', ['EPC-PY-1']);
+      await adapter.assignRfidTag("tenant-1", "EPC-PY-1", "SKU-PY", "SN-PY");
+      await adapter.simulateRfidScan("tenant-1", "LOC-A", ["EPC-PY-1"]);
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
