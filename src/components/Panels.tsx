@@ -42,7 +42,6 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
   loadDashboardData,
   loading,
 }) => {
-  // ⚡ Bolt: Memoize derived data counts to prevent O(n) filtering on every render
   const lowStockCount = React.useMemo(
     () => inventoryItems.filter((item) => item.quantity < 10).length,
     [inventoryItems],
