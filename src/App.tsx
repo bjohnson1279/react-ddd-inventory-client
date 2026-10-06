@@ -243,7 +243,6 @@ function App() {
     [wmsLocations],
   );
 
-  // ⚡ Bolt: Pre-calculate pick path indices to avoid O(N*M) string matching inside the render loop (especially during hover interactions)
   const pickRouteIndicesMap = useMemo(() => {
     const map = new Map<string, number>();
     wmsLocations.forEach((loc) => {
