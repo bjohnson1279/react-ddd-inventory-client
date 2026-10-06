@@ -1745,7 +1745,6 @@ function App() {
     e.preventDefault();
     setLoading(true);
     try {
-      // ⚡ Bolt: Replace consecutive .map() and .filter() calls with a single-pass loop to eliminate redundant iterations and callback overhead
       const skus: string[] = [];
       for (const s of pickSkusInput.split(",")) {
         const trimmed = s.trim();
