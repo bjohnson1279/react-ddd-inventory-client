@@ -247,7 +247,10 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
-    return this.request("GET", `/api/shopify/connections?tenantId=${encodeURIComponent(tenantId)}`);
+    return this.request(
+      "GET",
+      `/api/shopify/connections?tenantId=${encodeURIComponent(tenantId)}`,
+    );
   }
 
   async getConnections(tenantId: string): Promise<any> {
@@ -647,7 +650,10 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async deleteWebhook(tenantId: string, id: string): Promise<void> {
-    await this.request("DELETE", `/api/webhooks/${id}?tenantId=${encodeURIComponent(tenantId)}`);
+    await this.request(
+      "DELETE",
+      `/api/webhooks/${id}?tenantId=${encodeURIComponent(tenantId)}`,
+    );
   }
 
   async getWebhookDeliveries(tenantId: string): Promise<WebhookDeliveryLog[]> {
@@ -858,7 +864,10 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   // --- Unified Admin Portal Operations for Laravel ---
   async getUsers(tenantId: string): Promise<User[]> {
-    const res = await this.request("GET", `/api/users?tenantId=${encodeURIComponent(tenantId)}`);
+    const res = await this.request(
+      "GET",
+      `/api/users?tenantId=${encodeURIComponent(tenantId)}`,
+    );
     return res?.users || [];
   }
 
@@ -891,7 +900,10 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   // RBAC
   async getRoles(tenantId: string): Promise<Role[]> {
-    return this.request("GET", `/api/roles?tenantId=${encodeURIComponent(tenantId)}`);
+    return this.request(
+      "GET",
+      `/api/roles?tenantId=${encodeURIComponent(tenantId)}`,
+    );
   }
 
   async getPermissions(): Promise<Permission[]> {
@@ -1106,35 +1118,34 @@ export class LaravelRESTAdapter implements InventoryClient {
         );
       }
 
+      // ⚡ Bolt: Single-pass iteration with cached product references and direct string construction
       for (const p of products) {
-        for (const v of p.variants || []) {
+        const productName = p.name;
+        const variants = p.variants || [];
+        for (const v of variants) {
           const qty = inventoryBySku.get(v.sku) || 0;
-          const unitCost = 1000;
-          if (qty > 0) {
-            items.push({
-              variantId: v.id,
-              sku: v.sku,
-              name:
-                p.name +
-                (v.attributes?.length
-                  ? ` (${v.attributes.map((a: any) => a.value).join(", ")})`
-                  : ""),
-              costingMethod: chosenMethod,
-              totalQuantity: qty,
-              totalValueCents: qty * unitCost,
-              unitCostCents: unitCost,
-            });
-          } else {
-            items.push({
-              variantId: v.id,
-              sku: v.sku,
-              name: p.name,
-              costingMethod: chosenMethod,
-              totalQuantity: 0,
-              totalValueCents: 0,
-              unitCostCents: 0,
-            });
+          const hasStock = qty > 0;
+          const unitCost = hasStock ? 1000 : 0;
+          const totalQty = hasStock ? qty : 0;
+          const attrs = v.attributes;
+          let name = productName;
+          if (hasStock && attrs && attrs.length > 0) {
+            let attrStr = "";
+            for (let i = 0; i < attrs.length; i++) {
+              attrStr += (i === 0 ? "" : ", ") + attrs[i].value;
+            }
+            name = `${productName} (${attrStr})`;
           }
+
+          items.push({
+            variantId: v.id,
+            sku: v.sku,
+            name,
+            costingMethod: chosenMethod,
+            totalQuantity: totalQty,
+            totalValueCents: totalQty * unitCost,
+            unitCostCents: unitCost,
+          });
         }
       }
       return items;
@@ -1157,9 +1168,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     );
   }
 
-  async verifyComplianceLedger(
-    tenantId: string,
-  ): Promise<{
+  async verifyComplianceLedger(tenantId: string): Promise<{
     isValid: boolean;
     failedSequenceNumber?: number;
     reason?: string;
@@ -1217,11 +1226,15 @@ export class LaravelRESTAdapter implements InventoryClient {
     sku: string,
     serialNumber: string,
   ): Promise<void> {
-    await this.request("POST", `/api/rfid/assign?tenantId=${encodeURIComponent(tenantId)}`, {
-      epc,
-      sku,
-      serialNumber,
-    });
+    await this.request(
+      "POST",
+      `/api/rfid/assign?tenantId=${encodeURIComponent(tenantId)}`,
+      {
+        epc,
+        sku,
+        serialNumber,
+      },
+    );
   }
 
   async simulateRfidScan(
@@ -1229,10 +1242,14 @@ export class LaravelRESTAdapter implements InventoryClient {
     locationId: string,
     tags: string[],
   ): Promise<void> {
-    await this.request("POST", `/api/rfid/simulate-scan?tenantId=${encodeURIComponent(tenantId)}`, {
-      locationId,
-      tags,
-    });
+    await this.request(
+      "POST",
+      `/api/rfid/simulate-scan?tenantId=${encodeURIComponent(tenantId)}`,
+      {
+        locationId,
+        tags,
+      },
+    );
   }
 
   subscribeRfidScans(
@@ -1347,7 +1364,10 @@ export class LaravelRESTAdapter implements InventoryClient {
 
   // Reporting & Analytics
   async getReportDefinitions(tenantId: string): Promise<any[]> {
-    return await this.request("GET", `/api/reports?tenantId=${encodeURIComponent(tenantId)}`);
+    return await this.request(
+      "GET",
+      `/api/reports?tenantId=${encodeURIComponent(tenantId)}`,
+    );
   }
 
   async createReportDefinition(tenantId: string, payload: any): Promise<any> {
@@ -1379,7 +1399,10 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async getDashboardWidgets(tenantId: string): Promise<any[]> {
-    return await this.request("GET", `/api/widgets?tenantId=${encodeURIComponent(tenantId)}`);
+    return await this.request(
+      "GET",
+      `/api/widgets?tenantId=${encodeURIComponent(tenantId)}`,
+    );
   }
 
   async saveDashboardWidget(tenantId: string, widget: any): Promise<any> {
@@ -1408,7 +1431,10 @@ export class LaravelRESTAdapter implements InventoryClient {
     });
   }
   async getCycleCounts(tenantId: string): Promise<any[]> {
-    return await this.request("GET", `/api/cycle-count?tenantId=${encodeURIComponent(tenantId)}`);
+    return await this.request(
+      "GET",
+      `/api/cycle-count?tenantId=${encodeURIComponent(tenantId)}`,
+    );
   }
 
   async submitASN(
@@ -1444,7 +1470,10 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async generateAgingReport(tenantId: string): Promise<any> {
-    return await this.request("GET", `/api/aging/report?tenantId=${encodeURIComponent(tenantId)}`);
+    return await this.request(
+      "GET",
+      `/api/aging/report?tenantId=${encodeURIComponent(tenantId)}`,
+    );
   }
 
   async createLegalEntity(
@@ -1489,6 +1518,9 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async getApiUsageMetrics(tenantId: string): Promise<any[]> {
-    return await this.request("GET", `/api/usage?tenantId=${encodeURIComponent(tenantId)}`);
+    return await this.request(
+      "GET",
+      `/api/usage?tenantId=${encodeURIComponent(tenantId)}`,
+    );
   }
 }
