@@ -122,3 +122,8 @@
 **Vulnerability:** Password inputs for sensitive API tokens used `autoComplete="off"`, which modern browsers and password managers often ignore.
 **Learning:** This can lead to them auto-filling user login passwords into API token fields, or incorrectly prompting to save API tokens as user passwords, leaking secrets or confusing users.
 **Prevention:** Use `autoComplete="new-password"` for sensitive API token inputs (that are not user login passwords) to reliably disable password manager interference.
+
+## 2025-05-18 - Fix Hardcoded Unauthenticated GraphQL Calls in CVGatewayDashboard
+**Vulnerability:** Unauthenticated API call in CVGatewayDashboard allowing missing authorization in GraphQL mutation fetches.
+**Learning:** Fetch requests in frontend components targeting sensitive GraphQL operations must read and attach the user's `auth_token` from `localStorage` in the `Authorization` header.
+**Prevention:** Standardize request options in UI components to consistently include `Authorization: Bearer ${activeToken}` for all authenticated backend endpoints.
