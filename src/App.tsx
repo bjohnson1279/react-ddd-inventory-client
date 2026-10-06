@@ -310,7 +310,6 @@ function App() {
     return map;
   }, [wmsLocations, itemsByLocation, variantMap]);
 
-  // ⚡ Bolt: Memoize derived statistics to prevent expensive array filtering on every render pass
   const lowStockCount = useMemo(
     () => inventoryItems.filter((item) => item.quantity < 10).length,
     [inventoryItems],
