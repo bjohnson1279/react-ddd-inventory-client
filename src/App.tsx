@@ -326,7 +326,6 @@ function App() {
     [forecastingReport],
   );
 
-  // ⚡ Bolt: Memoize filtered purchase orders to prevent O(N) filtering on every render pass in the procurement tab
   const sentPurchaseOrders = useMemo(
     () => purchaseOrders.filter((po) => po.status === "sent"),
     [purchaseOrders],
