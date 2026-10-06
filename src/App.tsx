@@ -1190,7 +1190,6 @@ function App() {
           const lines = buffer.split("\n\n");
           buffer = lines.pop() || "";
 
-          // ⚡ Bolt: Batch SSE stock_changed events across multiple lines to prevent consecutive O(N) array traversals
           const batchMap = new Map<
             string,
             { sku: string; locationId: string; quantity: number }
