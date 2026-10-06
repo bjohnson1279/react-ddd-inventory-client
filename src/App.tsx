@@ -287,7 +287,6 @@ function App() {
     return map;
   }, [inventoryItems]);
 
-  // ⚡ Bolt: Pre-calculate location weights and volumes to avoid O(N*M) calculation in wmsLocations.map render loop
   const locationCapacityMap = useMemo(() => {
     const map = new Map<string, { weight: number; volume: number }>();
     wmsLocations.forEach((loc) => {
