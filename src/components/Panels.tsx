@@ -2105,7 +2105,6 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                   onChange={(e) => {
                     const id = e.target.value;
                     setReceivePoId(id);
-                    // ⚡ Bolt: Use smaller pre-filtered sentPurchaseOrders array for O(N) search instead of full purchaseOrders array
                     const po = sentPurchaseOrders.find((p) => p.id === id);
                     if (po) {
                       setReceivePoLines(
