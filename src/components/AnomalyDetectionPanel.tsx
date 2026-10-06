@@ -31,7 +31,6 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({
     fetchData();
   }, [api]);
 
-  // ⚡ Bolt: Memoize filtered alerts to prevent O(N) array filtering on every render
   const filteredAlerts = React.useMemo(() => {
     return (
       data?.alerts?.filter(
