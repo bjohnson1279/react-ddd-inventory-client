@@ -332,7 +332,6 @@ function App() {
     [purchaseOrders],
   );
 
-  // ⚡ Bolt: Memoize filtered WMS locations to avoid iterating the large warehouse grid array on every render
   const filteredWmsLocations = useMemo(
     () =>
       wmsLocations.filter(
