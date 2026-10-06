@@ -263,7 +263,6 @@ function App() {
   const [loadingSlotting, setLoadingSlotting] = useState(false);
   const [hoveredSuggestion, setHoveredSuggestion] = useState<any | null>(null);
 
-  // ⚡ Bolt: Memoize variantMap and itemsByLocation to prevent expensive re-creations on every render (e.g. during hover interactions)
   const variantMap = useMemo(() => {
     const map = new Map();
     for (const p of products) {
