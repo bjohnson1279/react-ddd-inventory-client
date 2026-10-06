@@ -2866,7 +2866,6 @@ export const RfidPanel: React.FC<{
     }
   };
 
-  // ⚡ Bolt: Memoize selected tags into a Set for O(1) lookups inside the render loop, replacing O(N) Array.includes()
   const selectedTagsSet = React.useMemo(
     () => new Set(selectedTags),
     [selectedTags],
