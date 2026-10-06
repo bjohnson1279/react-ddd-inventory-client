@@ -470,7 +470,6 @@ function App() {
     }
   }, [token]);
 
-  // ⚡ Bolt: Parse and memoize permissions to a Map to avoid O(N) array iteration and string splitting on every hasPermission call
   const parsedPermissions = useMemo(() => {
     if (permissions.includes("*:*"))
       return { isSuperAdmin: true, map: new Map() };
