@@ -2824,7 +2824,6 @@ export const RfidPanel: React.FC<{
     // Combine checked registered tags with any arbitrary manual tags
     let epcsToScan = [...selectedTags];
     if (unregisteredTagsText.trim()) {
-      // ⚡ Bolt: Replace consecutive .map() and .filter() calls with a single-pass reduce to eliminate redundant iterations and callback overhead
       const manualEpcs = unregisteredTagsText.split("\n").reduce((acc, x) => {
         const trimmed = x.trim();
         if (trimmed.length > 0) acc.push(trimmed);
