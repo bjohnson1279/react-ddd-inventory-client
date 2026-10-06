@@ -237,7 +237,6 @@ function App() {
   const [policySafety, setPolicySafety] = useState(5);
   const [policyEoq, setPolicyEoq] = useState(25);
 
-  // ⚡ Bolt: Memoize zones to prevent creating a Set and mapping over an array on every render
   const wmsUniqueZones = useMemo(
     () => Array.from(new Set(wmsLocations.map((l) => l.zone))),
     [wmsLocations],
