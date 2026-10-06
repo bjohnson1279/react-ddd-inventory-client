@@ -1053,7 +1053,6 @@ function App() {
         }
       });
 
-      // ⚡ Bolt: Accumulate incoming WebSocket events to avoid O(N) array traversals per message
       let updateBuffer: Array<{
         sku: string;
         locationId: string;
