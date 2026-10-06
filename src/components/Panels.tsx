@@ -1996,7 +1996,6 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
   handleSendPO,
   loading,
 }) => {
-  // ⚡ Bolt: Memoize filtered array to prevent O(n) filtering on every render
   const sentPurchaseOrders = React.useMemo(
     () => purchaseOrders.filter((po) => po.status === "sent"),
     [purchaseOrders],
