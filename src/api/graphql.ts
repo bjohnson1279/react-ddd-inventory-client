@@ -1,25 +1,64 @@
-import { createClient } from 'graphql-ws';
-import { InventoryClient, Role, Permission, InventoryItem, Product, StockOnboarding, JournalEntry, ShopifyConnection, SerializedItem, JournalLine, Item, ForecastingReportItem, FulfillmentPlan, ReorderPolicy, WebhookSubscription, WebhookDeliveryLog, WarehouseLocation, PutawaySuggestion, PurchaseOrder, PurchaseOrderItem, User, AuditDiscrepancy, OutboxStats, OutboxEvent, TenantAccountingConfig, QuarantinedItem, ValuationItem, RfidScanUpdate } from './client';
+import { createClient } from "graphql-ws";
+import {
+  InventoryClient,
+  Role,
+  Permission,
+  InventoryItem,
+  Product,
+  StockOnboarding,
+  JournalEntry,
+  ShopifyConnection,
+  SerializedItem,
+  JournalLine,
+  Item,
+  ForecastingReportItem,
+  FulfillmentPlan,
+  ReorderPolicy,
+  WebhookSubscription,
+  WebhookDeliveryLog,
+  WarehouseLocation,
+  PutawaySuggestion,
+  PurchaseOrder,
+  PurchaseOrderItem,
+  User,
+  AuditDiscrepancy,
+  OutboxStats,
+  OutboxEvent,
+  TenantAccountingConfig,
+  QuarantinedItem,
+  ValuationItem,
+  RfidScanUpdate,
+} from "./client";
 
-const GRAPHQL_HTTP_URL = import.meta.env.VITE_GRAPHQL_HTTP_URL || 'http://localhost:4000/graphql';
-const GRAPHQL_WS_URL = import.meta.env.VITE_GRAPHQL_WS_URL || 'ws://localhost:4000/graphql';
+const GRAPHQL_HTTP_URL =
+  import.meta.env.VITE_GRAPHQL_HTTP_URL || "http://localhost:4000/graphql";
+const GRAPHQL_WS_URL =
+  import.meta.env.VITE_GRAPHQL_WS_URL || "ws://localhost:4000/graphql";
 
 export class GraphQLAdapter implements InventoryClient {
+  private variantNameMapCache: Map<string, string> | null = null;
+
   private getHeaders(customToken?: string): Record<string, string> {
-    const activeToken = customToken || localStorage.getItem('auth_token');
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (activeToken && activeToken !== 'NONE') {
-      headers['Authorization'] = `Bearer ${activeToken}`;
+    const activeToken = customToken || localStorage.getItem("auth_token");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (activeToken && activeToken !== "NONE") {
+      headers["Authorization"] = `Bearer ${activeToken}`;
     }
     return headers;
   }
 
-  private async fetchGraphql(query: string, variables = {}, customToken?: string): Promise<any> {
+  private async fetchGraphql(
+    query: string,
+    variables = {},
+    customToken?: string,
+  ): Promise<any> {
     try {
       const response = await fetch(GRAPHQL_HTTP_URL, {
-        method: 'POST',
+        method: "POST",
         headers: this.getHeaders(customToken),
-        body: JSON.stringify({ query, variables })
+        body: JSON.stringify({ query, variables }),
       });
       const result = await response.json();
       if (result.errors) {
@@ -27,23 +66,36 @@ export class GraphQLAdapter implements InventoryClient {
       }
       return result.data;
     } catch (err: any) {
-      console.error('GraphQL HTTP Adapter Error:', err);
+      console.error("GraphQL HTTP Adapter Error:", err);
       throw err;
     }
   }
 
-  async login(tenantId: string, actorId: string, role?: string, password?: string): Promise<string> {
+  async login(
+    tenantId: string,
+    actorId: string,
+    role?: string,
+    password?: string,
+  ): Promise<string> {
     if (!password) {
-      throw new Error('Authentication failed: Missing required password parameter.');
+      throw new Error(
+        "Authentication failed: Missing required password parameter.",
+      );
     }
-    const data = await this.fetchGraphql(`mutation Login($tenant: ID!, $actor: ID!, $role: String, $password: String) {
+    const data = await this.fetchGraphql(
+      `mutation Login($tenant: ID!, $actor: ID!, $role: String, $password: String) {
       login(tenantId: $tenant, actorId: $actor, role: $role, password: $password)
-    }`, { tenant: tenantId, actor: actorId, role, password }, 'NONE');
+    }`,
+      { tenant: tenantId, actor: actorId, role, password },
+      "NONE",
+    );
     return data.login;
   }
 
   async getInventoryItems(): Promise<InventoryItem[]> {
-    const data = await this.fetchGraphql(`query { inventoryItems { id sku locationId quantity version } }`);
+    const data = await this.fetchGraphql(
+      `query { inventoryItems { id sku locationId quantity version } }`,
+    );
     return data.inventoryItems || [];
   }
 
@@ -58,7 +110,7 @@ export class GraphQLAdapter implements InventoryClient {
       } 
     }`);
     const rawProducts = prodData.products || [];
-    
+
     // Resolve barcodes for variants using batched alias query to prevent N+1 requests
     const allVariants = rawProducts.flatMap((p: Product) => p.variants || []);
     const barcodeMap = new Map<string, any[]>();
@@ -66,9 +118,16 @@ export class GraphQLAdapter implements InventoryClient {
 
     for (let i = 0; i < allVariants.length; i += CHUNK_SIZE) {
       const chunk = allVariants.slice(i, i + CHUNK_SIZE);
-      const fields = chunk.map((v: any, idx: number) => `bc_${idx}: barcodeSet(sku: "${v.sku}") { assignments { id sku barcode { value symbology } source isPrimary assignedAt } }`).join('\n');
+      const fields = chunk
+        .map(
+          (v: any, idx: number) =>
+            `bc_${idx}: barcodeSet(sku: "${v.sku}") { assignments { id sku barcode { value symbology } source isPrimary assignedAt } }`,
+        )
+        .join("\n");
       try {
-        const batchData = await this.fetchGraphql(`query GetBatchedBarcodes {\n${fields}\n}`);
+        const batchData = await this.fetchGraphql(
+          `query GetBatchedBarcodes {\n${fields}\n}`,
+        );
         chunk.forEach((v: any, idx: number) => {
           barcodeMap.set(v.sku, batchData?.[`bc_${idx}`]?.assignments || []);
         });
@@ -81,8 +140,8 @@ export class GraphQLAdapter implements InventoryClient {
       ...p,
       variants: p.variants.map((v) => ({
         ...v,
-        barcodes: barcodeMap.get(v.sku) || []
-      }))
+        barcodes: barcodeMap.get(v.sku) || [],
+      })),
     }));
   }
 
@@ -121,81 +180,167 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async getJournalEntries(tenantId: string): Promise<JournalEntry[]> {
-    const data = await this.fetchGraphql(`query GetGL($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetGL($tenant: ID!) {
       journalEntries(tenantId: $tenant) { 
         id tenantId date description method referenceId 
         lines { accountCode amountCents type memo }
       }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return data.journalEntries || [];
   }
 
   async getStockOnboardings(tenantId: string): Promise<StockOnboarding[]> {
-    const data = await this.fetchGraphql(`query GetOnboardings($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetOnboardings($tenant: ID!) {
       stockOnboardings(tenantId: $tenant) {
         id tenantId locationId status asOfDate
         items { variantId quantity unitCostCents }
       }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return data.stockOnboardings || [];
   }
 
   async createProduct(id: string, name: string): Promise<void> {
-    await this.fetchGraphql(`mutation CreateProd($id: ID!, $name: String!) {
+    this.variantNameMapCache = null;
+    await this.fetchGraphql(
+      `mutation CreateProd($id: ID!, $name: String!) {
       createProduct(id: $id, name: $name)
-    }`, { id, name });
+    }`,
+      { id, name },
+    );
   }
 
-  async addProductVariant(productId: string, sku: string, trackingMode: string, attributes: { name: string; value: string }[]): Promise<void> {
-    await this.fetchGraphql(`mutation AddVar($productId: ID!, $sku: String!, $attributes: [AttributeInput!]!, $trackingMode: TrackingMode!) {
+  async addProductVariant(
+    productId: string,
+    sku: string,
+    trackingMode: string,
+    attributes: { name: string; value: string }[],
+  ): Promise<void> {
+    this.variantNameMapCache = null;
+    await this.fetchGraphql(
+      `mutation AddVar($productId: ID!, $sku: String!, $attributes: [AttributeInput!]!, $trackingMode: TrackingMode!) {
       addProductVariant(productId: $productId, sku: $sku, attributes: $attributes, trackingMode: $trackingMode)
-    }`, { productId, sku, attributes, trackingMode });
+    }`,
+      { productId, sku, attributes, trackingMode },
+    );
   }
 
-  async assignBarcode(sku: string, value: string, symbology: string, source: string, makePrimary: boolean): Promise<void> {
-    await this.fetchGraphql(`mutation AssignBC($input: AssignBarcodeInput!) {
+  private async getVariantNameMap(): Promise<Map<string, string>> {
+    if (this.variantNameMapCache) {
+      return this.variantNameMapCache;
+    }
+
+    const prodData = await this.fetchGraphql(`query GetProductVariantNames {
+      products {
+        name
+        variants {
+          id sku
+          attributes { name value }
+        }
+      }
+    }`);
+    const rawProducts = prodData.products || [];
+    const map = new Map<string, string>();
+
+    for (const p of rawProducts) {
+      if (!p.variants) continue;
+      for (const variant of p.variants) {
+        const name =
+          p.name +
+          (variant.attributes?.length
+            ? ` (${variant.attributes.map((a: any) => a.value).join(", ")})`
+            : "");
+        if (variant.id) map.set(variant.id, name);
+        if (variant.sku) map.set(variant.sku, name);
+      }
+    }
+
+    this.variantNameMapCache = map;
+    return map;
+  }
+
+  async assignBarcode(
+    sku: string,
+    value: string,
+    symbology: string,
+    source: string,
+    makePrimary: boolean,
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation AssignBC($input: AssignBarcodeInput!) {
       assignBarcode(input: $input)
-    }`, {
-      input: { sku, barcodeValue: value, symbology, source, makePrimary }
-    });
+    }`,
+      {
+        input: { sku, barcodeValue: value, symbology, source, makePrimary },
+      },
+    );
   }
 
-  async generateInternalBarcode(sku: string, tenantId: string): Promise<string> {
-    const data = await this.fetchGraphql(`mutation GenBC($sku: String!, $tenant: ID!) {
+  async generateInternalBarcode(
+    sku: string,
+    tenantId: string,
+  ): Promise<string> {
+    const data = await this.fetchGraphql(
+      `mutation GenBC($sku: String!, $tenant: ID!) {
       generateInternalBarcode(sku: $sku, tenantId: $tenant)
-    }`, { sku, tenant: tenantId });
+    }`,
+      { sku, tenant: tenantId },
+    );
     return data.generateInternalBarcode;
   }
 
-  async scanBarcode(value: string, context: string, amount: number, actualQuantity: number, tenantId: string, locationId: string, actorId: string): Promise<any> {
-    return this.fetchGraphql(`mutation Scan($input: BarcodeScanInput!) {
+  async scanBarcode(
+    value: string,
+    context: string,
+    amount: number,
+    actualQuantity: number,
+    tenantId: string,
+    locationId: string,
+    actorId: string,
+  ): Promise<any> {
+    return this.fetchGraphql(
+      `mutation Scan($input: BarcodeScanInput!) {
       scanBarcode(input: $input) {
         status matchedSku quantityChange details occurredAt referenceId
       }
-    }`, {
-      input: {
-        barcodeValue: value,
-        context,
-        scannedAmount: amount,
-        actualQuantity,
-        tenantId,
-        locationId,
-        actorId
-      }
-    });
+    }`,
+      {
+        input: {
+          barcodeValue: value,
+          context,
+          scannedAmount: amount,
+          actualQuantity,
+          tenantId,
+          locationId,
+          actorId,
+        },
+      },
+    );
   }
 
   async traceSerialHistory(serialNumber: string): Promise<SerializedItem> {
-    const data = await this.fetchGraphql(`query Trace($serial: String!) {
+    const data = await this.fetchGraphql(
+      `query Trace($serial: String!) {
       traceSerialHistory(serialNumber: $serial) {
         id variantId serialNumber tenantId locationId status
         history { from to reason actor occurredAt referenceId }
       }
-    }`, { serial: serialNumber });
+    }`,
+      { serial: serialNumber },
+    );
     return data.traceSerialHistory;
   }
 
-  async connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void> {
+  async connectShopify(
+    tenantId: string,
+    storeDomain: string,
+    accessToken: string,
+  ): Promise<void> {
     const mutation = `
       mutation ConnectShopify($storeDomain: String!, $accessToken: String!) {
         connectShopifyStore(storeDomain: $storeDomain, accessToken: $accessToken) {
@@ -206,7 +351,12 @@ export class GraphQLAdapter implements InventoryClient {
     await this.fetchGraphql(mutation, { storeDomain, accessToken });
   }
 
-  async connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void> {
+  async connectAmazon(
+    tenantId: string,
+    sellerId: string,
+    mwsAuthToken: string,
+    marketplaceId: string,
+  ): Promise<void> {
     const mutation = `
       mutation ConnectAmazon($input: ConnectAmazonInput!) {
         connectAmazonStore(input: $input) {
@@ -214,10 +364,17 @@ export class GraphQLAdapter implements InventoryClient {
         }
       }
     `;
-    await this.fetchGraphql(mutation, { input: { sellerId, mwsAuthToken, marketplaceId } });
+    await this.fetchGraphql(mutation, {
+      input: { sellerId, mwsAuthToken, marketplaceId },
+    });
   }
 
-  async connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void> {
+  async connectWooCommerce(
+    tenantId: string,
+    storeUrl: string,
+    consumerKey: string,
+    consumerSecret: string,
+  ): Promise<void> {
     const mutation = `
       mutation ConnectWooCommerce($input: ConnectWooCommerceInput!) {
         connectWooCommerceStore(input: $input) {
@@ -225,41 +382,75 @@ export class GraphQLAdapter implements InventoryClient {
         }
       }
     `;
-    await this.fetchGraphql(mutation, { input: { storeUrl, consumerKey, consumerSecret } });
+    await this.fetchGraphql(mutation, {
+      input: { storeUrl, consumerKey, consumerSecret },
+    });
   }
 
-  async createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void> {
+  async createJournalEntry(
+    tenantId: string,
+    description: string,
+    method: string,
+    lines: JournalLine[],
+  ): Promise<void> {
     // Format lines to conform to GraphQL schema input types
-    const formattedLines = lines.map(l => ({
+    const formattedLines = lines.map((l) => ({
       accountCode: l.accountCode,
       amountCents: l.amountCents,
       type: l.type.toUpperCase(),
-      memo: l.memo
+      memo: l.memo,
     }));
-    await this.fetchGraphql(`mutation CreateJournal($tenant: ID!, $desc: String!, $method: AccountingMethod!, $lines: [JournalLineInput!]!) {
+    await this.fetchGraphql(
+      `mutation CreateJournal($tenant: ID!, $desc: String!, $method: AccountingMethod!, $lines: [JournalLineInput!]!) {
       createJournalEntry(tenantId: $tenant, description: $desc, method: $method, lines: $lines)
-    }`, { tenant: tenantId, desc: description, method: method.toUpperCase(), lines: formattedLines });
+    }`,
+      {
+        tenant: tenantId,
+        desc: description,
+        method: method.toUpperCase(),
+        lines: formattedLines,
+      },
+    );
   }
 
-  async createStockOnboarding(tenantId: string, locationId: string, asOfDate: string, items: Item[]): Promise<void> {
-    const formattedItems = items.map(i => ({
+  async createStockOnboarding(
+    tenantId: string,
+    locationId: string,
+    asOfDate: string,
+    items: Item[],
+  ): Promise<void> {
+    const formattedItems = items.map((i) => ({
       variantId: i.variantId,
       quantity: i.quantity,
-      unitCostCents: i.unitCostCents
+      unitCostCents: i.unitCostCents,
     }));
-    await this.fetchGraphql(`mutation CreateOnboard($tenant: ID!, $location: ID!, $date: String!, $items: [OnboardingItemInput!]!) {
+    await this.fetchGraphql(
+      `mutation CreateOnboard($tenant: ID!, $location: ID!, $date: String!, $items: [OnboardingItemInput!]!) {
       createStockOnboarding(tenantId: $tenant, locationId: $location, asOfDate: $date, items: $items) { id }
-    }`, { tenant: tenantId, location: locationId, date: asOfDate, items: formattedItems });
+    }`,
+      {
+        tenant: tenantId,
+        location: locationId,
+        date: asOfDate,
+        items: formattedItems,
+      },
+    );
   }
 
   async submitStockOnboarding(onboardingId: string): Promise<void> {
-    await this.fetchGraphql(`mutation SubmitOnboard($id: ID!) {
+    await this.fetchGraphql(
+      `mutation SubmitOnboard($id: ID!) {
       submitStockOnboarding(id: $id)
-    }`, { id: onboardingId });
+    }`,
+      { id: onboardingId },
+    );
   }
 
-  async getForecastingReport(locationId: string): Promise<ForecastingReportItem[]> {
-    const data = await this.fetchGraphql(`query GetReport($location: String!) {
+  async getForecastingReport(
+    locationId: string,
+  ): Promise<ForecastingReportItem[]> {
+    const data = await this.fetchGraphql(
+      `query GetReport($location: String!) {
       demandPlanningReport(locationId: $location) {
         sku
         currentStock
@@ -270,8 +461,10 @@ export class GraphQLAdapter implements InventoryClient {
         reorderPoint
         safetyStock
       }
-    }`, { location: locationId });
-    
+    }`,
+      { location: locationId },
+    );
+
     const rawReport = data.demandPlanningReport || [];
     return rawReport.map((item: any) => ({
       sku: item.sku,
@@ -282,15 +475,18 @@ export class GraphQLAdapter implements InventoryClient {
       salesVelocity90d: item.averageDailySales90d,
       forecastedDemand: item.forecastedDemand30d,
       suggestedROP: item.reorderPoint,
-      safetyStock: item.safetyStock
+      safetyStock: item.safetyStock,
     }));
   }
 
-  subscribeBarcodeScans(tenantId: string, onScan: (scan: any) => void): () => void {
+  subscribeBarcodeScans(
+    tenantId: string,
+    onScan: (scan: any) => void,
+  ): () => void {
     const wsClient = createClient({
       url: GRAPHQL_WS_URL,
       connectionParams: () => {
-        const activeToken = localStorage.getItem('auth_token');
+        const activeToken = localStorage.getItem("auth_token");
         return activeToken ? { Authorization: `Bearer ${activeToken}` } : {};
       },
     });
@@ -311,9 +507,9 @@ export class GraphQLAdapter implements InventoryClient {
             onScan(scan);
           }
         },
-        error: (err: any) => console.error('GQL WS Subscription Error:', err),
-        complete: () => {}
-      }
+        error: (err: any) => console.error("GQL WS Subscription Error:", err),
+        complete: () => {},
+      },
     );
 
     return () => {
@@ -325,8 +521,14 @@ export class GraphQLAdapter implements InventoryClient {
   // --- Advanced Admin Operations for GraphQL ---
 
   // Order Routing
-  async routeOrder(sku: string, quantity: number, destinationAddress: string, strategyName: string): Promise<FulfillmentPlan> {
-    const res = await this.fetchGraphql(`query RouteOrder($sku: String!, $quantity: Int!, $address: String!, $strategy: String) {
+  async routeOrder(
+    sku: string,
+    quantity: number,
+    destinationAddress: string,
+    strategyName: string,
+  ): Promise<FulfillmentPlan> {
+    const res = await this.fetchGraphql(
+      `query RouteOrder($sku: String!, $quantity: Int!, $address: String!, $strategy: String) {
       routeOrder(sku: $sku, quantity: $quantity, destinationAddress: $address, strategyName: $strategy) {
         allocations {
           locationId
@@ -336,7 +538,9 @@ export class GraphQLAdapter implements InventoryClient {
         totalDistance
         splitCount
       }
-    }`, { sku, quantity, address: destinationAddress, strategy: strategyName });
+    }`,
+      { sku, quantity, address: destinationAddress, strategy: strategyName },
+    );
     return res.routeOrder;
   }
 
@@ -346,15 +550,23 @@ export class GraphQLAdapter implements InventoryClient {
     return local ? JSON.parse(local) : [];
   }
 
-  async saveReorderPolicy(tenantId: string, policy: ReorderPolicy): Promise<void> {
+  async saveReorderPolicy(
+    tenantId: string,
+    policy: ReorderPolicy,
+  ): Promise<void> {
     const policies = await this.getReorderPolicies(tenantId);
-    const existingIdx = policies.findIndex(p => p.sku === policy.sku && p.locationId === policy.locationId);
+    const existingIdx = policies.findIndex(
+      (p) => p.sku === policy.sku && p.locationId === policy.locationId,
+    );
     if (existingIdx >= 0) {
       policies[existingIdx] = policy;
     } else {
       policies.push(policy);
     }
-    localStorage.setItem(`gql_reorder_policies_${tenantId}`, JSON.stringify(policies));
+    localStorage.setItem(
+      `gql_reorder_policies_${tenantId}`,
+      JSON.stringify(policies),
+    );
   }
 
   async evaluateReorderPolicies(tenantId: string): Promise<void> {
@@ -375,21 +587,31 @@ export class GraphQLAdapter implements InventoryClient {
       id: w.id,
       tenantId,
       url: w.targetUrl || w.url,
-      eventTypes: w.eventTypes
+      eventTypes: w.eventTypes,
     }));
   }
 
-  async createWebhook(tenantId: string, url: string, eventTypes: string[]): Promise<void> {
+  async createWebhook(
+    tenantId: string,
+    url: string,
+    eventTypes: string[],
+  ): Promise<void> {
     const secret = crypto.randomUUID();
-    await this.fetchGraphql(`mutation CreateSub($url: String!, $secret: String!, $events: [String!]!) {
+    await this.fetchGraphql(
+      `mutation CreateSub($url: String!, $secret: String!, $events: [String!]!) {
       createWebhookSubscription(targetUrl: $url, secret: $secret, eventTypes: $events) { id }
-    }`, { url, secret, events: eventTypes });
+    }`,
+      { url, secret, events: eventTypes },
+    );
   }
 
   async deleteWebhook(tenantId: string, id: string): Promise<void> {
-    await this.fetchGraphql(`mutation DeleteSub($id: ID!) {
+    await this.fetchGraphql(
+      `mutation DeleteSub($id: ID!) {
       deleteWebhookSubscription(id: $id)
-    }`, { id });
+    }`,
+      { id },
+    );
   }
 
   async getWebhookDeliveries(tenantId: string): Promise<WebhookDeliveryLog[]> {
@@ -400,43 +622,72 @@ export class GraphQLAdapter implements InventoryClient {
   // WMS Layout
   async getWarehouseLocations(tenantId: string): Promise<WarehouseLocation[]> {
     const local = localStorage.getItem(`gql_wms_locations_${tenantId}`);
-    return local ? JSON.parse(local) : [
-      { id: 'LOC-CENTRAL', warehouseId: 'WH-CENTRAL', zone: 'A', maxWeightGrams: 50000, maxVolumeCubicMeters: 10 },
-      { id: 'LOC-EAST', warehouseId: 'WH-EAST', zone: 'B', maxWeightGrams: 50000, maxVolumeCubicMeters: 10 }
-    ];
+    return local
+      ? JSON.parse(local)
+      : [
+          {
+            id: "LOC-CENTRAL",
+            warehouseId: "WH-CENTRAL",
+            zone: "A",
+            maxWeightGrams: 50000,
+            maxVolumeCubicMeters: 10,
+          },
+          {
+            id: "LOC-EAST",
+            warehouseId: "WH-EAST",
+            zone: "B",
+            maxWeightGrams: 50000,
+            maxVolumeCubicMeters: 10,
+          },
+        ];
   }
 
-  async saveWarehouseLocation(tenantId: string, location: WarehouseLocation): Promise<void> {
+  async saveWarehouseLocation(
+    tenantId: string,
+    location: WarehouseLocation,
+  ): Promise<void> {
     const locations = await this.getWarehouseLocations(tenantId);
-    const existingIdx = locations.findIndex(l => l.id === location.id);
+    const existingIdx = locations.findIndex((l) => l.id === location.id);
     if (existingIdx >= 0) {
       locations[existingIdx] = location;
     } else {
       locations.push(location);
     }
-    localStorage.setItem(`gql_wms_locations_${tenantId}`, JSON.stringify(locations));
+    localStorage.setItem(
+      `gql_wms_locations_${tenantId}`,
+      JSON.stringify(locations),
+    );
   }
 
   async deleteWarehouseLocation(tenantId: string, id: string): Promise<void> {
     const locations = await this.getWarehouseLocations(tenantId);
-    const filtered = locations.filter(l => l.id !== id);
-    localStorage.setItem(`gql_wms_locations_${tenantId}`, JSON.stringify(filtered));
+    const filtered = locations.filter((l) => l.id !== id);
+    localStorage.setItem(
+      `gql_wms_locations_${tenantId}`,
+      JSON.stringify(filtered),
+    );
   }
 
-  async getPutawaySuggestions(tenantId: string, sku: string, quantity: number): Promise<PutawaySuggestion[]> {
-    return [
-      { locationId: 'LOC-CENTRAL', sku, suggestedQuantity: quantity }
-    ];
+  async getPutawaySuggestions(
+    tenantId: string,
+    sku: string,
+    quantity: number,
+  ): Promise<PutawaySuggestion[]> {
+    return [{ locationId: "LOC-CENTRAL", sku, suggestedQuantity: quantity }];
   }
 
-  async getOptimizedPickRoute(tenantId: string, skus: string[]): Promise<string[]> {
+  async getOptimizedPickRoute(
+    tenantId: string,
+    skus: string[],
+  ): Promise<string[]> {
     return [...skus].sort((a, b) => a.localeCompare(b));
   }
 
   // Procurement (PO)
   async getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
     try {
-      const res = await this.fetchGraphql(`query GetPOs($tenant: ID!) {
+      const res = await this.fetchGraphql(
+        `query GetPOs($tenant: ID!) {
         purchaseOrders(tenantId: $tenant) {
           id
           status
@@ -447,39 +698,51 @@ export class GraphQLAdapter implements InventoryClient {
             unitCostCents
           }
         }
-      }`, { tenant: tenantId });
+      }`,
+        { tenant: tenantId },
+      );
       return (res.purchaseOrders || []).map((po: any) => ({
         id: po.id,
         tenantId,
-        supplier: 'System Supplier',
+        supplier: "System Supplier",
         status: po.status.toLowerCase(),
         createdAt: po.createdAt,
         items: (po.items || []).map((i: any) => ({
           sku: i.sku,
           quantity: i.quantity,
-          unitCostCents: i.unitCostCents
-        }))
+          unitCostCents: i.unitCostCents,
+        })),
       }));
     } catch {
       return [];
     }
   }
 
-  async createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void> {
-    const formattedItems = items.map(i => ({
+  async createPurchaseOrder(
+    tenantId: string,
+    supplier: string,
+    items: PurchaseOrderItem[],
+  ): Promise<void> {
+    const formattedItems = items.map((i) => ({
       sku: i.sku,
       quantity: i.quantity,
-      unitCostCents: i.unitCostCents
+      unitCostCents: i.unitCostCents,
     }));
-    await this.fetchGraphql(`mutation CreatePO($input: CreatePurchaseOrderInput!) {
+    await this.fetchGraphql(
+      `mutation CreatePO($input: CreatePurchaseOrderInput!) {
       createPurchaseOrder(input: $input) { id }
-    }`, { input: { supplier, items: formattedItems } });
+    }`,
+      { input: { supplier, items: formattedItems } },
+    );
   }
 
   async approvePurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.fetchGraphql(`mutation PlacePO($id: ID!) {
+    await this.fetchGraphql(
+      `mutation PlacePO($id: ID!) {
       placePurchaseOrder(id: $id) { id }
-    }`, { id });
+    }`,
+      { id },
+    );
   }
 
   async sendPurchaseOrder(tenantId: string, id: string): Promise<void> {
@@ -487,57 +750,94 @@ export class GraphQLAdapter implements InventoryClient {
     return Promise.resolve();
   }
 
-  async receivePurchaseOrder(tenantId: string, id: string, items: { sku: string; quantity: number }[]): Promise<void> {
-    await this.fetchGraphql(`mutation ReceivePO($id: ID!, $actor: ID!, $tenant: ID!) {
+  async receivePurchaseOrder(
+    tenantId: string,
+    id: string,
+    items: { sku: string; quantity: number }[],
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation ReceivePO($id: ID!, $actor: ID!, $tenant: ID!) {
       receivePurchaseOrder(id: $id, actorId: $actor, tenantId: $tenant) { id }
-    }`, { id, actor: 'admin-user', tenant: tenantId });
+    }`,
+      { id, actor: "admin-user", tenant: tenantId },
+    );
   }
 
   // FEFO & Recall
-  async getFefoPickSuggestions(tenantId: string, sku: string, quantity: number): Promise<any[]> {
+  async getFefoPickSuggestions(
+    tenantId: string,
+    sku: string,
+    quantity: number,
+  ): Promise<any[]> {
     return [
-      { sku, lotNumber: 'LOT-MOCK-999', locationId: 'LOC-EAST', expiryDate: '2028-06-30', quantity }
+      {
+        sku,
+        lotNumber: "LOT-MOCK-999",
+        locationId: "LOC-EAST",
+        expiryDate: "2028-06-30",
+        quantity,
+      },
     ];
   }
 
   async traceRecall(tenantId: string, lotNumber: string): Promise<any> {
     return {
       lotNumber,
-      sku: 'ROUTE-SKU',
+      sku: "ROUTE-SKU",
       affectedItems: 5,
-      dispatchedCustomersCount: 2
+      dispatchedCustomersCount: 2,
     };
   }
 
   // --- Unified Admin Portal Operations for GraphQL ---
   async getUsers(tenantId: string): Promise<User[]> {
-    const data = await this.fetchGraphql(`query GetUsers($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetUsers($tenant: ID!) {
       users(tenantId: $tenant) { id email role }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return data.users || [];
   }
 
-  async inviteUser(tenantId: string, email: string, role: string): Promise<{ userId: string; temporaryPassword?: string }> {
-    const data = await this.fetchGraphql(`mutation InviteUser($tenant: ID!, $email: String!, $role: String!) {
+  async inviteUser(
+    tenantId: string,
+    email: string,
+    role: string,
+  ): Promise<{ userId: string; temporaryPassword?: string }> {
+    const data = await this.fetchGraphql(
+      `mutation InviteUser($tenant: ID!, $email: String!, $role: String!) {
       inviteUser(tenantId: $tenant, email: $email, role: $role) { userId temporaryPassword }
-    }`, { tenant: tenantId, email, role });
+    }`,
+      { tenant: tenantId, email, role },
+    );
     return {
       userId: data.inviteUser?.userId,
-      temporaryPassword: data.inviteUser?.temporaryPassword
+      temporaryPassword: data.inviteUser?.temporaryPassword,
     };
   }
 
-  async updateUserRole(tenantId: string, userId: string, role: string): Promise<void> {
-    await this.fetchGraphql(`mutation UpdateUserRole($tenant: ID!, $userId: ID!, $role: String!) {
+  async updateUserRole(
+    tenantId: string,
+    userId: string,
+    role: string,
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation UpdateUserRole($tenant: ID!, $userId: ID!, $role: String!) {
       updateUserRole(tenantId: $tenant, userId: $userId, role: $role)
-    }`, { tenant: tenantId, userId, role });
+    }`,
+      { tenant: tenantId, userId, role },
+    );
   }
 
   // RBAC
   async getRoles(tenantId: string): Promise<Role[]> {
-    const data = await this.fetchGraphql(`query GetRoles($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetRoles($tenant: ID!) {
       roles(tenantId: $tenant) { id name description isCustom tenantId permissions { id resource action } }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return data.roles || [];
   }
 
@@ -548,162 +848,269 @@ export class GraphQLAdapter implements InventoryClient {
     return data.permissions || [];
   }
 
-  async createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role> {
-    const data = await this.fetchGraphql(`mutation CreateRole($tenant: ID!, $name: String!, $desc: String, $perms: [ID!]!) {
+  async createRole(
+    tenantId: string,
+    name: string,
+    description: string,
+    permissionIds: string[],
+  ): Promise<Role> {
+    const data = await this.fetchGraphql(
+      `mutation CreateRole($tenant: ID!, $name: String!, $desc: String, $perms: [ID!]!) {
       createRole(tenantId: $tenant, name: $name, description: $desc, permissionIds: $perms) { id name description isCustom tenantId permissions { id resource action } }
-    }`, { tenant: tenantId, name, desc: description, perms: permissionIds });
+    }`,
+      { tenant: tenantId, name, desc: description, perms: permissionIds },
+    );
     return data.createRole;
   }
 
-  async updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
-    await this.fetchGraphql(`mutation UpdateRolePerms($roleId: ID!, $perms: [ID!]!) {
+  async updateRolePermissions(
+    roleId: string,
+    permissionIds: string[],
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation UpdateRolePerms($roleId: ID!, $perms: [ID!]!) {
       updateRolePermissions(roleId: $roleId, permissionIds: $perms)
-    }`, { roleId, perms: permissionIds });
+    }`,
+      { roleId, perms: permissionIds },
+    );
   }
 
   async deleteRole(roleId: string): Promise<void> {
-    await this.fetchGraphql(`mutation DeleteRole($roleId: ID!) {
+    await this.fetchGraphql(
+      `mutation DeleteRole($roleId: ID!) {
       deleteRole(roleId: $roleId)
-    }`, { roleId });
+    }`,
+      { roleId },
+    );
   }
 
   async runAudit(tenantId: string): Promise<any> {
-    const data = await this.fetchGraphql(`mutation RunAudit($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `mutation RunAudit($tenant: ID!) {
       runAudit(tenantId: $tenant) { shopifyDiscrepancies accountingDiscrepancies }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return data.runAudit;
   }
 
   async getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]> {
-    const data = await this.fetchGraphql(`query GetDiscrepancies($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetDiscrepancies($tenant: ID!) {
       auditDiscrepancies(tenantId: $tenant) { id sku locationId expectedQuantity actualQuantity discrepancyCount status detectedAt resolvedAt }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return data.auditDiscrepancies || [];
   }
 
-  async resolveDiscrepancy(tenantId: string, id: string, notes: string): Promise<void> {
-    await this.fetchGraphql(`mutation ResolveDiscrepancy($id: ID!, $notes: String!) {
+  async resolveDiscrepancy(
+    tenantId: string,
+    id: string,
+    notes: string,
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation ResolveDiscrepancy($id: ID!, $notes: String!) {
       resolveAuditDiscrepancy(id: $id, notes: $notes)
-    }`, { id, notes });
+    }`,
+      { id, notes },
+    );
   }
 
   async getOutboxStats(): Promise<OutboxStats> {
-    const data = await this.fetchGraphql(`query GetOutboxStats {
+    const data = await this.fetchGraphql(
+      `query GetOutboxStats {
       outboxStats { pending processing processed failed }
-    }`, {});
+    }`,
+      {},
+    );
     return {
       pendingCount: data.outboxStats?.pending || 0,
       publishedCount: data.outboxStats?.processed || 0,
-      failedCount: data.outboxStats?.failed || 0
+      failedCount: data.outboxStats?.failed || 0,
     };
   }
 
   async getDeadLetterEvents(limit?: number): Promise<OutboxEvent[]> {
-    const data = await this.fetchGraphql(`query GetDeadLetter($limit: Int) {
+    const data = await this.fetchGraphql(
+      `query GetDeadLetter($limit: Int) {
       deadLetterEvents(limit: $limit) { id eventType payload error occurredAt }
-    }`, { limit: limit || 100 });
+    }`,
+      { limit: limit || 100 },
+    );
     return (data.deadLetterEvents || []).map((e: any) => ({
       id: e.id,
       eventType: e.eventType,
       payload: e.payload,
       error: e.error,
-      status: 'Failed',
-      occurredAt: e.occurredAt
+      status: "Failed",
+      occurredAt: e.occurredAt,
     }));
   }
 
   async retryOutboxEvent(id: string): Promise<void> {
-    await this.fetchGraphql(`mutation RetryOutbox($id: ID!) {
+    await this.fetchGraphql(
+      `mutation RetryOutbox($id: ID!) {
       retryOutboxEvent(id: $id)
-    }`, { id });
+    }`,
+      { id },
+    );
   }
 
   async markNotificationRead(id: string): Promise<void> {
-    await this.fetchGraphql(`mutation MarkNotif($id: ID!) { markNotificationRead(id: $id) }`, { id });
+    await this.fetchGraphql(
+      `mutation MarkNotif($id: ID!) { markNotificationRead(id: $id) }`,
+      { id },
+    );
   }
 
   async generateAgingReport(tenantId: string): Promise<any> {
-    return await this.fetchGraphql(`query GetAging($tenant: ID!) { agingReport(tenantId: $tenant) { categories } }`, { tenant: tenantId });
+    return await this.fetchGraphql(
+      `query GetAging($tenant: ID!) { agingReport(tenantId: $tenant) { categories } }`,
+      { tenant: tenantId },
+    );
   }
 
-  async createLegalEntity(tenantId: string, name: string, baseCurrency: string, taxIdentifier?: string): Promise<any> {
-    return await this.fetchGraphql(`mutation CreateLegalEntity($tenant: ID!, $name: String!, $baseCurrency: String!, $taxIdentifier: String) {
+  async createLegalEntity(
+    tenantId: string,
+    name: string,
+    baseCurrency: string,
+    taxIdentifier?: string,
+  ): Promise<any> {
+    return await this.fetchGraphql(
+      `mutation CreateLegalEntity($tenant: ID!, $name: String!, $baseCurrency: String!, $taxIdentifier: String) {
       createLegalEntity(tenantId: $tenant, name: $name, baseCurrency: $baseCurrency, taxIdentifier: $taxIdentifier) { id }
-    }`, { tenant: tenantId, name, baseCurrency, taxIdentifier });
+    }`,
+      { tenant: tenantId, name, baseCurrency, taxIdentifier },
+    );
   }
 
   async getLegalEntities(tenantId: string): Promise<any[]> {
-    const data = await this.fetchGraphql(`query GetLegalEntities($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetLegalEntities($tenant: ID!) {
       legalEntities(tenantId: $tenant) { id name baseCurrency taxIdentifier }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return data.legalEntities || [];
   }
 
-  async executeIntercompanyTransfer(dto: { tenantId: string, fromEntityId: string, toEntityId: string, sku: string, quantity: number, unitCostCents: number, markupPercentage: number, dutyCents?: number }): Promise<any> {
-    return await this.fetchGraphql(`mutation ExecuteIntercompanyTransfer($input: IntercompanyTransferInput!) {
+  async executeIntercompanyTransfer(dto: {
+    tenantId: string;
+    fromEntityId: string;
+    toEntityId: string;
+    sku: string;
+    quantity: number;
+    unitCostCents: number;
+    markupPercentage: number;
+    dutyCents?: number;
+  }): Promise<any> {
+    return await this.fetchGraphql(
+      `mutation ExecuteIntercompanyTransfer($input: IntercompanyTransferInput!) {
       executeIntercompanyTransfer(input: $input) { id status }
-    }`, { input: dto });
+    }`,
+      { input: dto },
+    );
   }
 
   async getIntercompanyTransfers(tenantId: string): Promise<any[]> {
-    const data = await this.fetchGraphql(`query GetIntercompanyTransfers($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetIntercompanyTransfers($tenant: ID!) {
       intercompanyTransfers(tenantId: $tenant) { id fromEntityId toEntityId sku quantity unitCostCents markupPercentage dutyCents totalAmountCents status createdAt }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return data.intercompanyTransfers || [];
   }
 
   async getApiUsageMetrics(tenantId: string): Promise<any[]> {
-    const data = await this.fetchGraphql(`query GetApiUsageMetrics($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetApiUsageMetrics($tenant: ID!) {
       apiUsageMetrics(tenantId: $tenant) { date endpoint calls errors averageLatencyMs }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return data.apiUsageMetrics || [];
   }
 
   async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
-    const data = await this.fetchGraphql(`query GetTenantConfig($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetTenantConfig($tenant: ID!) {
       tenantAccountingConfig(tenantId: $tenant) { tenantId accountingMethod costingMethod }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return {
       tenantId: data.tenantAccountingConfig?.tenantId || tenantId,
-      accountingMethod: data.tenantAccountingConfig?.accountingMethod || 'ACCRUAL',
-      costingMethod: data.tenantAccountingConfig?.costingMethod || 'FIFO',
-      currencyCode: 'USD',
-      fiscalYearStart: '01-01'
+      accountingMethod:
+        data.tenantAccountingConfig?.accountingMethod || "ACCRUAL",
+      costingMethod: data.tenantAccountingConfig?.costingMethod || "FIFO",
+      currencyCode: "USD",
+      fiscalYearStart: "01-01",
     };
   }
 
-  async saveTenantConfig(tenantId: string, config: { accountingMethod: string; costingMethod: string }): Promise<void> {
-    await this.fetchGraphql(`mutation SaveTenantConfig($input: SaveTenantAccountingConfigInput!) {
+  async saveTenantConfig(
+    tenantId: string,
+    config: { accountingMethod: string; costingMethod: string },
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation SaveTenantConfig($input: SaveTenantAccountingConfigInput!) {
       saveTenantAccountingConfig(input: $input)
-    }`, {
-      input: {
-        tenantId,
-        accountingMethod: config.accountingMethod.toUpperCase(),
-        costingMethod: config.costingMethod.toUpperCase()
-      }
-    });
+    }`,
+      {
+        input: {
+          tenantId,
+          accountingMethod: config.accountingMethod.toUpperCase(),
+          costingMethod: config.costingMethod.toUpperCase(),
+        },
+      },
+    );
   }
 
-  async assembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void> {
-    await this.fetchGraphql(`mutation AssembleKit($input: AssembleKitInput!) {
+  async assembleKit(
+    tenantId: string,
+    locationId: string,
+    kitSku: string,
+    quantity: number,
+    actorId: string,
+    referenceId: string,
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation AssembleKit($input: AssembleKitInput!) {
       assembleKit(input: $input)
-    }`, {
-      input: { tenantId, locationId, kitSku, quantity, actorId, referenceId }
-    });
+    }`,
+      {
+        input: { tenantId, locationId, kitSku, quantity, actorId, referenceId },
+      },
+    );
   }
 
-  async disassembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void> {
-    await this.fetchGraphql(`mutation DisassembleKit($input: DisassembleKitInput!) {
+  async disassembleKit(
+    tenantId: string,
+    locationId: string,
+    kitSku: string,
+    quantity: number,
+    actorId: string,
+    referenceId: string,
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation DisassembleKit($input: DisassembleKitInput!) {
       disassembleKit(input: $input)
-    }`, {
-      input: { tenantId, locationId, kitSku, quantity, actorId, referenceId }
-    });
+    }`,
+      {
+        input: { tenantId, locationId, kitSku, quantity, actorId, referenceId },
+      },
+    );
   }
 
   async getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]> {
-    const data = await this.fetchGraphql(`query GetQuarantine($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetQuarantine($tenant: ID!) {
       quarantineItems(tenantId: $tenant) { id sku locationId quantity reason status createdAt }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return (data.quarantineItems || []).map((q: any) => ({
       id: q.id,
       sku: q.sku,
@@ -711,43 +1118,50 @@ export class GraphQLAdapter implements InventoryClient {
       quantity: q.quantity,
       reason: q.reason,
       status: q.status,
-      createdAt: q.createdAt
+      createdAt: q.createdAt,
     }));
   }
 
-  async resolveQuarantine(tenantId: string, id: string, resolution: string): Promise<void> {
-    await this.fetchGraphql(`mutation ResolveQuarantine($id: ID!, $resolution: String!) {
+  async resolveQuarantine(
+    tenantId: string,
+    id: string,
+    resolution: string,
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation ResolveQuarantine($id: ID!, $resolution: String!) {
       resolveQuarantineItem(id: $id, resolution: $resolution)
-    }`, { id, resolution });
+    }`,
+      { id, resolution },
+    );
   }
 
-  async getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]> {
-    const data = await this.fetchGraphql(`query GetValuation($tenant: ID!, $location: String, $method: CostingMethod) {
+  async getValuationReport(
+    tenantId: string,
+    locationId?: string,
+    method?: string,
+  ): Promise<ValuationItem[]> {
+    const data = await this.fetchGraphql(
+      `query GetValuation($tenant: ID!, $location: String, $method: CostingMethod) {
       stockValuationReport(tenantId: $tenant, locationId: $location, method: $method) {
         lineItems { variantId sku quantityOnHand unitCostCents totalValueCents }
         method
       }
-    }`, {
-      tenant: tenantId,
-      location: locationId || null,
-      method: method ? method.toUpperCase() : null
-    });
+    }`,
+      {
+        tenant: tenantId,
+        location: locationId || null,
+        method: method ? method.toUpperCase() : null,
+      },
+    );
     const lineItems = data.stockValuationReport?.lineItems || [];
-    const costingMethod = data.stockValuationReport?.method || method || 'FIFO';
-    const products = await this.getProducts();
-
-    const variantNameMap = new Map<string, string>();
-    for (const p of products) {
-      if (!p.variants) continue;
-      for (const variant of p.variants) {
-        const name = p.name + (variant.attributes?.length ? ` (${variant.attributes.map(a => a.value).join(', ')})` : '');
-        if (variant.id) variantNameMap.set(variant.id, name);
-        if (variant.sku) variantNameMap.set(variant.sku, name);
-      }
-    }
+    const costingMethod = data.stockValuationReport?.method || method || "FIFO";
+    const variantNameMap = await this.getVariantNameMap();
 
     return lineItems.map((item: any) => {
-      let variantName = variantNameMap.get(item.variantId) || variantNameMap.get(item.sku) || item.sku;
+      let variantName =
+        variantNameMap.get(item.variantId) ||
+        variantNameMap.get(item.sku) ||
+        item.sku;
 
       return {
         variantId: item.variantId,
@@ -756,7 +1170,7 @@ export class GraphQLAdapter implements InventoryClient {
         costingMethod,
         totalQuantity: item.quantityOnHand,
         totalValueCents: item.totalValueCents,
-        unitCostCents: item.unitCostCents
+        unitCostCents: item.unitCostCents,
       };
     });
   }
@@ -784,12 +1198,19 @@ export class GraphQLAdapter implements InventoryClient {
     return [];
   }
 
-  async verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }> {
+  async verifyComplianceLedger(
+    tenantId: string,
+  ): Promise<{
+    isValid: boolean;
+    failedSequenceNumber?: number;
+    reason?: string;
+  }> {
     return { isValid: true };
   }
 
   async reconstructState(tenantId: string, timestamp?: string): Promise<any> {
-    const data = await this.fetchGraphql(`query ReconstructState($tenant: String!, $ts: String) {
+    const data = await this.fetchGraphql(
+      `query ReconstructState($tenant: String!, $ts: String) {
       reconstructState(tenantId: $tenant, timestamp: $ts) {
         timestamp
         tenantId
@@ -799,36 +1220,53 @@ export class GraphQLAdapter implements InventoryClient {
         binConfigurations { binCode locationId currentCapacity maxCapacity }
         accountBalances { accountCode accountName balance }
       }
-    }`, { tenant: tenantId, ts: timestamp });
+    }`,
+      { tenant: tenantId, ts: timestamp },
+    );
     return data.reconstructState;
   }
 
   async replayAudit(tenantId: string, upToTimestamp?: string): Promise<any[]> {
-    const data = await this.fetchGraphql(`query ReplayAudit($tenant: String!, $ts: String) {
+    const data = await this.fetchGraphql(
+      `query ReplayAudit($tenant: String!, $ts: String) {
       replayAudit(tenantId: $tenant, upToTimestamp: $ts) {
         sequenceNumber eventType timestamp hash previousHash payload
       }
-    }`, { tenant: tenantId, ts: upToTimestamp });
+    }`,
+      { tenant: tenantId, ts: upToTimestamp },
+    );
     return data.replayAudit || [];
   }
 
-  async getCacheStats(): Promise<{ hits: number; misses: number; hitRatio: number; invalidations: number; activeKeysCount: number }> {
+  async getCacheStats(): Promise<{
+    hits: number;
+    misses: number;
+    hitRatio: number;
+    invalidations: number;
+    activeKeysCount: number;
+  }> {
     const data = await this.fetchGraphql(`query GetCacheStats {
       cacheStats { hits misses hitRatio invalidations activeKeysCount }
     }`);
     return data.cacheStats;
   }
 
-  async clearCache(tenantId?: string): Promise<{ success: boolean; clearedKeysCount: number }> {
-    const data = await this.fetchGraphql(`mutation ClearCache($tenant: String) {
+  async clearCache(
+    tenantId?: string,
+  ): Promise<{ success: boolean; clearedKeysCount: number }> {
+    this.variantNameMapCache = null;
+    const data = await this.fetchGraphql(
+      `mutation ClearCache($tenant: String) {
       clearCache(tenantId: $tenant)
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return { success: data.clearCache ?? true, clearedKeysCount: 42 };
   }
 
-
   async getRfidTags(tenantId: string): Promise<any[]> {
-    const data = await this.fetchGraphql(`query GetRfidTags($tenant: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetRfidTags($tenant: ID!) {
       rfidTags(tenantId: $tenant) {
         epc
         sku
@@ -837,27 +1275,47 @@ export class GraphQLAdapter implements InventoryClient {
         lastSeenAt
         lastLocation
       }
-    }`, { tenant: tenantId });
+    }`,
+      { tenant: tenantId },
+    );
     return data.rfidTags || [];
   }
 
-  async assignRfidTag(tenantId: string, epc: string, sku: string, serialNumber: string): Promise<void> {
-    await this.fetchGraphql(`mutation AssignRfidTag($epc: String!, $sku: String!, $serialNumber: String!) {
+  async assignRfidTag(
+    tenantId: string,
+    epc: string,
+    sku: string,
+    serialNumber: string,
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation AssignRfidTag($epc: String!, $sku: String!, $serialNumber: String!) {
       assignRfidTag(epc: $epc, sku: $sku, serialNumber: $serialNumber)
-    }`, { epc, sku, serialNumber });
+    }`,
+      { epc, sku, serialNumber },
+    );
   }
 
-  async simulateRfidScan(tenantId: string, locationId: string, tags: string[]): Promise<void> {
-    await this.fetchGraphql(`mutation SimulateRfidScan($locationId: String!, $tags: [String!]!) {
+  async simulateRfidScan(
+    tenantId: string,
+    locationId: string,
+    tags: string[],
+  ): Promise<void> {
+    await this.fetchGraphql(
+      `mutation SimulateRfidScan($locationId: String!, $tags: [String!]!) {
       simulateRfidScan(locationId: $locationId, tags: $tags)
-    }`, { locationId, tags });
+    }`,
+      { locationId, tags },
+    );
   }
 
-  subscribeRfidScans(tenantId: string, onScan: (event: any) => void): () => void {
+  subscribeRfidScans(
+    tenantId: string,
+    onScan: (event: any) => void,
+  ): () => void {
     const wsClient = createClient({
       url: GRAPHQL_WS_URL,
       connectionParams: () => {
-        const activeToken = localStorage.getItem('auth_token');
+        const activeToken = localStorage.getItem("auth_token");
         return activeToken ? { Authorization: `Bearer ${activeToken}` } : {};
       },
     });
@@ -884,9 +1342,10 @@ export class GraphQLAdapter implements InventoryClient {
             onScan(event);
           }
         },
-        error: (err: any) => console.error('GQL WS RFID Subscription Error:', err),
-        complete: () => {}
-      }
+        error: (err: any) =>
+          console.error("GQL WS RFID Subscription Error:", err),
+        complete: () => {},
+      },
     );
 
     return () => {
@@ -894,14 +1353,22 @@ export class GraphQLAdapter implements InventoryClient {
     };
   }
 
-  async analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any> {
+  async analyzeInventoryAnomalies(
+    tenantId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<any> {
     const query = `query AnalyzeAnomalies($tenantId: String!, $startDate: String, $endDate: String) {
       analyzeInventoryAnomalies(tenantId: $tenantId, startDate: $startDate, endDate: $endDate) {
         alerts { alertType severity confidence sku locationId actorId title description evidence detectedAt }
         totalCritical totalHigh totalMedium totalLow overallRiskScore
       }
     }`;
-    const data = await this.fetchGraphql(query, { tenantId, startDate, endDate });
+    const data = await this.fetchGraphql(query, {
+      tenantId,
+      startDate,
+      endDate,
+    });
     return data.analyzeInventoryAnomalies;
   }
 
@@ -934,12 +1401,15 @@ export class GraphQLAdapter implements InventoryClient {
   }
 
   async toggleApprovalWorkflow(id: string): Promise<any> {
-    const data = await this.fetchGraphql(`mutation ToggleApprovalWorkflow($id: ID!) {
+    const data = await this.fetchGraphql(
+      `mutation ToggleApprovalWorkflow($id: ID!) {
       toggleApprovalWorkflow(id: $id) {
         id
         isActive
       }
-    }`, { id });
+    }`,
+      { id },
+    );
     return data.toggleApprovalWorkflow;
   }
 
@@ -956,19 +1426,27 @@ export class GraphQLAdapter implements InventoryClient {
     return data.pendingApprovalRequests || [];
   }
 
-  async submitApprovalDecision(id: string, decision: 'APPROVED' | 'REJECTED' | 'REQUEST_MORE_INFO', notes?: string): Promise<any> {
-    const data = await this.fetchGraphql(`mutation SubmitApprovalDecision($id: ID!, $decision: String!, $notes: String) {
+  async submitApprovalDecision(
+    id: string,
+    decision: "APPROVED" | "REJECTED" | "REQUEST_MORE_INFO",
+    notes?: string,
+  ): Promise<any> {
+    const data = await this.fetchGraphql(
+      `mutation SubmitApprovalDecision($id: ID!, $decision: String!, $notes: String) {
       submitApprovalDecision(requestId: $id, decision: $decision, notes: $notes) {
         status
         referenceType
         referenceId
       }
-    }`, { id, decision, notes });
+    }`,
+      { id, decision, notes },
+    );
     return data.submitApprovalDecision;
   }
 
   async getApprovalHistory(requestId: string): Promise<any[]> {
-    const data = await this.fetchGraphql(`query GetApprovalHistory($id: ID!) {
+    const data = await this.fetchGraphql(
+      `query GetApprovalHistory($id: ID!) {
       approvalRequest(id: $id) {
         decisions {
           decision
@@ -977,7 +1455,9 @@ export class GraphQLAdapter implements InventoryClient {
           decidedAt
         }
       }
-    }`, { id: requestId });
+    }`,
+      { id: requestId },
+    );
     return data.approvalRequest?.decisions || [];
   }
 
@@ -992,23 +1472,47 @@ export class GraphQLAdapter implements InventoryClient {
     const mutation = `mutation CreateReport($tenantId: String!, $name: String!, $type: String!, $filters: JSON, $grouping: JSON) {
       createReportDefinition(tenantId: $tenantId, name: $name, type: $type, filters: $filters, grouping: $grouping) { id }
     }`;
-    const data = await this.fetchGraphql(mutation, { tenantId, name: payload.name, type: payload.type, filters: payload.filters, grouping: payload.grouping });
+    const data = await this.fetchGraphql(mutation, {
+      tenantId,
+      name: payload.name,
+      type: payload.type,
+      filters: payload.filters,
+      grouping: payload.grouping,
+    });
     return data.createReportDefinition;
   }
 
-  async scheduleReport(tenantId: string, reportId: string, cronExpression: string, deliveryMethod: string): Promise<any> {
+  async scheduleReport(
+    tenantId: string,
+    reportId: string,
+    cronExpression: string,
+    deliveryMethod: string,
+  ): Promise<any> {
     const mutation = `mutation ScheduleReport($tenantId: String!, $reportId: String!, $cronExpression: String!, $deliveryMethod: String!) {
       scheduleReport(tenantId: $tenantId, reportId: $reportId, cronExpression: $cronExpression, deliveryMethod: $deliveryMethod) { id }
     }`;
-    const data = await this.fetchGraphql(mutation, { tenantId, reportId, cronExpression, deliveryMethod });
+    const data = await this.fetchGraphql(mutation, {
+      tenantId,
+      reportId,
+      cronExpression,
+      deliveryMethod,
+    });
     return data.scheduleReport;
   }
 
-  async executeReport(tenantId: string, reportId: string, format: string): Promise<any> {
+  async executeReport(
+    tenantId: string,
+    reportId: string,
+    format: string,
+  ): Promise<any> {
     const mutation = `mutation ExecuteReport($tenantId: String!, $reportId: String!, $format: String!) {
       executeReport(tenantId: $tenantId, reportId: $reportId, format: $format) { id }
     }`;
-    const data = await this.fetchGraphql(mutation, { tenantId, reportId, format });
+    const data = await this.fetchGraphql(mutation, {
+      tenantId,
+      reportId,
+      format,
+    });
     return data.executeReport;
   }
 
@@ -1022,16 +1526,36 @@ export class GraphQLAdapter implements InventoryClient {
     const mutation = `mutation SaveWidget($tenantId: String!, $type: String!, $config: JSON, $layoutX: Int!, $layoutY: Int!, $width: Int!, $height: Int!) {
       saveDashboardWidget(tenantId: $tenantId, type: $type, config: $config, layoutX: $layoutX, layoutY: $layoutY, width: $width, height: $height) { id }
     }`;
-    const data = await this.fetchGraphql(mutation, { tenantId, type: widget.type, config: widget.config, layoutX: widget.layoutX, layoutY: widget.layoutY, width: widget.width, height: widget.height });
+    const data = await this.fetchGraphql(mutation, {
+      tenantId,
+      type: widget.type,
+      config: widget.config,
+      layoutX: widget.layoutX,
+      layoutY: widget.layoutY,
+      width: widget.width,
+      height: widget.height,
+    });
     return data.saveDashboardWidget;
   }
 
   // --- Item 15: Operational Depth ---
-  async startCycleCount(tenantId: string, name: string, isBlindCount: boolean, abcClass?: string, zone?: string): Promise<any> {
+  async startCycleCount(
+    tenantId: string,
+    name: string,
+    isBlindCount: boolean,
+    abcClass?: string,
+    zone?: string,
+  ): Promise<any> {
     const mutation = `mutation StartCycleCount($tenantId: ID!, $name: String!, $isBlindCount: Boolean, $abcClass: String, $zone: String) {
       startCycleCount(tenantId: $tenantId, name: $name, isBlindCount: $isBlindCount, abcClass: $abcClass, zone: $zone) { id status }
     }`;
-    const data = await this.fetchGraphql(mutation, { tenantId, name, isBlindCount, abcClass, zone });
+    const data = await this.fetchGraphql(mutation, {
+      tenantId,
+      name,
+      isBlindCount,
+      abcClass,
+      zone,
+    });
     return data.startCycleCount;
   }
   async submitCycleCount(id: string, countedLines: any): Promise<void> {
@@ -1047,12 +1571,24 @@ export class GraphQLAdapter implements InventoryClient {
     const data = await this.fetchGraphql(query, { tenantId });
     return data.getCycleCounts;
   }
-  
-  async submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any> {
+
+  async submitASN(
+    tenantId: string,
+    poId: string,
+    supplierId: string,
+    expectedArrivalDate: string,
+    lines: any[],
+  ): Promise<any> {
     const mutation = `mutation SubmitASN($tenantId: ID!, $poId: ID!, $supplierId: ID!, $expectedArrivalDate: String!, $lines: [ASNLineInput!]!) {
       submitASN(tenantId: $tenantId, poId: $poId, supplierId: $supplierId, expectedArrivalDate: $expectedArrivalDate, lines: $lines) { id status }
     }`;
-    const data = await this.fetchGraphql(mutation, { tenantId, poId, supplierId, expectedArrivalDate, lines });
+    const data = await this.fetchGraphql(mutation, {
+      tenantId,
+      poId,
+      supplierId,
+      expectedArrivalDate,
+      lines,
+    });
     return data.submitASN;
   }
   async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
@@ -1062,7 +1598,7 @@ export class GraphQLAdapter implements InventoryClient {
     const data = await this.fetchGraphql(query, { tenantId, supplierId });
     return data.getSupplierASNs;
   }
-  
+
   async getNotifications(tenantId: string, userId: string): Promise<any[]> {
     const query = `query GetNotifications($tenantId: ID!, $userId: ID!) {
       getNotifications(tenantId: $tenantId, userId: $userId) { id message isRead createdAt }
