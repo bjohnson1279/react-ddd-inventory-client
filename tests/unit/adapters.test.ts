@@ -56,6 +56,35 @@ describe("Inventory Backend API Adapters", () => {
         }),
       );
     });
+
+    it("should parse GraphQL query error response and throw Standard Error with message", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          errors: [{ message: "GraphQL query failed: Unauthorized access" }],
+        }),
+      });
+      global.fetch = mockFetch;
+
+      const adapter = new GraphQLAdapter();
+      await expect(adapter.getInventoryItems()).rejects.toThrow(
+        "GraphQL query failed: Unauthorized access",
+      );
+    });
+
+    it("should rethrow network error when fetch fails", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockRejectedValue(
+          new Error("Network error connecting to GraphQL endpoint"),
+        );
+      global.fetch = mockFetch;
+
+      const adapter = new GraphQLAdapter();
+      await expect(adapter.getInventoryItems()).rejects.toThrow(
+        "Network error connecting to GraphQL endpoint",
+      );
+    });
   });
 
   describe("ExpressRESTAdapter", () => {
@@ -171,7 +200,6 @@ describe("Inventory Backend API Adapters", () => {
         "HTTP 400 Error",
       );
     });
-
     it("should parse non-JSON error response correctly and throw", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
