@@ -146,6 +146,10 @@
 **Learning:** In frontend API adapters handling massive catalogs, `Promise.all` triggers a thundering herd of HTTP connections. This often results in socket exhaustion (e.g., `EMFILE` or `EADDRNOTAVAIL`), proxy overloads, and N+1 API stalls, defeating the intended concurrency benefits.
 **Action:** When making concurrent HTTP requests inside iteration loops, replace raw `Promise.all` arrays with chunked arrays that process requests in limited batches (e.g., `CHUNK_SIZE = 10`) sequentially, or use connection pooling where supported.
 
+## 2026-03-30 - Optimize Variant Lookup in Laravel assignBarcode
+
+**Learning:** Inside `assignBarcode`, calling `.find()` on `(p.variants || [])` within a `for...of` loop over `products` creates closure allocations and default array allocations for every product iteration, leading to O(N*M) runtime overhead and garbage collection pressure.
+**Action:** Replaced `.find()` with direct nested `for...of` loops with labelled `break outer` statement to achieve O(1) memory overhead and early termination upon finding the SKU match.
 ## 2025-05-18 - GraphQL Variant Name Mapping Cache in Valuation Report
 **Learning:** Calling `getProducts()` inside `getValuationReport` incurred N+1 barcode set fetching network queries and O(N*M) loop re-computation for variant name formatting on every invocation.
 **Action:** Replaced `getProducts()` in `getValuationReport` with a cached targeted `GetProductVariantNames` GraphQL query, eliminating barcode requests and enabling O(1) map lookups on subsequent report generations.
