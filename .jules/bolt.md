@@ -146,6 +146,10 @@
 **Learning:** In frontend API adapters handling massive catalogs, `Promise.all` triggers a thundering herd of HTTP connections. This often results in socket exhaustion (e.g., `EMFILE` or `EADDRNOTAVAIL`), proxy overloads, and N+1 API stalls, defeating the intended concurrency benefits.
 **Action:** When making concurrent HTTP requests inside iteration loops, replace raw `Promise.all` arrays with chunked arrays that process requests in limited batches (e.g., `CHUNK_SIZE = 10`) sequentially, or use connection pooling where supported.
 
+
+## 2026-09-30 - Optimize product valuation iteration and name string construction
+**Learning:** In `LaravelRESTAdapter.getValuationReport`, iterating through product variants across large catalog lists produced redundant property lookups (`p.name`), duplicate branching, and intermediate array allocations from `.map().join()` when formatting variant attribute strings.
+**Action:** Cache product-level references outside the inner variant loop, replace `.map().join()` array allocations for attributes with direct string concatenation loops, and construct valuation report objects in a single unified pass.
 ## 2026-03-30 - Optimize Variant Lookup in Laravel assignBarcode
 
 **Learning:** Inside `assignBarcode`, calling `.find()` on `(p.variants || [])` within a `for...of` loop over `products` creates closure allocations and default array allocations for every product iteration, leading to O(N*M) runtime overhead and garbage collection pressure.

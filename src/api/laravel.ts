@@ -1124,35 +1124,34 @@ export class LaravelRESTAdapter implements InventoryClient {
         );
       }
 
+      // ⚡ Bolt: Single-pass iteration with cached product references and direct string construction
       for (const p of products) {
-        for (const v of p.variants || []) {
+        const productName = p.name;
+        const variants = p.variants || [];
+        for (const v of variants) {
           const qty = inventoryBySku.get(v.sku) || 0;
-          const unitCost = 1000;
-          if (qty > 0) {
-            items.push({
-              variantId: v.id,
-              sku: v.sku,
-              name:
-                p.name +
-                (v.attributes?.length
-                  ? ` (${v.attributes.map((a: any) => a.value).join(", ")})`
-                  : ""),
-              costingMethod: chosenMethod,
-              totalQuantity: qty,
-              totalValueCents: qty * unitCost,
-              unitCostCents: unitCost,
-            });
-          } else {
-            items.push({
-              variantId: v.id,
-              sku: v.sku,
-              name: p.name,
-              costingMethod: chosenMethod,
-              totalQuantity: 0,
-              totalValueCents: 0,
-              unitCostCents: 0,
-            });
+          const hasStock = qty > 0;
+          const unitCost = hasStock ? 1000 : 0;
+          const totalQty = hasStock ? qty : 0;
+          const attrs = v.attributes;
+          let name = productName;
+          if (hasStock && attrs && attrs.length > 0) {
+            let attrStr = "";
+            for (let i = 0; i < attrs.length; i++) {
+              attrStr += (i === 0 ? "" : ", ") + attrs[i].value;
+            }
+            name = `${productName} (${attrStr})`;
           }
+
+          items.push({
+            variantId: v.id,
+            sku: v.sku,
+            name,
+            costingMethod: chosenMethod,
+            totalQuantity: totalQty,
+            totalValueCents: totalQty * unitCost,
+            unitCostCents: unitCost,
+          });
         }
       }
       return items;
