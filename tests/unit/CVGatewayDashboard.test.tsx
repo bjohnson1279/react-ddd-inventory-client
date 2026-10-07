@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import CVGatewayDashboard from "./CVGatewayDashboard";
+import CVGatewayDashboard from "../../src/components/CVGatewayDashboard";
 
 describe("CVGatewayDashboard Security Tests", () => {
   beforeEach(() => {
