@@ -317,11 +317,17 @@ export class LaravelRESTAdapter implements InventoryClient {
     const prodData = await this.request("GET", "/api/catalog/products");
     const products = prodData.products || [];
     let variantId = "";
-    for (const p of products) {
-      const found = (p.variants || []).find((v: any) => v.sku === sku);
-      if (found) {
-        variantId = found.id;
-        break;
+
+    // ⚡ Bolt: Replace O(N*M) nested array .find() calls with direct nested for...of loops and labelled break
+    // to eliminate closure function allocations and default array instantiations on every product iteration
+    outer: for (const p of products) {
+      if (p.variants) {
+        for (const v of p.variants) {
+          if (v.sku === sku) {
+            variantId = v.id;
+            break outer;
+          }
+        }
       }
     }
 

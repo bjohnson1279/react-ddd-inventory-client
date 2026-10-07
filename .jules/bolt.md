@@ -150,3 +150,13 @@
 ## 2026-09-30 - Optimize product valuation iteration and name string construction
 **Learning:** In `LaravelRESTAdapter.getValuationReport`, iterating through product variants across large catalog lists produced redundant property lookups (`p.name`), duplicate branching, and intermediate array allocations from `.map().join()` when formatting variant attribute strings.
 **Action:** Cache product-level references outside the inner variant loop, replace `.map().join()` array allocations for attributes with direct string concatenation loops, and construct valuation report objects in a single unified pass.
+## 2026-03-30 - Optimize Variant Lookup in Laravel assignBarcode
+
+**Learning:** Inside `assignBarcode`, calling `.find()` on `(p.variants || [])` within a `for...of` loop over `products` creates closure allocations and default array allocations for every product iteration, leading to O(N*M) runtime overhead and garbage collection pressure.
+**Action:** Replaced `.find()` with direct nested `for...of` loops with labelled `break outer` statement to achieve O(1) memory overhead and early termination upon finding the SKU match.
+## 2025-05-18 - GraphQL Variant Name Mapping Cache in Valuation Report
+**Learning:** Calling `getProducts()` inside `getValuationReport` incurred N+1 barcode set fetching network queries and O(N*M) loop re-computation for variant name formatting on every invocation.
+**Action:** Replaced `getProducts()` in `getValuationReport` with a cached targeted `GetProductVariantNames` GraphQL query, eliminating barcode requests and enabling O(1) map lookups on subsequent report generations.
+## 2025-01-01 - Optimize allowedTabs Array Parsing to O(1) Set lookup
+**Learning:** Checking permissions and recreating an allowed tabs list in an effect dependent on active tab forces O(N) array allocation and search on every navigation.
+**Action:** Extract allowed tab creation into a useMemo returning a Set dependent only on permissions, turning O(N) includes into O(1) has checks during frequent tab switches.
