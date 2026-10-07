@@ -506,11 +506,11 @@ function App() {
     return false;
   };
 
-  // Redirect to dashboard if the active tab is not allowed for the role/permissions
-  useEffect(() => {
-    const allowedTabs = ["dashboard", "cv-gateway"];
+  // ⚡ Bolt: Memoize allowedTabs to a Set to prevent O(N) array recreations and lookups on every activeTab render cycle
+  const allowedTabsSet = useMemo(() => {
+    const allowed = ["dashboard", "cv-gateway"];
     if (role === "admin" || hasPermission("*", "*")) {
-      allowedTabs.push(
+      allowed.push(
         "onboarding",
         "products",
         "scanning",
@@ -539,7 +539,7 @@ function App() {
       );
     } else {
       if (hasPermission("inventory", "read") || role === "warehouse_operator")
-        allowedTabs.push(
+        allowed.push(
           "products",
           "scanning",
           "serials",
@@ -554,25 +554,24 @@ function App() {
         role === "warehouse_operator" ||
         role === "accountant"
       )
-        allowedTabs.push(
-          "procurement",
-          "forecasting",
-          "routing",
-          "rebalancing",
-        );
+        allowed.push("procurement", "forecasting", "routing", "rebalancing");
       if (hasPermission("ledger", "read") || role === "accountant")
-        allowedTabs.push("ledger", "onboarding", "compliance");
+        allowed.push("ledger", "onboarding", "compliance");
       if (hasPermission("admin", "read") || hasPermission("approval", "read"))
-        allowedTabs.push("admin", "approvals");
+        allowed.push("admin", "approvals");
 
       if (role === "viewer")
-        allowedTabs.push("products", "serials", "forecasting", "api-specs");
+        allowed.push("products", "serials", "forecasting", "api-specs");
     }
+    return new Set(allowed);
+  }, [role, parsedPermissions]); // Depend on parsedPermissions since hasPermission depends on it
 
-    if (!allowedTabs.includes(activeTab)) {
+  // Redirect to dashboard if the active tab is not allowed for the role/permissions
+  useEffect(() => {
+    if (!allowedTabsSet.has(activeTab)) {
       setActiveTab("dashboard");
     }
-  }, [role, permissions, activeTab]);
+  }, [allowedTabsSet, activeTab]);
 
   // --- PWA Offline Scan Synchronization and Listeners ---
   useEffect(() => {
