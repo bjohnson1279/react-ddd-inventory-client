@@ -173,6 +173,33 @@ describe("Inventory Backend API Adapters", () => {
       );
     });
 
+    it("should parse JSON error object with error field", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ error: "Invalid SKU provided" }),
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+
+      await expect(adapter.getInventoryItems()).rejects.toThrow(
+        "Invalid SKU provided",
+      );
+    });
+
+    it("should fallback to HTTP status error if JSON error object lacks error field", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ message: "Validation failed" }),
+      });
+      global.fetch = mockFetch;
+      const adapter = new ExpressRESTAdapter();
+
+      await expect(adapter.getInventoryItems()).rejects.toThrow(
+        "HTTP 400 Error",
+      );
+    });
     it("should parse non-JSON error response correctly and throw", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
