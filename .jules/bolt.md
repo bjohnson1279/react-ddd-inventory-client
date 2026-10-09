@@ -173,3 +173,6 @@
 - **Strict PSR-4 Isolation in PHP**: In PHP codebases, place every class, interface, and enum in its own file named `<ClassName>.php` matching its namespace path. Never combine multiple domain classes into a single file.
 - **Domain Contract Verification**: Always inspect entity and aggregate root definitions to verify exact method and property names before writing service logic or test fixtures.
 - **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
+## 2026-10-24 - Concurrent Independent Data Fetching for Dashboard Initializations
+**Learning:** Initializing dashboards via sequential `await` requests across independent datasets (like inventory, products, connections, and journals) causes unnecessary accumulated network roundtrip delay resulting in frontend application latency.
+**Action:** Always wrap independent initialization API calls inside a concurrent `Promise.all` block to bound the total fetch time to `O(max(T1, T2, ...))` rather than `O(T1 + T2 + ...)`.
