@@ -676,16 +676,16 @@ function App() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const invData = await client.getInventoryItems();
+      // ⚡ Bolt: Execute independent dashboard data fetching concurrently using Promise.all to reduce overall loading time
+      const [invData, prodData, connData, glData] = await Promise.all([
+        client.getInventoryItems(),
+        client.getProducts(),
+        client.getShopifyConnections(tenantId),
+        client.getJournalEntries(tenantId),
+      ]);
       setInventoryItems(invData || []);
-
-      const prodData = await client.getProducts();
       setProducts(prodData || []);
-
-      const connData = await client.getShopifyConnections(tenantId);
       setShopifyConns(connData || []);
-
-      const glData = await client.getJournalEntries(tenantId);
       setJournals(glData || []);
     } catch (err: any) {
       setMessage({
