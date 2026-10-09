@@ -176,3 +176,5 @@
 ## 2026-10-24 - Concurrent Independent Data Fetching for Dashboard Initializations
 **Learning:** Initializing dashboards via sequential `await` requests across independent datasets (like inventory, products, connections, and journals) causes unnecessary accumulated network roundtrip delay resulting in frontend application latency.
 **Action:** Always wrap independent initialization API calls inside a concurrent `Promise.all` block to bound the total fetch time to `O(max(T1, T2, ...))` rather than `O(T1 + T2 + ...)`.
+
+- **Strict Lowercase Directory Casing**: Always write learning notes to lowercase `.jules/<bot>.md`. Never create, commit, or reference uppercase `.Jules/`.

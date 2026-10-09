@@ -20,7 +20,9 @@
 ## 2024-08-25 - Explicit Button Types in Forms
 **Learning:** Found that injecting generic `<button>` elements (such as dismiss icons in alert banners) inside or near form components defaults to `type="submit"`. Clicking them will accidentally submit the form and refresh the page, creating a confusing UX.
 **Action:** Always explicitly define `type="button"` on interactive `<button>` elements that are not intended to trigger form submissions.
-## 2026-08-26 - Proper association of labels to selects and tracking loading state for a11y\n**Learning:** In React components like `RFIDBulkScannerView.tsx`, it's important to associate `label`s with `select` or `input` components via `htmlFor` and `id` attributes instead of just relying on text proximity. Async `button`s should also track `aria-busy` to announce the loading state to screen readers and explicitly state `type="button"` to prevent implicit form submissions.\n**Action:** When evaluating forms or settings panels, explicitly check that each `label` has an `htmlFor` paired with an `id` on its input. Always attach `aria-busy` to buttons when a loading state exists.
+## 2026-08-26 - Proper association of labels to selects and tracking loading state for a11y
+**Learning:** In React components like `RFIDBulkScannerView.tsx`, it's important to associate `label`s with `select` or `input` components via `htmlFor` and `id` attributes instead of just relying on text proximity. Async `button`s should also track `aria-busy` to announce the loading state to screen readers and explicitly state `type="button"` to prevent implicit form submissions.
+**Action:** When evaluating forms or settings panels, explicitly check that each `label` has an `htmlFor` paired with an `id` on its input. Always attach `aria-busy` to buttons when a loading state exists.
 ## 2024-08-27 - Loading Buttons without aria-busy
 **Learning:** Found multiple instances where buttons that trigger async operations (like form submissions or data fetching) had `disabled={loading}` but lacked `aria-busy={loading}`. Screen readers rely on `aria-busy` to announce that the system is processing something, which is a critical piece of feedback for accessibility.
 **Action:** Always ensure that buttons triggering async actions have both `disabled={loading}` and `aria-busy={loading}` attributes applied to provide clear feedback to assistive technologies.
@@ -111,3 +113,5 @@
 - **Strict PSR-4 Isolation in PHP**: In PHP codebases, place every class, interface, and enum in its own file named `<ClassName>.php` matching its namespace path. Never combine multiple domain classes into a single file.
 - **Domain Contract Verification**: Always inspect entity and aggregate root definitions to verify exact method and property names before writing service logic or test fixtures.
 - **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
+
+- **Strict Lowercase Directory Casing**: Always write learning notes to lowercase `.jules/<bot>.md`. Never create, commit, or reference uppercase `.Jules/`.
