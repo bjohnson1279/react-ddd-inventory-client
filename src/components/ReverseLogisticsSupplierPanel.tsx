@@ -252,7 +252,7 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
           <div style={{ background: '#1e293b', padding: '20px', borderRadius: '8px' }}>
             <h3 style={{ marginTop: 0, color: '#f1f5f9', fontSize: '18px' }}>Supplier OTIF Performance Scorecard</h3>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-              <input type="text" value={otifSupplierId} onChange={(e) => setOtifSupplierId(e.target.value)} placeholder="Supplier ID" style={{ flex: 1, padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
+              <input id="otifSupplierId" type="text" value={otifSupplierId} onChange={(e) => setOtifSupplierId(e.target.value)} placeholder="Supplier ID" aria-label="Supplier ID" style={{ flex: 1, padding: '8px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px' }} />
               <button onClick={handleFetchScorecard} disabled={loading} aria-busy={loading} style={{ padding: '8px 16px', background: '#8b5cf6', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
                 Fetch Scorecard
               </button>

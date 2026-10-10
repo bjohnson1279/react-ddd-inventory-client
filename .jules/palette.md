@@ -115,3 +115,6 @@
 - **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
 
 - **Strict Lowercase Directory Casing**: Always write learning notes to lowercase `.jules/<bot>.md`. Never create, commit, or reference uppercase `.Jules/`.
+## 2024-10-10 - Placeholder-only Input Accessibility
+**Learning:** Inputs that rely solely on placeholders without an explicit `label` or `aria-label` are inaccessible to screen readers, making it difficult for users with visual impairments to understand the field's purpose.
+**Action:** When working on compact inline forms where adding a visible `label` might break the layout, always ensure the input has an `aria-label` attribute (and preferably an `id` for consistency) so it is properly announced by screen readers.
