@@ -111,3 +111,6 @@
 - **Strict PSR-4 Isolation in PHP**: In PHP codebases, place every class, interface, and enum in its own file named `<ClassName>.php` matching its namespace path. Never combine multiple domain classes into a single file.
 - **Domain Contract Verification**: Always inspect entity and aggregate root definitions to verify exact method and property names before writing service logic or test fixtures.
 - **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
+## 2025-01-20 - Accessible Async Loading States
+**Learning:** Raw text like `<p>Loading...</p>` during async data fetches is completely ignored by screen readers, leaving users guessing if the app is frozen or thinking.
+**Action:** Always wrap loading states in `role="status"` and `aria-live="polite"` so screen readers proactively announce the application is fetching data without interrupting the user.
