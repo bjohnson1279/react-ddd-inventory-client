@@ -9,7 +9,7 @@ interface ApprovalRequest {
   payload: any;
 }
 
-import { InventoryClient } from '../api/client';
+import { InventoryClient } from "../api/client";
 
 interface ApprovalInboxPanelProps {
   api: InventoryClient;
@@ -135,16 +135,61 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
             marginBottom: "16px",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center"
+            alignItems: "center",
           }}
         >
           <span>{error}</span>
-          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" title="Dismiss error" style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: '1.2rem', cursor: 'pointer', padding: '0 4px' }}>×</button>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label="Dismiss error"
+            title="Dismiss error"
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "inherit",
+              fontSize: "1.2rem",
+              cursor: "pointer",
+              padding: "0 4px",
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
 
       {loading && requests.length === 0 ? (
-        <p>Loading inbox...</p>
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            color: "#94a3b8",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
+          <svg
+            className="animate-spin"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ width: "20px", height: "20px" }}
+          >
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+          </svg>
+          Loading inbox...
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {requests.map((req) => (
@@ -216,8 +261,10 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
                 }}
               >
                 <button
-                  disabled={loading} aria-busy={loading}
-                  onClick={() => handleDecision(req.id, "APPROVED")} aria-label={`Approve request ${req.id}`}
+                  disabled={loading}
+                  aria-busy={loading}
+                  onClick={() => handleDecision(req.id, "APPROVED")}
+                  aria-label={`Approve request ${req.id}`}
                   style={{
                     padding: "10px 16px",
                     background: "#059669",
@@ -231,8 +278,10 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
                   Approve
                 </button>
                 <button
-                  disabled={loading} aria-busy={loading}
-                  onClick={() => handleDecision(req.id, "REJECTED")} aria-label={`Reject request ${req.id}`}
+                  disabled={loading}
+                  aria-busy={loading}
+                  onClick={() => handleDecision(req.id, "REJECTED")}
+                  aria-label={`Reject request ${req.id}`}
                   style={{
                     padding: "10px 16px",
                     background: "transparent",
