@@ -500,7 +500,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   ): Promise<ForecastingReportItem[]> {
     const data = await this.request(
       "GET",
-      `/api/forecasting/report?locationId=${locationId}`,
+      `/api/forecasting/report?locationId=${encodeURIComponent(locationId)}`,
     );
     const rawReport = data || [];
     return rawReport.map((item: any) => ({
