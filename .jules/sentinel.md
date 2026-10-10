@@ -147,3 +147,7 @@
 **Vulnerability:** Dynamic variables interpolated into query strings without explicit encoding.
 **Learning:** URL injection or HTTP Parameter Pollution vulnerabilities can arise if dynamic variables in query strings are not encoded, allowing attackers to inject malicious parameters.
 **Prevention:** Any dynamic variables interpolated into the query string of API fetch calls must be explicitly encoded using encodeURIComponent().
+## 2025-02-28 - URL Injection via Fetch Query String
+**Vulnerability:** A fetch request to an API endpoint constructed its URL by directly interpolating an unencoded state variable into the query string (`?supplierId=${otifSupplierId}`).
+**Learning:** Any user-controlled state or parameters concatenated into query strings can lead to URL Injection, Parameter Pollution, or request disruption if they contain special characters (like `&`, `=`, or `#`).
+**Prevention:** To prevent URL injection or HTTP Parameter Pollution vulnerabilities, any dynamic variables interpolated into the query string of API `fetch` calls (e.g., `?id=${userId}`) must be explicitly encoded using `encodeURIComponent()`.

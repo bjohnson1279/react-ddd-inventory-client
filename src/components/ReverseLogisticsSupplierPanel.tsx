@@ -90,7 +90,7 @@ export const ReverseLogisticsSupplierPanel: React.FC<ReverseLogisticsSupplierPan
         setScorecard(res);
       } else {
         const activeToken = localStorage.getItem('auth_token') || '';
-        const response = await fetch(`/api/supplier/otif-scorecard?supplierId=${otifSupplierId}`, {
+        const response = await fetch(`/api/supplier/otif-scorecard?supplierId=${encodeURIComponent(otifSupplierId)}`, {
           headers: activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {}
         });
         const data = await response.json();
