@@ -143,3 +143,7 @@
 - **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
 
 - **Strict Lowercase Directory Casing**: Always write learning notes to lowercase `.jules/<bot>.md`. Never create, commit, or reference uppercase `.Jules/`.
+## 2024-10-10 - HTTP Parameter Pollution Prevention
+**Vulnerability:** Dynamic variables interpolated into query strings without explicit encoding.
+**Learning:** URL injection or HTTP Parameter Pollution vulnerabilities can arise if dynamic variables in query strings are not encoded, allowing attackers to inject malicious parameters.
+**Prevention:** Any dynamic variables interpolated into the query string of API fetch calls must be explicitly encoded using encodeURIComponent().
