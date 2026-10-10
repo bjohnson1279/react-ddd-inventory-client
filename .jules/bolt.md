@@ -145,3 +145,6 @@
 ## 2024-05-18 - Chunking Promise.all for HTTP Request Concurrency
 **Learning:** In frontend API adapters handling massive catalogs, `Promise.all` triggers a thundering herd of HTTP connections. This often results in socket exhaustion (e.g., `EMFILE` or `EADDRNOTAVAIL`), proxy overloads, and N+1 API stalls, defeating the intended concurrency benefits.
 **Action:** When making concurrent HTTP requests inside iteration loops, replace raw `Promise.all` arrays with chunked arrays that process requests in limited batches (e.g., `CHUNK_SIZE = 10`) sequentially, or use connection pooling where supported.
+## 2024-05-14 - [O(1) Set Lookup for React Rendering]
+**Learning:** Using `Array.includes()` inside `.map()` render functions for dynamic component lists introduces an O(N*M) performance bottleneck, especially as the number of available or selected items grows.
+**Action:** Always pre-compute a `Set` via `useMemo` for selected items and replace `Array.includes()` with `Set.has()` to ensure O(1) lookups during the render cycle.
