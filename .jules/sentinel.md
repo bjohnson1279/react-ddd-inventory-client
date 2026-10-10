@@ -128,3 +128,7 @@
 **Vulnerability:** Direct fetch calls to backend GraphQL endpoints lacked the Authorization header, allowing unauthenticated API interactions.
 **Learning:** Frontend component API calls using standard fetch must always consistently retrieve and supply the stored JWT token (`auth_token`) in the Authorization header.
 **Prevention:** Ensure all direct fetch/API calls pass Authorization headers or use centralized API client adapters.
+## 2025-02-28 - URL Injection via Fetch Query String
+**Vulnerability:** A fetch request to an API endpoint constructed its URL by directly interpolating an unencoded state variable into the query string (`?supplierId=${otifSupplierId}`).
+**Learning:** Any user-controlled state or parameters concatenated into query strings can lead to URL Injection, Parameter Pollution, or request disruption if they contain special characters (like `&`, `=`, or `#`).
+**Prevention:** To prevent URL injection or HTTP Parameter Pollution vulnerabilities, any dynamic variables interpolated into the query string of API `fetch` calls (e.g., `?id=${userId}`) must be explicitly encoded using `encodeURIComponent()`.
