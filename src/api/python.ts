@@ -418,7 +418,7 @@ export class PythonRESTAdapter implements InventoryClient {
   ): Promise<ForecastingReportItem[]> {
     const data = await this.request(
       "GET",
-      `/forecasting/report?locationId=${locationId}`,
+      `/forecasting/report?locationId=${encodeURIComponent(locationId)}`,
     );
     const rawReport = data || [];
     return rawReport.map((item: any) => ({
@@ -997,9 +997,7 @@ export class PythonRESTAdapter implements InventoryClient {
     );
   }
 
-  async verifyComplianceLedger(
-    tenantId: string,
-  ): Promise<{
+  async verifyComplianceLedger(tenantId: string): Promise<{
     isValid: boolean;
     failedSequenceNumber?: number;
     reason?: string;
