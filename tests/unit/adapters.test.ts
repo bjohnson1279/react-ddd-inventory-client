@@ -987,7 +987,7 @@ describe("Inventory Backend API Adapters", () => {
       expect(suggestions).toHaveLength(1);
       expect(suggestions[0].sku).toBe("SKU-A");
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:8000/warehouse-locations/slotting-suggestions?tenantId=tenant-test",
+        "http://localhost:8001/warehouse-locations/slotting-suggestions?tenantId=tenant-test",
         expect.objectContaining({ method: "GET" }),
       );
     });
