@@ -658,7 +658,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async deleteWebhook(tenantId: string, id: string): Promise<void> {
     await this.request(
       "DELETE",
-      `/api/webhooks/${id}?tenantId=${encodeURIComponent(tenantId)}`,
+      `/api/webhooks/${encodeURIComponent(id)}?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
@@ -714,7 +714,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async deleteWarehouseLocation(tenantId: string, id: string): Promise<void> {
     await this.request(
       "DELETE",
-      `/api/warehouse-locations/${id}?tenantId=${encodeURIComponent(tenantId)}`,
+      `/api/warehouse-locations/${encodeURIComponent(id)}?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
@@ -857,14 +857,14 @@ export class LaravelRESTAdapter implements InventoryClient {
   ): Promise<any[]> {
     return this.request(
       "GET",
-      `/api/inventory/fefo-pick?sku=${sku}&quantity=${quantity}&tenantId=${encodeURIComponent(tenantId)}`,
+      `/api/inventory/fefo-pick?sku=${encodeURIComponent(sku)}&quantity=${encodeURIComponent(quantity)}&tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
   async traceRecall(tenantId: string, lotNumber: string): Promise<any> {
     return this.request(
       "GET",
-      `/api/inventory/reports/recall/${lotNumber}?tenantId=${encodeURIComponent(tenantId)}`,
+      `/api/inventory/reports/recall/${encodeURIComponent(lotNumber)}?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
@@ -1461,14 +1461,14 @@ export class LaravelRESTAdapter implements InventoryClient {
   async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
     return await this.request(
       "GET",
-      `/api/supplier/asn?tenantId=${encodeURIComponent(tenantId)}&supplierId=${supplierId}`,
+      `/api/supplier/asn?tenantId=${encodeURIComponent(tenantId)}&supplierId=${encodeURIComponent(supplierId)}`,
     );
   }
 
   async getNotifications(tenantId: string, userId: string): Promise<any[]> {
     return await this.request(
       "GET",
-      `/api/notifications?tenantId=${encodeURIComponent(tenantId)}&userId=${userId}`,
+      `/api/notifications?tenantId=${encodeURIComponent(tenantId)}&userId=${encodeURIComponent(userId)}`,
     );
   }
   async markNotificationRead(id: string): Promise<void> {

@@ -151,3 +151,8 @@
 **Vulnerability:** A fetch request to an API endpoint constructed its URL by directly interpolating an unencoded state variable into the query string (`?supplierId=${otifSupplierId}`).
 **Learning:** Any user-controlled state or parameters concatenated into query strings can lead to URL Injection, Parameter Pollution, or request disruption if they contain special characters (like `&`, `=`, or `#`).
 **Prevention:** To prevent URL injection or HTTP Parameter Pollution vulnerabilities, any dynamic variables interpolated into the query string of API `fetch` calls (e.g., `?id=${userId}`) must be explicitly encoded using `encodeURIComponent()`.
+
+## 2025-05-20 - URL Injection via Fetch Query String and Path Segments
+**Vulnerability:** API requests passed unencoded variables into query strings (e.g. `?sku=${sku}`) and path parameters (e.g. `/${id}?`).
+**Learning:** Variables interpolated into URL paths and query strings can introduce URL Injection, Parameter Pollution, or malformed requests if they contain characters like `&`, `#`, or `/`.
+**Prevention:** All dynamic variables used in API fetch URLs (both query parameters and path segments) must be safely encoded using `encodeURIComponent()`.

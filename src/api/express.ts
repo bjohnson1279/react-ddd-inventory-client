@@ -539,7 +539,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   async deleteWebhook(tenantId: string, id: string): Promise<void> {
     await this.request(
       "DELETE",
-      `/webhooks/${id}?tenantId=${encodeURIComponent(tenantId)}`,
+      `/webhooks/${encodeURIComponent(id)}?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
@@ -577,7 +577,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   async deleteWarehouseLocation(tenantId: string, id: string): Promise<void> {
     await this.request(
       "DELETE",
-      `/warehouse-locations/${id}?tenantId=${encodeURIComponent(tenantId)}`,
+      `/warehouse-locations/${encodeURIComponent(id)}?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
@@ -685,14 +685,14 @@ export class ExpressRESTAdapter implements InventoryClient {
   ): Promise<any[]> {
     return this.request(
       "GET",
-      `/inventory/fefo-pick?sku=${sku}&quantity=${quantity}&tenantId=${encodeURIComponent(tenantId)}`,
+      `/inventory/fefo-pick?sku=${encodeURIComponent(sku)}&quantity=${encodeURIComponent(quantity)}&tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
   async traceRecall(tenantId: string, lotNumber: string): Promise<any> {
     return this.request(
       "GET",
-      `/inventory/reports/recall/${lotNumber}?tenantId=${encodeURIComponent(tenantId)}`,
+      `/inventory/reports/recall/${encodeURIComponent(lotNumber)}?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
 
@@ -930,7 +930,7 @@ export class ExpressRESTAdapter implements InventoryClient {
             tasks.push(() =>
               this.request(
                 "GET",
-                `/accounting/valuation/${v.id}?tenantId=${encodeURIComponent(tenantId)}&quantity=${qty}${method ? `&method=${method}` : ""}`,
+                `/accounting/valuation/${encodeURIComponent(v.id)}?tenantId=${encodeURIComponent(tenantId)}&quantity=${encodeURIComponent(qty)}${method ? `&method=${encodeURIComponent(method)}` : ""}`,
               )
                 .then((val) => ({
                   variantId: v.id,
@@ -1258,14 +1258,14 @@ export class ExpressRESTAdapter implements InventoryClient {
   async getASNs(tenantId: string, supplierId: string): Promise<any[]> {
     return await this.request(
       "GET",
-      `/supplier/asn?tenantId=${encodeURIComponent(tenantId)}&supplierId=${supplierId}`,
+      `/supplier/asn?tenantId=${encodeURIComponent(tenantId)}&supplierId=${encodeURIComponent(supplierId)}`,
     );
   }
 
   async getNotifications(tenantId: string, userId: string): Promise<any[]> {
     return await this.request(
       "GET",
-      `/notifications?tenantId=${encodeURIComponent(tenantId)}&userId=${userId}`,
+      `/notifications?tenantId=${encodeURIComponent(tenantId)}&userId=${encodeURIComponent(userId)}`,
     );
   }
   async markNotificationRead(id: string): Promise<void> {
