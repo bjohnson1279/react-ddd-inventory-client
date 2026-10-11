@@ -30,8 +30,10 @@ import {
   RfidScanUpdate,
 } from "./client";
 
-const PYTHON_BASE_URL = "http://localhost:8000";
-const PYTHON_WS_URL = "ws://localhost:8000";
+const PYTHON_BASE_URL =
+  import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8001";
+const PYTHON_WS_URL =
+  import.meta.env.VITE_PYTHON_WS_URL || "ws://localhost:8001";
 
 export class PythonRESTAdapter implements InventoryClient {
   private getHeaders(customToken?: string): Record<string, string> {

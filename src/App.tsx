@@ -412,10 +412,10 @@ function App() {
   useEffect(() => {
     const checkHealth = async () => {
       const nodes: Record<BackendType, string> = {
-        graphql: "http://localhost:4000",
-        express: "http://localhost:5000",
-        laravel: "http://localhost:8000",
-        python: "http://localhost:8000",
+        graphql: import.meta.env.VITE_GRAPHQL_HTTP_URL?.replace(/\/graphql$/, "") || "http://localhost:4000",
+        express: import.meta.env.VITE_EXPRESS_API_URL || "http://localhost:5000",
+        laravel: import.meta.env.VITE_LARAVEL_API_URL || "http://localhost:8000",
+        python: import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8001",
       };
 
       const promises = (Object.entries(nodes) as [BackendType, string][]).map(
