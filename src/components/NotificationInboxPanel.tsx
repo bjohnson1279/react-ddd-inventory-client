@@ -1,17 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useInventory } from '../api/client';
-import { Bell, Check } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { useInventory } from "../api/client";
+import { Bell, Check } from "lucide-react";
 
-export const NotificationInboxPanel: React.FC<{ tenantId: string }> = ({ tenantId }) => {
+export const NotificationInboxPanel: React.FC<{ tenantId: string }> = ({
+  tenantId,
+}) => {
   const { client } = useInventory();
   const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
-    client.getNotifications(tenantId, 'user-123').then(setNotifications).catch(console.error);
+    client
+      .getNotifications(tenantId, "user-123")
+      .then(setNotifications)
+      .catch(console.error);
   }, [client, tenantId]);
 
-  // ⚡ Bolt: Memoize unread count to prevent O(N) filtering on every render
-  const unreadCount = React.useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
+  // ⚡ Bolt: Replace O(N) .filter().length with a single-pass .reduce() to prevent intermediate array allocation
+  const unreadCount = React.useMemo(
+    () => notifications.reduce((count, n) => count + (n.isRead ? 0 : 1), 0),
+    [notifications],
+  );
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -25,19 +33,28 @@ export const NotificationInboxPanel: React.FC<{ tenantId: string }> = ({ tenantI
       </div>
       <div className="p-0">
         {notifications.length === 0 ? (
-          <div className="text-center text-slate-500 py-8">You're all caught up!</div>
+          <div className="text-center text-slate-500 py-8">
+            You're all caught up!
+          </div>
         ) : (
           <ul className="divide-y divide-slate-100">
-            {notifications.map(n => (
-              <li key={n.id} className={`p-4 flex justify-between items-start ${!n.isRead ? 'bg-indigo-50/50' : 'bg-white'}`}>
+            {notifications.map((n) => (
+              <li
+                key={n.id}
+                className={`p-4 flex justify-between items-start ${!n.isRead ? "bg-indigo-50/50" : "bg-white"}`}
+              >
                 <div>
-                  <p className={`text-sm ${!n.isRead ? 'font-semibold text-slate-800' : 'text-slate-600'}`}>
+                  <p
+                    className={`text-sm ${!n.isRead ? "font-semibold text-slate-800" : "text-slate-600"}`}
+                  >
                     {n.message}
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {new Date(n.createdAt).toLocaleString()}
+                  </p>
                 </div>
                 {!n.isRead && (
-                  <button 
+                  <button
                     type="button"
                     onClick={() => client.markNotificationRead(n.id)}
                     className="text-slate-400 hover:text-indigo-600 p-1"
