@@ -2567,116 +2567,180 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
   handleDeleteWebhook,
   webhookDeliveries,
   loading,
-}) => (
-  <div className="grid-cols-2">
-    <div className="glass-panel">
-      <h3 className="form-section-title">Subscribe Outbound Webhook</h3>
-      <form onSubmit={handleCreateWebhook}>
-        <div className="form-group">
-          <label htmlFor="targeturlendpoint_41">Target URL Endpoint</label>
-          <input
-            id="targeturlendpoint_41"
-            type="url"
-            value={webhookUrl}
-            onChange={(e) => setWebhookUrl(e.target.value)}
-            required
-            placeholder="https://api.thirdparty.com/webhook"
-          />
-        </div>
-        <div className="form-group">
-          <label>Event Subscriptions</label>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
-          >
-            {[
-              "StockReceived",
-              "StockDispatched",
-              "LowStockDetected",
-              "OnboardingSubmitted",
-            ].map((evt) => (
-              <label
-                key={evt}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  fontWeight: "normal",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={webhookEvents.includes(evt)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setWebhookEvents([...webhookEvents, evt]);
-                    } else {
-                      setWebhookEvents(webhookEvents.filter((x) => x !== evt));
-                    }
+}) => {
+  // ⚡ Bolt: Memoize selected webhook events into a Set for O(1) lookups inside the render loop, replacing O(N) Array.includes()
+  const webhookEventsSet = React.useMemo(
+    () => new Set(webhookEvents),
+    [webhookEvents],
+  );
+
+  return (
+    <div className="grid-cols-2">
+      <div className="glass-panel">
+        <h3 className="form-section-title">Subscribe Outbound Webhook</h3>
+        <form onSubmit={handleCreateWebhook}>
+          <div className="form-group">
+            <label htmlFor="targeturlendpoint_41">Target URL Endpoint</label>
+            <input
+              id="targeturlendpoint_41"
+              type="url"
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+              required
+              placeholder="https://api.thirdparty.com/webhook"
+            />
+          </div>
+          <div className="form-group">
+            <label>Event Subscriptions</label>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+              }}
+            >
+              {[
+                "StockReceived",
+                "StockDispatched",
+                "LowStockDetected",
+                "OnboardingSubmitted",
+              ].map((evt) => (
+                <label
+                  key={evt}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    fontWeight: "normal",
                   }}
-                />
-                <code>{evt}</code>
-              </label>
-            ))}
+                >
+                  <input
+                    type="checkbox"
+                    checked={webhookEventsSet.has(evt)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setWebhookEvents([...webhookEvents, evt]);
+                      } else {
+                        setWebhookEvents(
+                          webhookEvents.filter((x) => x !== evt),
+                        );
+                      }
+                    }}
+                  />
+                  <code>{evt}</code>
+                </label>
+              ))}
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loading}
+            aria-busy={loading}
+          >
+            Create Webhook Subscription
+          </button>
+        </form>
+
+        <div style={{ marginTop: "2.5rem" }}>
+          <h3 className="form-section-title">Webhook Subscriptions</h3>
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Webhook Target URL</th>
+                  <th>Subscribed Events</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {webhooks.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      style={{
+                        textAlign: "center",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      No active webhook subscriptions configured.
+                    </td>
+                  </tr>
+                ) : (
+                  webhooks.map((w) => (
+                    <tr key={w.id}>
+                      <td style={{ maxWidth: "200px", wordBreak: "break-all" }}>
+                        <code>{w.url}</code>
+                      </td>
+                      <td>
+                        {w.eventTypes.map((e: string) => (
+                          <div key={e} style={{ fontSize: "0.85rem" }}>
+                            <code>{e}</code>
+                          </div>
+                        ))}
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-secondary"
+                          disabled={loading}
+                          aria-busy={loading}
+                          style={{
+                            padding: "0.2rem 0.5rem",
+                            fontSize: "0.75rem",
+                          }}
+                          onClick={() => handleDeleteWebhook(w.id)}
+                          aria-label={`Delete webhook ${w.id}`}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={loading}
-          aria-busy={loading}
-        >
-          Create Webhook Subscription
-        </button>
-      </form>
+      </div>
 
-      <div style={{ marginTop: "2.5rem" }}>
-        <h3 className="form-section-title">Webhook Subscriptions</h3>
+      <div className="glass-panel">
+        <h3 className="form-section-title">Webhook Delivery Retry Logs</h3>
         <div className="table-wrapper">
           <table>
             <thead>
               <tr>
-                <th>Webhook Target URL</th>
-                <th>Subscribed Events</th>
-                <th>Action</th>
+                <th>Event</th>
+                <th>Status Code</th>
+                <th>Time</th>
               </tr>
             </thead>
             <tbody>
-              {webhooks.length === 0 ? (
+              {webhookDeliveries.length === 0 ? (
                 <tr>
                   <td
                     colSpan={3}
                     style={{ textAlign: "center", color: "var(--text-muted)" }}
                   >
-                    No active webhook subscriptions configured.
+                    No webhook deliveries recorded.
                   </td>
                 </tr>
               ) : (
-                webhooks.map((w) => (
-                  <tr key={w.id}>
-                    <td style={{ maxWidth: "200px", wordBreak: "break-all" }}>
-                      <code>{w.url}</code>
+                webhookDeliveries.map((log) => (
+                  <tr key={log.id}>
+                    <td>
+                      <code>{log.eventName}</code>
                     </td>
                     <td>
-                      {w.eventTypes.map((e: string) => (
-                        <div key={e} style={{ fontSize: "0.85rem" }}>
-                          <code>{e}</code>
-                        </div>
-                      ))}
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-secondary"
-                        disabled={loading}
-                        aria-busy={loading}
-                        style={{
-                          padding: "0.2rem 0.5rem",
-                          fontSize: "0.75rem",
-                        }}
-                        onClick={() => handleDeleteWebhook(w.id)}
-                        aria-label={`Delete webhook ${w.id}`}
+                      <span
+                        className={`badge badge-${log.statusCode && log.statusCode >= 200 && log.statusCode < 300 ? "success" : "error"}`}
                       >
-                        Delete
-                      </button>
+                        {log.statusCode || log.status}
+                      </span>
+                    </td>
+                    <td>
+                      {new Date(
+                        log.occurredOn || new Date(),
+                      ).toLocaleTimeString()}
                     </td>
                   </tr>
                 ))
@@ -2686,55 +2750,8 @@ export const WebhooksPanel: React.FC<WebhooksPanelProps> = ({
         </div>
       </div>
     </div>
-
-    <div className="glass-panel">
-      <h3 className="form-section-title">Webhook Delivery Retry Logs</h3>
-      <div className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Event</th>
-              <th>Status Code</th>
-              <th>Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {webhookDeliveries.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={3}
-                  style={{ textAlign: "center", color: "var(--text-muted)" }}
-                >
-                  No webhook deliveries recorded.
-                </td>
-              </tr>
-            ) : (
-              webhookDeliveries.map((log) => (
-                <tr key={log.id}>
-                  <td>
-                    <code>{log.eventName}</code>
-                  </td>
-                  <td>
-                    <span
-                      className={`badge badge-${log.statusCode && log.statusCode >= 200 && log.statusCode < 300 ? "success" : "error"}`}
-                    >
-                      {log.statusCode || log.status}
-                    </span>
-                  </td>
-                  <td>
-                    {new Date(
-                      log.occurredOn || new Date(),
-                    ).toLocaleTimeString()}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 export const RfidPanel: React.FC<{
   tenantId: string;

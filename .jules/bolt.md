@@ -178,3 +178,6 @@
 **Action:** Always wrap independent initialization API calls inside a concurrent `Promise.all` block to bound the total fetch time to `O(max(T1, T2, ...))` rather than `O(T1 + T2 + ...)`.
 
 - **Strict Lowercase Directory Casing**: Always write learning notes to lowercase `.jules/<bot>.md`. Never create, commit, or reference uppercase `.Jules/`.
+## 2024-05-14 - [O(1) Set Lookup for React Rendering]
+**Learning:** Using `Array.includes()` inside `.map()` render functions for dynamic component lists introduces an O(N*M) performance bottleneck, especially as the number of available or selected items grows.
+**Action:** Always pre-compute a `Set` via `useMemo` for selected items and replace `Array.includes()` with `Set.has()` to ensure O(1) lookups during the render cycle.
