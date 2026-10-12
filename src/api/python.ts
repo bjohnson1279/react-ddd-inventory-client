@@ -730,40 +730,35 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async getOutboxStats(): Promise<OutboxStats> {
-    try {
-      const stats = await this.request("GET", `/outbox/stats`);
-      return {
-        pendingCount: stats?.pending || 0,
-        publishedCount: stats?.published || 0,
-        failedCount: stats?.failed || 0,
-      };
-    } catch {
-      return { pendingCount: 0, publishedCount: 0, failedCount: 0 };
-    }
+    const stats = await this.request("GET", "/outbox/stats");
+    return { pendingCount: stats.pending, publishedCount: stats.published, failedCount: stats.failed };
   }
 
   async getDeadLetterEvents(limit?: number): Promise<OutboxEvent[]> {
-    try {
-      const res = await this.request(
-        "GET",
-        `/outbox/dead-letter${limit ? `?limit=${limit}` : ""}`,
-      );
-      return (res || []).map((e: any) => ({
-        id: e.id,
-        eventType: e.eventType || e.type || "UnknownEvent",
-        payload:
-          typeof e.payload === "string" ? e.payload : JSON.stringify(e.payload),
-        error: e.error || e.errorMessage || "",
-        status: e.status || "Failed",
-        occurredAt: e.occurredAt || e.createdAt || new Date().toISOString(),
-      }));
-    } catch {
-      return [];
-    }
+    const res = await this.request("GET", `/outbox/dead-letter${limit !== undefined ? `?limit=${limit}` : ""}`);
+    return res.map((event: any) => ({ id: event.id, eventType: event.eventType,
+      payload: JSON.stringify(event.payload), error: event.error, status: event.status,
+      occurredAt: event.createdAt ?? "", version: event.version, attempts: event.attempts, sequence: event.sequence }));
   }
 
   async retryOutboxEvent(id: string): Promise<void> {
-    await this.request("POST", `/outbox/${id}/retry`);
+    const pendingKey = `python-outbox-retry:${id}`;
+    const cached = sessionStorage.getItem(pendingKey);
+    let payload;
+    if (cached) payload = JSON.parse(cached);
+    else {
+      const event = await this.request("GET", `/outbox/${encodeURIComponent(id)}`);
+      if (event.status !== "DEAD_LETTER") throw new Error("Only a dead-letter event can be retried; refresh the list.");
+      payload = { expectedVersion: event.version, mutationId: crypto.randomUUID(), reason: "Operator requested redelivery" };
+      sessionStorage.setItem(pendingKey, JSON.stringify(payload));
+    }
+    try {
+      await this.request("POST", `/outbox/${encodeURIComponent(id)}/retry`, payload);
+    } catch (error: any) {
+      if ([400, 401, 403, 404, 409, 422].includes(error.status)) sessionStorage.removeItem(pendingKey);
+      throw error;
+    }
+    sessionStorage.removeItem(pendingKey);
   }
 
   async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {

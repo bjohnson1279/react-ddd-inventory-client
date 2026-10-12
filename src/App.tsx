@@ -2001,7 +2001,7 @@ function App() {
       await client.retryOutboxEvent(id);
       setMessage({
         type: "success",
-        text: "Outbox event retried successfully.",
+        text: "Outbox event requeued for delivery.",
       });
       loadAdminData("outbox");
     } catch (err: any) {
@@ -6222,8 +6222,7 @@ function App() {
                                 color: "var(--text-muted)",
                               }}
                             >
-                              No dead-lettered events recorded. Event stream is
-                              healthy!
+                              No dead-lettered events recorded.
                             </td>
                           </tr>
                         ) : (
@@ -6246,7 +6245,7 @@ function App() {
                                 {e.error || "Message retry execution failure."}
                               </td>
                               <td>
-                                {new Date(e.occurredAt).toLocaleTimeString()}
+                                {e.occurredAt ? new Date(e.occurredAt).toLocaleTimeString() : "Unknown"}
                               </td>
                               <td>
                                 <button

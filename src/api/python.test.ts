@@ -3,6 +3,47 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe('Python event delivery transport', () => {
+  it('loads actual delivery counters and exposes denied access instead of empty results', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ pending: 3, published: 7, failed: 2 }) })
+      .mockResolvedValue({ ok: false, status: 403, text: async () => JSON.stringify({ detail: 'Access denied' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    expect(await adapter.getOutboxStats()).toEqual({ pendingCount: 3, publishedCount: 7, failedCount: 2 });
+    await expect(adapter.getOutboxStats()).rejects.toThrow('Access denied');
+    await expect(adapter.getDeadLetterEvents()).rejects.toThrow('Access denied');
+  });
+
+  it('replays the same retry after an uncertain response without requiring the event to remain dead-lettered', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'DEAD_LETTER', version: 4 }) })
+      .mockRejectedValueOnce(new Error('Network lost'))
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'PENDING' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(new PythonRESTAdapter().retryOutboxEvent('lost/once')).rejects.toThrow('Network lost');
+    await new PythonRESTAdapter().retryOutboxEvent('lost/once');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1][0]).toMatch(/lost%2Fonce\/retry$/);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).expectedVersion).toBe(4);
+    expect(fetchMock.mock.calls[2][1].body).toEqual(fetchMock.mock.calls[1][1].body);
+  });
+
+  it('refreshes a version after a definite conflict and retains actual dead-letter metadata', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'DEAD_LETTER', version: 1 }) })
+      .mockResolvedValueOnce({ ok: false, status: 409, text: async () => JSON.stringify({ detail: 'Stale retry' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'DEAD_LETTER', version: 2 }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'PENDING' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'dead', eventType: 'StockChanged', payload: { tenantId: 'store' },
+        status: 'DEAD_LETTER', error: 'PublishTimeout', version: 5, attempts: 2, sequence: 1, createdAt: '2026-10-12T00:00:00Z' }] });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    await expect(adapter.retryOutboxEvent('changed')).rejects.toThrow('Stale retry');
+    await adapter.retryOutboxEvent('changed');
+    expect(JSON.parse(fetchMock.mock.calls[3][1].body).expectedVersion).toBe(2);
+    expect(await adapter.getDeadLetterEvents()).toEqual([{ id: 'dead', eventType: 'StockChanged', payload: '{"tenantId":"store"}',
+      status: 'DEAD_LETTER', error: 'PublishTimeout', version: 5, attempts: 2, sequence: 1, occurredAt: '2026-10-12T00:00:00Z' }]);
+  });
+});
+
 describe('Python transfers and units transport', () => {
   it('keeps exact quantities, configuration versions and invoice prices at the boundary', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ version: 1 }) });

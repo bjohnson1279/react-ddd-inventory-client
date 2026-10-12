@@ -229,6 +229,9 @@ export interface OutboxStats {
 }
 
 export interface OutboxEvent {
+  sequence?: number;
+  version?: number;
+  attempts?: number;
   id: string;
   eventType: string;
   payload: string;
