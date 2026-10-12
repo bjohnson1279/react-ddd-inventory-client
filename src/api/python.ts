@@ -265,7 +265,64 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async traceSerialHistory(serialNumber: string): Promise<SerializedItem> {
-    return this.request("GET", `/serials/trace/${serialNumber}`);
+    return this.request("GET", `/serials/trace/${encodeURIComponent(serialNumber)}`);
+  }
+
+  async registerSerial(data: { sku: string; serialNumber: string; locationId?: string; mutationId: string; reason: string; referenceId?: string }): Promise<SerializedItem> {
+    return this.request("POST", "/serials", data);
+  }
+
+  async getSerializedItems(sku?: string): Promise<SerializedItem[]> {
+    return this.request("GET", `/serials?limit=1000${sku ? `&sku=${encodeURIComponent(sku)}` : ""}`);
+  }
+
+  async changeSerial(serialNumber: string, action: "receive" | "sell" | "return" | "restock" | "quarantine" | "damage" | "write-off" | "transfer" | "reserve" | "release" | "price",
+    data: { expectedVersion: number; mutationId: string; reason: string; referenceId: string; locationId?: string; destinationId?: string; unitCostCents?: number; expirationDate?: string }): Promise<SerializedItem> {
+    return this.request("POST", `/serials/${encodeURIComponent(serialNumber)}/${action}`, data);
+  }
+
+  async getKitDefinitions(): Promise<any[]> {
+    return this.request("GET", "/kits?limit=1000");
+  }
+
+  async defineKit(data: { sku: string; name: string; components: { sku: string; quantity: number }[];
+    expectedVersion: number; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", "/kits", data);
+  }
+
+  async mutateKit(action: "assemble" | "disassemble" | "sale", data: { tenantId?: string; kitSku: string; locationId: string; quantity: number;
+    expectedVersion: number; stockVersions: Record<string, number>; mutationId: string; reason: string; referenceId: string }): Promise<any> {
+    return this.request("POST", `/kits/${action}`, data);
+  }
+
+  private async legacyKitCommand(action: "assemble" | "disassemble", tenantId: string, locationId: string, kitSku: string, quantity: number, referenceId: string): Promise<void> {
+    const cacheKey = `python-kit:${JSON.stringify([action, tenantId, locationId, kitSku, referenceId])}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    let payload;
+    if (cached) {
+      payload = JSON.parse(cached);
+      if (payload.quantity !== quantity) throw new Error("Kit reference was already used with another quantity.");
+    } else {
+      const formula = await this.request("GET", `/kits/${encodeURIComponent(kitSku)}`);
+      const stock: any[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const page = await this.request("GET", `/inventory?tenantId=${encodeURIComponent(tenantId)}&limit=1000&offset=${offset}`);
+        stock.push(...page);
+        if (page.length < 1000) break;
+      }
+      const skus = action === "disassemble" ? [kitSku] : [...formula.components.map((c: any) => c.sku), kitSku];
+      const stockVersions = Object.fromEntries(skus.map((sku: string) => [sku, stock.find((s: any) => s.sku === sku && s.locationId === locationId)?.version ?? 0]));
+      payload = { tenantId, kitSku, locationId, quantity, expectedVersion: formula.version, stockVersions,
+        mutationId: crypto.randomUUID(), reason: `Operator requested ${action}`, referenceId };
+      sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+    }
+    try {
+      await this.mutateKit(action, payload);
+    } catch (error: any) {
+      if ([400, 401, 403, 404, 409, 422].includes(error.status)) sessionStorage.removeItem(cacheKey);
+      throw error;
+    }
+    // Keep the original versioned command for an explicit repeat of this reference.
   }
 
   async connectShopify(
@@ -783,14 +840,7 @@ export class PythonRESTAdapter implements InventoryClient {
     actorId: string,
     referenceId: string,
   ): Promise<void> {
-    await this.request("POST", `/kits/assemble`, {
-      tenantId,
-      locationId,
-      kitSku,
-      quantity,
-      actorId,
-      referenceId,
-    });
+    await this.legacyKitCommand("assemble", tenantId, locationId, kitSku, quantity, referenceId);
   }
 
   async disassembleKit(
@@ -801,14 +851,7 @@ export class PythonRESTAdapter implements InventoryClient {
     actorId: string,
     referenceId: string,
   ): Promise<void> {
-    await this.request("POST", `/kits/disassemble`, {
-      tenantId,
-      locationId,
-      kitSku,
-      quantity,
-      actorId,
-      referenceId,
-    });
+    await this.legacyKitCommand("disassemble", tenantId, locationId, kitSku, quantity, referenceId);
   }
 
   async getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]> {

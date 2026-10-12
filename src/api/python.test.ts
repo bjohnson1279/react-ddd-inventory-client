@@ -3,6 +3,39 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe('Python serial and kit transport', () => {
+  it('preserves serial identity, lifecycle version and command IDs', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'serial', status: 'in_stock', version: 1 }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    await adapter.traceSerialHistory('SN:1');
+    expect(fetchMock.mock.calls[0][0]).toMatch(/SN%3A1$/);
+    const payload = { expectedVersion: 1, mutationId: 'sale-once', reason: 'Sale', referenceId: 'sale-1' };
+    await adapter.changeSerial('SN:1', 'sell', payload);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual(payload);
+    await adapter.defineKit({ sku: 'KIT', name: 'Bundle', components: [{ sku: 'PART', quantity: 2 }], expectedVersion: 0, mutationId: 'formula', reason: 'New bundle' });
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body).components).toEqual([{ sku: 'PART', quantity: 2 }]);
+  });
+
+  it('captures kit and source versions and replays an uncertain assembly with the same command', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ version: 3, components: [{ sku: 'PART', quantity: 2 }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ sku: 'PART', locationId: 'shop', version: 7 }] })
+      .mockRejectedValueOnce(new Error('Network lost'))
+      .mockResolvedValue({ ok: true, json: async () => ({ quantity: 1 }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(new PythonRESTAdapter().assembleKit('store', 'shop', 'KIT', 1, 'ignored-client-actor', 'assembly-once')).rejects.toThrow('Network lost');
+    await new PythonRESTAdapter().assembleKit('store', 'shop', 'KIT', 1, 'ignored-client-actor', 'assembly-once');
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const payload = JSON.parse(fetchMock.mock.calls[2][1].body);
+    expect(payload.expectedVersion).toBe(3);
+    expect(payload.tenantId).toBe('store');
+    expect(payload.stockVersions).toEqual({ PART: 7, KIT: 0 });
+    expect(payload.actorId).toBeUndefined();
+    expect(fetchMock.mock.calls[3][1].body).toBe(fetchMock.mock.calls[2][1].body);
+    await expect(new PythonRESTAdapter().assembleKit('store', 'shop', 'KIT', 2, 'actor', 'assembly-once')).rejects.toThrow('another quantity');
+  });
+});
+
 describe('Python event delivery transport', () => {
   it('loads actual delivery counters and exposes denied access instead of empty results', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ pending: 3, published: 7, failed: 2 }) })

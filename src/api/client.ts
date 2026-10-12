@@ -73,6 +73,11 @@ export interface StatusTransition {
 }
 
 export interface SerializedItem {
+  version?: number;
+  sku?: string;
+  destinationId?: string | null;
+  reservation?: string | null;
+  costCents?: number | null;
   id: string;
   variantId: string;
   serialNumber: string;
