@@ -181,3 +181,6 @@
 ## 2024-05-14 - [O(1) Set Lookup for React Rendering]
 **Learning:** Using `Array.includes()` inside `.map()` render functions for dynamic component lists introduces an O(N*M) performance bottleneck, especially as the number of available or selected items grows.
 **Action:** Always pre-compute a `Set` via `useMemo` for selected items and replace `Array.includes()` with `Set.has()` to ensure O(1) lookups during the render cycle.
+## 2024-10-12 - Prevent intermediate array allocations with reduce
+**Learning:** Using `.filter(...).length` allocates an entire new array containing the matching elements before taking its length, which can cause significant memory and garbage collection overhead for large lists.
+**Action:** Always replace `.filter(...).length` patterns with a single-pass `.reduce((count, item) => count + (condition ? 1 : 0), 0)` to calculate counts without creating throwaway intermediate arrays.
