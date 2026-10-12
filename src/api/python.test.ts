@@ -3,6 +3,29 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe('Python integration transport', () => {
+  it('lists only persisted Shopify connections and never synthesizes mock stores', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'store', provider: 'SHOPIFY', origin: 'actual.myshopify.com', active: true }, { id: 'sink', provider: 'EVENT_SINK' }] });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    expect(await adapter.getShopifyConnections('tenant')).toEqual([]);
+    expect(await adapter.getShopifyConnections('tenant')).toEqual([{ id: 'store', tenantId: 'tenant', platform: 'shopify', storeDomain: 'actual.myshopify.com', isActive: true }]);
+  });
+
+  it('preserves tenant, mutation and version fields and encodes connection/order paths', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    const command = { tenantId: 'tenant', expectedVersion: 3, mutationId: 'retry', reason: 'Reviewed recovery' };
+    await adapter.retryIntegrationDelivery('job/id', command);
+    expect(fetchMock.mock.calls[0][0]).toMatch(/job%2Fid\/retry$/);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(command);
+    await adapter.completeIntegrationOrder('order/id', 'cancel', command);
+    expect(fetchMock.mock.calls[1][0]).toMatch(/order%2Fid\/cancel$/);
+  });
+});
+
 describe('Python financial accounting transport', () => {
   it('posts the actual balanced journal and replays the same command after a lost response', async () => {
     const fetchMock = vi.fn().mockRejectedValueOnce(new Error('Response lost'))

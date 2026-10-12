@@ -44,6 +44,7 @@ import { ApprovalInboxPanel } from "./components/ApprovalInboxPanel";
 import { ApprovalWorkflowPanel } from "./components/ApprovalWorkflowPanel";
 import { ReportingDashboardPanel } from "./components/ReportingDashboardPanel";
 import { OmnichannelIntegrationPanel } from "./components/OmnichannelIntegrationPanel";
+import { PythonIntegrationsPanel } from "./components/PythonIntegrationsPanel";
 import { CycleCountDashboardPanel } from "./components/CycleCountDashboardPanel";
 import { SupplierCollaborationPortal } from "./components/SupplierCollaborationPortal";
 import { NotificationInboxPanel } from "./components/NotificationInboxPanel";
@@ -690,7 +691,8 @@ function App() {
       const [invData, prodData, connData, glData] = await Promise.all([
         client.getInventoryItems(),
         client.getProducts(),
-        client.getShopifyConnections(tenantId),
+        backendType !== 'python' || ['admin', 'manager'].includes(role.toLowerCase())
+          ? client.getShopifyConnections(tenantId) : Promise.resolve([]),
         backendType !== 'python' || ['admin', 'manager', 'accountant'].includes(role.toLowerCase())
           ? client.getJournalEntries(tenantId) : Promise.resolve([]),
       ]);
@@ -974,7 +976,7 @@ function App() {
     } else if (activeTab === "ledger") {
       loadLedgerData();
     } else if (activeTab === "shopify") {
-      loadDashboardData();
+      if (backendType !== 'python') loadDashboardData();
     } else if (activeTab === "forecasting") {
       loadForecastingReport();
       loadReorderPolicies();
@@ -2277,7 +2279,7 @@ function App() {
             >
               📊 Operational Depth
             </div>
-            {role === "admin" && (
+            {(role === "admin" || (backendType === 'python' && role === 'manager')) && (
               <div
                 className={`nav-link ${activeTab === "shopify" ? "active" : ""}`}
                 onClick={() => setActiveTab("shopify")}
@@ -2719,7 +2721,7 @@ function App() {
         )}
 
         {activeTab === "shopify" && (
-          <OmnichannelIntegrationPanel tenantId={tenantId} />
+          backendType === 'python' ? <PythonIntegrationsPanel client={client as PythonRESTAdapter} tenantId={tenantId} /> : <OmnichannelIntegrationPanel tenantId={tenantId} />
         )}
 
         {activeTab === "products" && (

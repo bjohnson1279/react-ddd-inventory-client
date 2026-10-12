@@ -167,17 +167,48 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
-    // In Python, shopify connections are stored in databases, but the API may not expose a list connection route.
-    // Fall back to returning a default list.
-    return [
-      {
-        id: "conn-1",
-        tenantId,
-        platform: "shopify",
-        storeDomain: "mock-store.myshopify.com",
-        isActive: true,
-      },
-    ];
+    const connections = await this.getConnections(tenantId);
+    return connections.filter((row: any) => row.provider === 'SHOPIFY').map((row: any) => ({
+      id: row.id, tenantId, platform: 'shopify', storeDomain: row.origin, isActive: row.active,
+    }));
+  }
+
+  async createIntegrationConnection(data: Record<string, unknown>): Promise<any> {
+    return this.request('POST', '/integrations/connections', data);
+  }
+
+  async setIntegrationConnectionActive(id: string, data: Record<string, unknown>): Promise<any> {
+    return this.request('POST', `/integrations/connections/${encodeURIComponent(id)}/active`, data);
+  }
+
+  async getIntegrationDeliveries(tenantId: string): Promise<any[]> {
+    const rows: any[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const page = await this.request('GET', `/integrations/deliveries?tenantId=${encodeURIComponent(tenantId)}&limit=1000&offset=${offset}`);
+      rows.push(...page);
+      if (page.length < 1000) return rows;
+    }
+  }
+
+  async retryIntegrationDelivery(id: string, data: Record<string, unknown>): Promise<any> {
+    return this.request('POST', `/integrations/deliveries/${encodeURIComponent(id)}/retry`, data);
+  }
+
+  async dispatchIntegrationConnection(id: string): Promise<any> {
+    return this.request('POST', `/integrations/connections/${encodeURIComponent(id)}/dispatch`);
+  }
+
+  async getIntegrationOrders(tenantId: string): Promise<any[]> {
+    const rows: any[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const page = await this.request('GET', `/integrations/orders?tenantId=${encodeURIComponent(tenantId)}&limit=1000&offset=${offset}`);
+      rows.push(...page);
+      if (page.length < 1000) return rows;
+    }
+  }
+
+  async completeIntegrationOrder(id: string, action: 'fulfill' | 'cancel', data: Record<string, unknown>): Promise<any> {
+    return this.request('POST', `/integrations/orders/${encodeURIComponent(id)}/${action}`, data);
   }
 
   async getJournalEntries(tenantId: string): Promise<JournalEntry[]> {
