@@ -21,6 +21,8 @@ import {
   ValuationItem,
 } from "./api/client";
 import { RfidPanel, LotManagementPanel } from "./components/Panels";
+import { FinancialAccountingPanel } from "./components/FinancialAccountingPanel";
+import type { PythonRESTAdapter } from "./api/python";
 
 import {
   addScanToQueue,
@@ -673,6 +675,14 @@ function App() {
   };
 
   // --- Data Loading Functions ---
+  const loadLedgerData = async () => {
+    setLoading(true);
+    setMessage(previous => previous?.type === 'error' ? null : previous);
+    try { setJournals(await client.getJournalEntries(tenantId)); }
+    catch (err: any) { setMessage({ type: 'error', text: err.message }); }
+    finally { setLoading(false); }
+  };
+
   const loadDashboardData = async () => {
     setLoading(true);
     try {
@@ -681,7 +691,8 @@ function App() {
         client.getInventoryItems(),
         client.getProducts(),
         client.getShopifyConnections(tenantId),
-        client.getJournalEntries(tenantId),
+        backendType !== 'python' || ['admin', 'manager', 'accountant'].includes(role.toLowerCase())
+          ? client.getJournalEntries(tenantId) : Promise.resolve([]),
       ]);
       setInventoryItems(invData || []);
       setProducts(prodData || []);
@@ -961,7 +972,7 @@ function App() {
     } else if (activeTab === "products") {
       loadDashboardData();
     } else if (activeTab === "ledger") {
-      loadDashboardData();
+      loadLedgerData();
     } else if (activeTab === "shopify") {
       loadDashboardData();
     } else if (activeTab === "forecasting") {
@@ -1523,7 +1534,7 @@ function App() {
     e.preventDefault();
     if (
       !window.confirm(
-        "Are you sure you want to post this journal entry? This will permanently post to the General Ledger and cannot be reversed.",
+        "Post this balanced journal to the general ledger?",
       )
     ) {
       return;
@@ -1545,7 +1556,7 @@ function App() {
         { accountCode: "1000", amountCents: 0, type: "debit", memo: "" },
         { accountCode: "2000", amountCents: 0, type: "credit", memo: "" },
       ]);
-      loadDashboardData();
+      loadLedgerData();
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
     } finally {
@@ -2300,7 +2311,7 @@ function App() {
                 📥 Stock Onboarding
               </div>
             )}
-            {(role === "admin" || role === "accountant") && (
+            {(role === "admin" || role === "accountant" || (backendType === 'python' && role === 'manager')) && (
               <div
                 className={`nav-link ${activeTab === "ledger" ? "active" : ""}`}
                 onClick={() => setActiveTab("ledger")}
@@ -2608,7 +2619,7 @@ function App() {
               </div>
               <div className="stat-card accent">
                 <span className="stat-title">Double-Entry Ledger</span>
-                <span className="stat-value">{journals.length}</span>
+                <span className="stat-value">{backendType === 'python' && !['admin', 'manager', 'accountant'].includes(role.toLowerCase()) ? 'Restricted' : journals.length}</span>
                 <span className="stat-desc">Recorded Journal Entries</span>
               </div>
             </div>
@@ -3404,6 +3415,8 @@ function App() {
 
         {activeTab === "ledger" && (
           <div className="grid-cols-2">
+            {backendType === 'python' && ['admin', 'manager', 'accountant'].includes(role.toLowerCase()) &&
+              <FinancialAccountingPanel client={client as PythonRESTAdapter} tenantId={tenantId} onPosted={loadLedgerData} />}
             <div className="glass-panel">
               <h3 className="form-section-title">
                 Record General Ledger Journal
@@ -3549,9 +3562,7 @@ function App() {
                       journals.map((entry) => (
                         <tr key={entry.id}>
                           <td>
-                            {new Date(
-                              entry.date || new Date(),
-                            ).toLocaleDateString()}
+                            {entry.date ? /^\d{4}-\d{2}-\d{2}$/.test(entry.date) ? entry.date : new Date(entry.date).toLocaleDateString() : "Unknown"}
                           </td>
                           <td>
                             <strong>{entry.description}</strong>

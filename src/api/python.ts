@@ -181,11 +181,74 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async getJournalEntries(tenantId: string): Promise<JournalEntry[]> {
-    const data = await this.request(
-      "GET",
-      `/accounting/ledger?tenantId=${encodeURIComponent(tenantId)}`,
-    );
-    return data || [];
+    const entries: JournalEntry[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const page = await this.request("GET", `/accounting/ledger?tenantId=${encodeURIComponent(tenantId)}&limit=1000&offset=${offset}`);
+      entries.push(...page);
+      if (page.length < 1000) return entries;
+    }
+  }
+
+  async getFinancialStatus(tenantId: string): Promise<any> {
+    return this.request("GET", `/accounting/financial/status?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getFinancialOpeningPreview(tenantId: string): Promise<any> {
+    return this.request("GET", `/accounting/financial/opening-preview?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async activateFinancialAccounting(data: { tenantId?: string; expectedVersion: number; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", "/accounting/financial/activate", data);
+  }
+
+  async getFinancialTrialBalance(tenantId: string, asOf?: string): Promise<any> {
+    return this.request("GET", `/accounting/trial-balance?tenantId=${encodeURIComponent(tenantId)}${asOf ? `&asOf=${encodeURIComponent(asOf)}` : ""}`);
+  }
+
+  async getFinancialReconciliation(tenantId: string): Promise<any> {
+    return this.request("GET", `/accounting/financial/reconciliation?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getFinancialSources(tenantId: string, status?: string): Promise<any[]> {
+    return this.request("GET", `/accounting/sources?tenantId=${encodeURIComponent(tenantId)}&limit=1000${status ? `&status=${encodeURIComponent(status)}` : ""}`);
+  }
+
+  async postFinancialJournal(data: { tenantId?: string; date: string; description: string; method: string; lines: JournalLine[];
+    mutationId: string; reason: string; referenceId?: string }): Promise<JournalEntry> {
+    return this.request("POST", "/accounting/journals", data);
+  }
+
+  async reverseFinancialJournal(id: string, data: { tenantId?: string; date: string; mutationId: string; reason: string }): Promise<JournalEntry> {
+    return this.request("POST", `/accounting/journals/${encodeURIComponent(id)}/reverse`, data);
+  }
+
+  async closeFinancialPeriod(data: { tenantId?: string; closedThrough: string; expectedVersion: number; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", "/accounting/financial/close-period", data);
+  }
+
+  async createFinancialDocument(data: { tenantId?: string; kind: "SALE" | "PURCHASE"; date: string; reference: string;
+    counterparty: string; supplierId?: string; amountCents: number; sourceIds: string[]; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", "/accounting/documents", data);
+  }
+
+  async settleFinancialDocument(id: string, data: { tenantId?: string; expectedVersion: number; amountCents: number;
+    date: string; reference: string; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", `/accounting/documents/${encodeURIComponent(id)}/settle`, data);
+  }
+
+  async applyFinancialCredit(id: string, data: { tenantId?: string; expectedVersion: number; sourceId: string; amountCents: number;
+    date: string; reference: string; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", `/accounting/documents/${encodeURIComponent(id)}/credit`, data);
+  }
+
+  async refundFinancialDocument(id: string, data: { tenantId?: string; expectedVersion: number; amountCents: number;
+    date: string; reference: string; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", `/accounting/documents/${encodeURIComponent(id)}/refund`, data);
+  }
+
+  async resolveFinancialSource(id: string, data: { tenantId?: string; expectedVersion: number; date: string;
+    referenceId: string; lines: JournalLine[]; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", `/accounting/sources/${encodeURIComponent(id)}/resolve`, data);
   }
 
   async getStockOnboardings(tenantId: string): Promise<StockOnboarding[]> {
@@ -371,21 +434,18 @@ export class PythonRESTAdapter implements InventoryClient {
     method: string,
     lines: JournalLine[],
   ): Promise<void> {
-    // Express records journals based on specific workflows (received/sold)
-    // Map to the appropriate REST payload
-    // ⚡ Bolt: Replace O(2N) .filter().reduce() with a single-pass O(N) loop to reduce callback overhead and array allocation
-    let totalAmount = 0;
-    for (const l of lines) {
-      if (l.type === "debit") totalAmount += l.amountCents;
+    const pendingKey = `python-journal:${JSON.stringify([PYTHON_BASE_URL, tenantId, description, method, lines])}`;
+    const cached = sessionStorage.getItem(pendingKey);
+    const payload = cached ? JSON.parse(cached) : { tenantId, description, method, lines,
+      date: new Date().toISOString().slice(0, 10), mutationId: crypto.randomUUID(), reason: "Operator posted manual journal" };
+    sessionStorage.setItem(pendingKey, JSON.stringify(payload));
+    try {
+      await this.postFinancialJournal(payload);
+    } catch (error: any) {
+      if ([400, 401, 403, 404, 409, 422].includes(error.status)) sessionStorage.removeItem(pendingKey);
+      throw error;
     }
-    const sku = lines[0]?.memo || "SKU-1";
-    await this.request("POST", "/accounting/stock-received", {
-      tenantId,
-      sku,
-      quantity: 1,
-      unitCostCents: totalAmount,
-      method: method.toLowerCase(),
-    });
+    sessionStorage.removeItem(pendingKey);
   }
 
   async createStockOnboarding(

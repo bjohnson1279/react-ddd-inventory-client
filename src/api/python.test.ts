@@ -3,6 +3,52 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe('Python financial accounting transport', () => {
+  it('posts the actual balanced journal and replays the same command after a lost response', async () => {
+    const fetchMock = vi.fn().mockRejectedValueOnce(new Error('Response lost'))
+      .mockResolvedValue({ ok: true, json: async () => ({ id: 'journal', method: 'accrual', lines: [] }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const lines = [{ accountCode: '1000', amountCents: 101, type: 'debit' as const, memo: 'Cash' },
+      { accountCode: '3000', amountCents: 101, type: 'credit' as const, memo: 'Opening equity' }];
+    await expect(new PythonRESTAdapter().createJournalEntry('store', 'Actual opening', 'accrual', lines)).rejects.toThrow('Response lost');
+    await new PythonRESTAdapter().createJournalEntry('store', 'Actual opening', 'accrual', lines);
+    expect(fetchMock.mock.calls[0][0]).toMatch(/\/accounting\/journals$/);
+    const payload = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(payload.lines).toEqual(lines);
+    expect(payload.description).toBe('Actual opening');
+    expect(payload.quantity).toBeUndefined();
+    expect(payload.sku).toBeUndefined();
+    expect(fetchMock.mock.calls[1][1].body).toBe(fetchMock.mock.calls[0][1].body);
+  });
+
+  it('keeps document amounts, source links, settlement versions and tenant selectors', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'document' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    const doc = { tenantId: 'store', kind: 'SALE' as const, date: '2026-10-12', reference: 'sale', counterparty: 'Customer',
+      amountCents: 350, sourceIds: ['movement'], mutationId: 'doc-once', reason: 'Actual sale amount' };
+    await adapter.createFinancialDocument(doc);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(doc);
+    const payment = { tenantId: 'store', expectedVersion: 1, amountCents: 150, date: '2026-10-12', reference: 'bank-receipt', mutationId: 'pay-once', reason: 'Actual payment' };
+    await adapter.settleFinancialDocument('doc/id', payment);
+    expect(fetchMock.mock.calls[1][0]).toMatch(/doc%2Fid\/settle$/);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual(payment);
+    await adapter.getFinancialStatus('store/id');
+    expect(fetchMock.mock.calls[2][0]).toMatch(/tenantId=store%2Fid$/);
+  });
+
+  it('paginates real journal rows and surfaces accounting read failures', async () => {
+    const entries = Array.from({ length: 1000 }, (_, index) => ({ id: String(index), lines: [] }));
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => entries })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'last', lines: [] }] })
+      .mockResolvedValue({ ok: false, status: 403, text: async () => JSON.stringify({ detail: 'Finance permission required' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await new PythonRESTAdapter().getJournalEntries('store')).toHaveLength(1001);
+    expect(fetchMock.mock.calls[1][0]).toMatch(/offset=1000$/);
+    await expect(new PythonRESTAdapter().getFinancialTrialBalance('store')).rejects.toThrow('Finance permission required');
+  });
+});
+
 describe('Python serial and kit transport', () => {
   it('preserves serial identity, lifecycle version and command IDs', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'serial', status: 'in_stock', version: 1 }) });
