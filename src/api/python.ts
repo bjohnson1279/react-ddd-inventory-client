@@ -71,7 +71,8 @@ export class PythonRESTAdapter implements InventoryClient {
         } catch {
           parsedError = { error: errorText };
         }
-        throw new Error(parsedError.error || parsedError.detail || `HTTP ${response.status} Error`);
+        throw Object.assign(new Error(parsedError.error || parsedError.detail || `HTTP ${response.status} Error`),
+          { status: response.status });
       }
       return await response.json();
     } catch (err: any) {
@@ -816,23 +817,7 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]> {
-    try {
-      const res = await this.request(
-        "GET",
-        `/returns/quarantine?tenantId=${encodeURIComponent(tenantId)}`,
-      );
-      return (res || []).map((q: any) => ({
-        id: q.id,
-        sku: q.sku || q.variantId || "",
-        locationId: q.locationId || "",
-        quantity: q.quantity || 0,
-        reason: q.reason || "",
-        status: q.status || "Quarantined",
-        createdAt: q.createdAt || new Date().toISOString(),
-      }));
-    } catch {
-      return [];
-    }
+    return this.request("GET", `/returns/quarantine?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
   }
 
   async resolveQuarantine(
@@ -840,10 +825,55 @@ export class PythonRESTAdapter implements InventoryClient {
     id: string,
     resolution: string,
   ): Promise<void> {
-    await this.request("POST", `/returns/quarantine/${id}/resolve`, {
-      tenantId,
-      resolution,
-    });
+    const pendingKey = `python-quarantine:${JSON.stringify({ tenantId, id, resolution })}`;
+    const cached = sessionStorage.getItem(pendingKey);
+    let data;
+    if (cached) data = JSON.parse(cached);
+    else {
+      const item = (await this.getQuarantinedItems(tenantId)).find(row => row.id === id);
+      if (!item || item.version === undefined) throw new Error("Quarantine item is no longer pending; refresh the list.");
+      data = { tenantId, resolution, expectedVersion: item.version,
+        reason: "Inspection decision", mutationId: crypto.randomUUID() };
+      sessionStorage.setItem(pendingKey, JSON.stringify(data));
+    }
+    try {
+      await this.request("POST", `/returns/quarantine/${encodeURIComponent(id)}/resolve`, data);
+    } catch (error: any) {
+      if ([400, 404, 409, 422].includes(error.status)) sessionStorage.removeItem(pendingKey);
+      throw error;
+    }
+    sessionStorage.removeItem(pendingKey);
+  }
+
+  async getReturns(tenantId: string): Promise<any[]> {
+    return this.request("GET", `/returns/rmas?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+  }
+
+  async createReturn(tenantId: string, data: { kind?: "CUSTOMER" | "SUPPLIER"; sourceMovementId: string;
+    items: { layerId: string; quantity: number; disposition?: "RESTOCK" | "QUARANTINE" | "SCRAP" | "RETURN_TO_VENDOR" }[];
+    reason: string; refundReference?: string; mutationId: string }): Promise<any> {
+    return this.request("POST", "/returns/rmas", { tenantId, ...data });
+  }
+
+  async reviewReturn(id: string, action: "authorize" | "cancel", expectedVersion: number,
+    reason: string, mutationId: string): Promise<any> {
+    return this.request("POST", `/returns/rmas/${encodeURIComponent(id)}/${action}`, { expectedVersion, reason, mutationId });
+  }
+
+  async receiveReturn(id: string, expectedVersion: number, receiptId: string,
+    items: { layerId: string; quantity: number }[]): Promise<any> {
+    return this.request("POST", `/returns/rmas/${encodeURIComponent(id)}/receive`, { expectedVersion, receiptId, items });
+  }
+
+  async shipSupplierReturn(id: string, expectedVersion: number, shipmentId: string,
+    items: { layerId: string; quantity: number }[]): Promise<any> {
+    return this.request("POST", `/returns/rmas/${encodeURIComponent(id)}/ship`, { expectedVersion, shipmentId, items });
+  }
+
+  async writeOffStock(data: { sku: string; locationId?: string; quantity: number; expectedVersion: number;
+    reasonCode: "DAMAGE" | "THEFT" | "EXPIRED" | "OBSOLETE" | "SHRINKAGE"; reason: string;
+    mutationId: string; layerId?: string; lotNumber?: string; reference?: string }): Promise<any> {
+    return this.request("POST", "/returns/write-offs", data);
   }
 
   async getValuationReport(

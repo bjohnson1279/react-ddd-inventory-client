@@ -252,6 +252,8 @@ export interface QuarantinedItem {
   reason: string;
   status: string;
   createdAt: string;
+  version?: number;
+  returnId?: string;
 }
 
 export interface ValuationItem {

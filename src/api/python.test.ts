@@ -3,6 +3,54 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe('Python returns transport', () => {
+  it('refreshes the quarantine version after a definite stale-decision rejection', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'changed', version: 0 }] })
+      .mockResolvedValueOnce({ ok: false, status: 409, text: async () => JSON.stringify({ detail: 'Stale decision' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'changed', version: 1 }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'RESTOCKED' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    await expect(adapter.resolveQuarantine('store-a', 'changed', 'RESTOCK')).rejects.toThrow('Stale decision');
+    await adapter.resolveQuarantine('store-a', 'changed', 'RESTOCK');
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).expectedVersion).toBe(0);
+    expect(JSON.parse(fetchMock.mock.calls[3][1].body).expectedVersion).toBe(1);
+  });
+  it('loads persisted quarantine data and exposes authorization failures', async () => {
+    const rows = [{ id: 'held', version: 2, quantity: 1, status: 'QUARANTINED' }];
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => rows })
+      .mockResolvedValue({ ok: false, status: 403, text: async () => JSON.stringify({ detail: 'Access denied' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    expect(await adapter.getQuarantinedItems('store-a')).toEqual(rows);
+    await expect(adapter.getQuarantinedItems('store-a')).rejects.toThrow('Access denied');
+  });
+
+  it('replays a quarantine decision after an uncertain response without needing a still-pending row', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true,
+      json: async () => [{ id: 'held-retry', version: 2 }] }).mockRejectedValueOnce(new Error('Network lost'))
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'RESTOCKED' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(new PythonRESTAdapter().resolveQuarantine('store-a', 'held-retry', 'RESTOCK')).rejects.toThrow('Network lost');
+    await new PythonRESTAdapter().resolveQuarantine('store-a', 'held-retry', 'RESTOCK');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const first = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(first.expectedVersion).toBe(2);
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual(first);
+  });
+
+  it('sends explicit return versions, receipt IDs and write-off references', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'return' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    await adapter.receiveReturn('return', 1, 'arrival', [{ layerId: 'source-layer', quantity: 1 }]);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ expectedVersion: 1, receiptId: 'arrival',
+      items: [{ layerId: 'source-layer', quantity: 1 }] });
+    await adapter.writeOffStock({ sku: 'A', quantity: 1, expectedVersion: 3, reasonCode: 'DAMAGE', reason: 'Broken', mutationId: 'loss' });
+    expect(fetchMock.mock.calls[1][0]).toMatch(/\/returns\/write-offs$/);
+  });
+});
+
 describe('Python procurement transport', () => {
   it('reuses a PO creation mutation ID after an uncertain response', async () => {
     const supplier = { ok: true, json: async () => [{ id: 'vendor-retry', name: 'Retry vendor', isActive: true }] };
