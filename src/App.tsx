@@ -312,17 +312,24 @@ function App() {
 
   // ⚡ Bolt: Memoize derived statistics to prevent expensive array filtering on every render pass
   const lowStockCount = useMemo(
-    () => inventoryItems.filter((item) => item.quantity < 10).length,
+    () =>
+      inventoryItems.reduce(
+        (count, item) => count + (item.quantity < 10 ? 1 : 0),
+        0,
+      ),
     [inventoryItems],
   );
   const activeShopifyConnsCount = useMemo(
-    () => shopifyConns.filter((c) => c.isActive).length,
+    () => shopifyConns.reduce((count, c) => count + (c.isActive ? 1 : 0), 0),
     [shopifyConns],
   );
   const urgentActionsCount = useMemo(
     () =>
-      forecastingReport.filter((item) => item.currentStock <= item.suggestedROP)
-        .length,
+      forecastingReport.reduce(
+        (count, item) =>
+          count + (item.currentStock <= item.suggestedROP ? 1 : 0),
+        0,
+      ),
     [forecastingReport],
   );
 
@@ -412,9 +419,13 @@ function App() {
   useEffect(() => {
     const checkHealth = async () => {
       const nodes: Record<BackendType, string> = {
-        graphql: import.meta.env.VITE_GRAPHQL_HTTP_URL?.replace(/\/graphql$/, "") || "http://localhost:4000",
-        express: import.meta.env.VITE_EXPRESS_API_URL || "http://localhost:5000",
-        laravel: import.meta.env.VITE_LARAVEL_API_URL || "http://localhost:8000",
+        graphql:
+          import.meta.env.VITE_GRAPHQL_HTTP_URL?.replace(/\/graphql$/, "") ||
+          "http://localhost:4000",
+        express:
+          import.meta.env.VITE_EXPRESS_API_URL || "http://localhost:5000",
+        laravel:
+          import.meta.env.VITE_LARAVEL_API_URL || "http://localhost:8000",
         python: import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8001",
       };
 
@@ -6307,7 +6318,9 @@ function App() {
                       <option value="FIFO">FIFO (First-In, First-Out)</option>
                       <option value="LIFO">LIFO (Last-In, First-Out)</option>
                       <option value="WAC">Weighted Average Cost (WAC)</option>
-                      <option value="FEFO">FEFO (First-Expired, First-Out)</option>
+                      <option value="FEFO">
+                        FEFO (First-Expired, First-Out)
+                      </option>
                     </select>
                   </div>
 
