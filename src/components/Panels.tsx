@@ -1998,7 +1998,7 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
 }) => {
   // ⚡ Bolt: Memoize filtered array to prevent O(n) filtering on every render
   const sentPurchaseOrders = React.useMemo(
-    () => purchaseOrders.filter((po) => po.status === "sent"),
+    () => purchaseOrders.filter((po) => ["sent", "acknowledged", "shipped", "partially_received"].includes(po.status)),
     [purchaseOrders],
   );
 
@@ -2111,8 +2111,8 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                       setReceivePoLines(
                         po.items.map((i: any) => ({
                           sku: i.sku,
-                          quantity: i.quantity,
-                        })),
+                          quantity: i.quantity - (i.receivedQuantity || 0),
+                        })).filter((line: any) => line.quantity > 0),
                       );
                     }
                   }}

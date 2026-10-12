@@ -3,6 +3,58 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe('Python procurement transport', () => {
+  it('reuses a PO creation mutation ID after an uncertain response', async () => {
+    const supplier = { ok: true, json: async () => [{ id: 'vendor-retry', name: 'Retry vendor', isActive: true }] };
+    const fetchMock = vi.fn().mockResolvedValueOnce(supplier).mockRejectedValueOnce(new Error('Network lost'))
+      .mockResolvedValueOnce(supplier).mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'po' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const lines = [{ sku: 'A', quantity: 10, unitCostCents: 100 }];
+    await expect(new PythonRESTAdapter().createPurchaseOrder('store-a', 'Retry vendor', lines)).rejects.toThrow('Network lost');
+    await new PythonRESTAdapter().createPurchaseOrder('store-a', 'Retry vendor', lines);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).mutationId).toBe(JSON.parse(fetchMock.mock.calls[3][1].body).mutationId);
+  });
+  it('resolves the shared form supplier name to an owned supplier ID', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true,
+      json: async () => [{ id: 'supplier-a', name: 'Wholesale', isActive: true }] })
+      .mockResolvedValue({ ok: true, json: async () => ({ id: 'new-order' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await new PythonRESTAdapter().createPurchaseOrder('store-a', 'Wholesale',
+      [{ sku: 'A', quantity: 10, unitCostCents: 100 }]);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).supplierId).toBe('supplier-a');
+    expect(fetchMock.mock.calls[1][0]).toMatch(/\/purchase-orders$/);
+  });
+  it('loads server orders without a browser ID list', async () => {
+    const orders = [{ id: 'server-po', status: 'partially_received' }];
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => orders });
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await new PythonRESTAdapter().getPurchaseOrders('store-a')).toEqual(orders);
+    expect(fetchMock.mock.calls[0][0]).toContain('/purchase-orders?tenantId=store-a');
+    expect(fetchMock.mock.calls[0][0]).not.toContain('ids=');
+  });
+
+  it('surfaces procurement and policy failures', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403,
+      text: async () => JSON.stringify({ detail: 'Access denied' }) }));
+    const adapter = new PythonRESTAdapter();
+    await expect(adapter.getPurchaseOrders('store-a')).rejects.toThrow('Access denied');
+    await expect(adapter.getReorderPolicies('store-a')).rejects.toThrow('Access denied');
+  });
+
+  it('retains a receipt ID after an uncertain failure, including a new adapter instance', async () => {
+    const fetchMock = vi.fn().mockRejectedValueOnce(new Error('Network lost'))
+      .mockResolvedValue({ ok: true, json: async () => ({ status: 'partially_received' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const lines = [{ sku: 'A', quantity: 4 }];
+    await expect(new PythonRESTAdapter().receivePurchaseOrder('store-a', 'po', lines)).rejects.toThrow('Network lost');
+    await new PythonRESTAdapter().receivePurchaseOrder('store-a', 'po', lines);
+    await new PythonRESTAdapter().receivePurchaseOrder('store-a', 'po', lines);
+    const ids = fetchMock.mock.calls.map(call => JSON.parse(call[1].body).receiptId);
+    expect(ids[0]).toBe(ids[1]);
+    expect(ids[2]).not.toBe(ids[1]);
+  });
+});
+
 describe('Python physical counts transport', () => {
   it('uses persisted count routes, snapshots and explicit review', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ record_id: 'count', revision: 2 }) });

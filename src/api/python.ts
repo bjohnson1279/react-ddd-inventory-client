@@ -446,22 +446,15 @@ export class PythonRESTAdapter implements InventoryClient {
 
   // Reorder Policies
   async getReorderPolicies(tenantId: string): Promise<ReorderPolicy[]> {
-    try {
-      const data = await this.request(
-        "GET",
-        `/reorder-policies?tenantId=${encodeURIComponent(tenantId)}`,
-      );
-      return data || [];
-    } catch {
-      return [];
-    }
+    return this.request("GET", `/reorder-policies?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
   }
 
   async saveReorderPolicy(
     tenantId: string,
     policy: ReorderPolicy,
   ): Promise<void> {
-    await this.request("POST", "/reorder-policies", { tenantId, ...policy });
+    await this.request("POST", "/reorder-policies", { tenantId, ...policy,
+      expectedVersion: policy.version, mutationId: crypto.randomUUID() });
   }
 
   async evaluateReorderPolicies(tenantId: string): Promise<void> {
@@ -562,29 +555,7 @@ export class PythonRESTAdapter implements InventoryClient {
 
   // Procurement (PO)
   async getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
-    const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || "[]";
-    const ids: string[] = JSON.parse(idsStr);
-
-    if (ids.length === 0) {
-      return [];
-    }
-
-    try {
-      // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
-      const response = await this.request(
-        "GET",
-        `/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&ids=${ids.join(",")}`,
-      );
-
-      const bulkData = response?.data || response || [];
-      const allPos = Array.isArray(bulkData) ? bulkData : [];
-
-      const idsSet = new Set(ids);
-      return allPos.filter((po: any) => po && idsSet.has(po.id));
-    } catch (err) {
-      console.error(`Failed to fetch POs in bulk`, err);
-      return [];
-    }
+    return this.request("GET", `/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
   }
 
   async createPurchaseOrder(
@@ -592,38 +563,63 @@ export class PythonRESTAdapter implements InventoryClient {
     supplier: string,
     items: PurchaseOrderItem[],
   ): Promise<void> {
-    const po = await this.request("POST", "/purchase-orders", {
+    const suppliers = await this.getSuppliers(tenantId);
+    const matches = suppliers.filter(row => row.id === supplier || row.name.toLowerCase() === supplier.trim().toLowerCase());
+    if (matches.length > 1) throw new Error("More than one supplier matches this name; choose the intended supplier.");
+    if (matches[0] && !matches[0].isActive) throw new Error("Supplier is inactive.");
+    if (!matches.length && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(supplier)) throw new Error("Supplier not found.");
+    const supplierId = matches[0]?.id || (await this.createSupplier(tenantId, supplier.trim())).id;
+    const pendingKey = `python-po-create:${JSON.stringify({ tenantId, supplierId, items })}`;
+    const mutationId = sessionStorage.getItem(pendingKey) || crypto.randomUUID();
+    sessionStorage.setItem(pendingKey, mutationId);
+    await this.request("POST", "/purchase-orders", {
       tenantId,
-      supplier,
+      supplierId,
       items,
+      mutationId,
     });
-    if (po?.id) {
-      const idsStr = localStorage.getItem(`po_ids_${tenantId}`) || "[]";
-      const ids: string[] = JSON.parse(idsStr);
-      if (!ids.includes(po.id)) {
-        ids.push(po.id);
-        localStorage.setItem(`po_ids_${tenantId}`, JSON.stringify(ids));
-      }
-    }
+    sessionStorage.removeItem(pendingKey);
   }
 
   async approvePurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/purchase-orders/${id}/approve`, { tenantId });
+    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/approve`, { tenantId, mutationId: crypto.randomUUID() });
   }
 
   async sendPurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/purchase-orders/${id}/send`, { tenantId });
+    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/send`, { tenantId, mutationId: crypto.randomUUID() });
   }
 
   async receivePurchaseOrder(
     tenantId: string,
     id: string,
     items: { sku: string; quantity: number }[],
+    receiptId?: string,
   ): Promise<void> {
-    await this.request("POST", `/purchase-orders/${id}/receive`, {
+    const pendingKey = `python-po-receipt:${JSON.stringify({ tenantId, id, items })}`;
+    const stableId = receiptId || sessionStorage.getItem(pendingKey) || crypto.randomUUID();
+    sessionStorage.setItem(pendingKey, stableId);
+    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/receive`, {
       tenantId,
       items,
+      receiptId: stableId,
     });
+    sessionStorage.removeItem(pendingKey);
+  }
+
+  async getSuppliers(tenantId: string): Promise<any[]> {
+    return this.request("GET", `/suppliers?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+  }
+
+  async createSupplier(tenantId: string, name: string, email?: string, leadTimeDays = 0): Promise<any> {
+    return this.request("POST", "/suppliers", { tenantId, name, email, leadTimeDays, mutationId: crypto.randomUUID() });
+  }
+
+  async getReplenishmentSuggestions(tenantId: string): Promise<any[]> {
+    return this.request("GET", `/reorder-policies/suggestions?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async draftSuggestedPurchaseOrder(policyId: string, version: number, mutationId: string): Promise<any> {
+    return this.request("POST", `/reorder-policies/${encodeURIComponent(policyId)}/draft`, { expectedVersion: version, mutationId });
   }
 
   // FEFO & Recall

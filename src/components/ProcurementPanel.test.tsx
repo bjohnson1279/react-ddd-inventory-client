@@ -6,6 +6,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProcurementPanel } from './Panels';
 
 describe('ProcurementPanel', () => {
+  it('allows partially received orders and defaults to outstanding lines only', async () => {
+    const props = { ...getDefaultProps(), purchaseOrders: [{ id: 'PARTIAL', supplier: 'Supplier',
+      status: 'partially_received', createdAt: new Date().toISOString(), items: [
+        { sku: 'A', quantity: 10, receivedQuantity: 4, unitCostCents: 100 },
+        { sku: 'B', quantity: 10, receivedQuantity: 10, unitCostCents: 100 },
+      ] }] };
+    render(<ProcurementPanel {...props} />);
+    await userEvent.setup().selectOptions(screen.getByRole('combobox'), 'PARTIAL');
+    expect(mockSetReceivePoLines).toHaveBeenCalledWith([{ sku: 'A', quantity: 6 }]);
+  });
   const mockHandleCreatePurchaseOrder = vi.fn((e) => e.preventDefault());
   const mockHandleReceivePO = vi.fn((e) => e.preventDefault());
   const mockHandleApprovePO = vi.fn();
