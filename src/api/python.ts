@@ -1100,22 +1100,43 @@ export class PythonRESTAdapter implements InventoryClient {
     abcClass?: string,
     zone?: string,
   ): Promise<any> {
-    return await this.request("POST", "/cycle-count/start", {
+    const result = await this.request("POST", "/api/cycle-counts/start", {
       tenantId,
       name,
-      isBlindCount,
-      abcClass,
-      zone,
+      is_blind_count: isBlindCount,
+      location_id: zone || "default",
+      mutation_id: crypto.randomUUID(),
     });
+    return { ...result, id: result.record_id };
   }
   async submitCycleCount(id: string, countedLines: any): Promise<void> {
-    await this.request("POST", `/cycle-count/${id}/submit`, { countedLines });
+    const lines = Array.isArray(countedLines) ? countedLines : countedLines.items;
+    await this.request("POST", "/api/cycle-counts/submit", {
+      record_id: id,
+      revision: countedLines.revision ?? 0,
+      mutation_id: countedLines.mutationId || crypto.randomUUID(),
+      items: lines.map((line: any) => ({ sku: line.sku,
+        counted_quantity: line.counted_quantity ?? line.countedQuantity })),
+    });
   }
   async getCycleCounts(tenantId: string): Promise<any[]> {
-    return await this.request(
+    const rows = await this.request(
       "GET",
-      `/cycle-count?tenantId=${encodeURIComponent(tenantId)}`,
+      `/api/cycle-counts?tenantId=${encodeURIComponent(tenantId)}`,
     );
+    return rows.map((row: any) => ({ ...row, id: row.record_id }));
+  }
+
+  async reviewCycleCount(id: string, action: "approve" | "recount", revision: number,
+    reason: string, mutationId: string): Promise<any> {
+    return this.request("POST", `/api/cycle-counts/${encodeURIComponent(id)}/${action}`,
+      { revision, reason, mutation_id: mutationId });
+  }
+
+  async adjustStock(data: { sku: string; location_id?: string; delta: number;
+    expected_version: number; reason_code: "DAMAGE" | "THEFT" | "FOUND" | "CORRECTION" | "EXPIRED";
+    reason: string; mutation_id: string; unit_cost_cents?: number; lot_number?: string }): Promise<any> {
+    return this.request("POST", "/api/cycle-counts/adjust", data);
   }
 
   async submitASN(

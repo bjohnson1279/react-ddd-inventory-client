@@ -3,6 +3,30 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe('Python physical counts transport', () => {
+  it('uses persisted count routes, snapshots and explicit review', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ record_id: 'count', revision: 2 }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    expect((await adapter.startCycleCount('store-a', 'Stocktake', true, 'A', 'back room')).id).toBe('count');
+    expect(fetchMock.mock.calls[0][0]).toMatch(/\/api\/cycle-counts\/start$/);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ location_id: 'back room', is_blind_count: true });
+    await adapter.submitCycleCount('count', { revision: 2, mutationId: 'offline', items: [{ sku: 'A', countedQuantity: 8 }] });
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ record_id: 'count', revision: 2,
+      mutation_id: 'offline', items: [{ sku: 'A', counted_quantity: 8 }] });
+    await adapter.reviewCycleCount('count', 'approve', 2, 'Checked', 'approval');
+    expect(fetchMock.mock.calls[2][0]).toMatch(/\/api\/cycle-counts\/count\/approve$/);
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body).mutation_id).toBe('approval');
+  });
+
+  it('surfaces stale-count conflicts instead of acknowledging reconciliation', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 409,
+      text: async () => JSON.stringify({ detail: 'Stock changed since count snapshot' }) }));
+    await expect(new PythonRESTAdapter().reviewCycleCount('count', 'approve', 0, 'Checked', 'approval'))
+      .rejects.toThrow('Stock changed since count snapshot');
+  });
+});
+
 describe('Python catalog transport', () => {
   it('loads persisted products including products without stock or variants', async () => {
     const products = [{ id: 'shirt', name: 'T Shirt', variants: [] }];
