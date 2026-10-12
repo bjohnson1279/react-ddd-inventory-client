@@ -130,6 +130,13 @@ export interface ReorderPolicy {
   reorderPoint: number;
   safetyStock: number;
   economicOrderQuantity: number;
+  supplierId?: string;
+  targetStock?: number;
+  leadTimeDays?: number;
+  casePack?: number;
+  minimumOrderQuantity?: number;
+  unitCostCents?: number;
+  version?: number;
 }
 
 export interface WebhookSubscription {
@@ -166,13 +173,14 @@ export interface PurchaseOrderItem {
   sku: string;
   quantity: number;
   unitCostCents: number;
+  receivedQuantity?: number;
 }
 
 export interface PurchaseOrder {
   id: string;
   tenantId: string;
   supplier: string;
-  status: 'draft' | 'approved' | 'sent' | 'received';
+  status: 'draft' | 'approved' | 'sent' | 'acknowledged' | 'shipped' | 'partially_received' | 'received' | 'cancelled';
   items: PurchaseOrderItem[];
   createdAt: string;
 }
@@ -231,7 +239,7 @@ export interface OutboxEvent {
 export interface TenantAccountingConfig {
   tenantId: string;
   accountingMethod: 'CASH' | 'ACCRUAL' | 'cash' | 'accrual';
-  costingMethod: 'FIFO' | 'LIFO' | 'WAC' | 'fifo' | 'lifo' | 'wac';
+  costingMethod: 'FIFO' | 'LIFO' | 'WAC' | 'FEFO' | 'fifo' | 'lifo' | 'wac' | 'fefo';
   currencyCode: string;
   fiscalYearStart: string;
 }

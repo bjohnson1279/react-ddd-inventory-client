@@ -378,7 +378,7 @@ function App() {
     "CASH" | "ACCRUAL" | "cash" | "accrual"
   >("ACCRUAL");
   const [configCostingMethod, setConfigCostingMethod] = useState<
-    "FIFO" | "LIFO" | "WAC" | "fifo" | "lifo" | "wac"
+    "FIFO" | "LIFO" | "WAC" | "FEFO" | "fifo" | "lifo" | "wac" | "fefo"
   >("FIFO");
 
   const [kitSku, setKitSku] = useState("");
@@ -6307,6 +6307,7 @@ function App() {
                       <option value="FIFO">FIFO (First-In, First-Out)</option>
                       <option value="LIFO">LIFO (Last-In, First-Out)</option>
                       <option value="WAC">Weighted Average Cost (WAC)</option>
+                      <option value="FEFO">FEFO (First-Expired, First-Out)</option>
                     </select>
                   </div>
 
