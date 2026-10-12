@@ -71,7 +71,7 @@ export class PythonRESTAdapter implements InventoryClient {
         } catch {
           parsedError = { error: errorText };
         }
-        throw new Error(parsedError.error || `HTTP ${response.status} Error`);
+        throw new Error(parsedError.error || parsedError.detail || `HTTP ${response.status} Error`);
       }
       return await response.json();
     } catch (err: any) {
@@ -155,60 +155,7 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async getProducts(): Promise<Product[]> {
-    try {
-      // ⚡ Bolt: Execute independent network requests concurrently
-      const [assignments, inventory] = await Promise.all([
-        this.request("GET", "/barcodes"),
-        this.getInventoryItems(),
-      ]);
-
-      const grouped: Record<string, BarcodeAssignment[]> = {};
-      for (const a of assignments || []) {
-        const variantId = a.variantId;
-        if (!grouped[variantId]) grouped[variantId] = [];
-        grouped[variantId].push({
-          id: a.id,
-          sku: variantId,
-          barcode: {
-            value: a.barcodeValue,
-            symbology: a.symbology,
-          },
-          source: a.source,
-          isPrimary: a.isPrimary,
-          assignedAt: a.assignedAt,
-        });
-      }
-
-      // ⚡ Bolt: Replace O(N) array mapping before Set creation with a single pass
-      for (let i = 0; i < inventory.length; i++) {
-        const sku = inventory[i].sku;
-        if (!grouped[sku]) {
-          grouped[sku] = [];
-        }
-      }
-
-      const products: Product[] = Object.keys(grouped).map((sku) => ({
-        id: `prod-${sku}`,
-        name: `Product ${sku}`,
-        variants: [
-          {
-            id: sku,
-            sku: sku,
-            trackingMode: "quantity",
-            attributes: [],
-            barcodes: grouped[sku],
-          },
-        ],
-      }));
-
-      return products;
-    } catch (err) {
-      console.warn(
-        "Failed to load products dynamically from barcodes/inventory. Returning empty list.",
-        err,
-      );
-      return [];
-    }
+    return this.request("GET", "/inventory/products");
   }
 
   async getConnections(tenantId: string): Promise<any> {
@@ -908,81 +855,10 @@ export class PythonRESTAdapter implements InventoryClient {
     locationId?: string,
     method?: string,
   ): Promise<ValuationItem[]> {
-    try {
-      const products = await this.getProducts();
-      const invItems = await this.getInventoryItems();
-
-      // ⚡ Bolt: Use O(M) pre-calculated Map for inventory quantities
-      // Replaces O(N*M) filter/reduce inside nested loops with O(N+M) lookup
-      const skuQtyMap = new Map<string, number>();
-      for (const item of invItems) {
-        skuQtyMap.set(item.sku, (skuQtyMap.get(item.sku) || 0) + item.quantity);
-      }
-
-      // ⚡ Bolt: Resolving N+1 HTTP Requests with chunked Promise.all for concurrent fetching
-      const items: ValuationItem[] = [];
-      const CHUNK_SIZE = 10;
-      let tasks: (() => Promise<ValuationItem>)[] = [];
-
-      for (const p of products) {
-        for (const v of p.variants) {
-          const qty = skuQtyMap.get(v.sku) || 0;
-
-          if (qty > 0) {
-            tasks.push(() =>
-              this.request(
-                "GET",
-                `/accounting/valuation/${v.id}?tenantId=${encodeURIComponent(tenantId)}&quantity=${qty}${method ? `&method=${method}` : ""}`,
-              )
-                .then((val) => ({
-                  variantId: v.id,
-                  sku: v.sku,
-                  name:
-                    p.name +
-                    (v.attributes?.length
-                      ? ` (${v.attributes.map((a: any) => a.value).join(", ")})`
-                      : ""),
-                  costingMethod: val.methodUsed || method || "FIFO",
-                  totalQuantity: qty,
-                  totalValueCents: val.totalCostCents || 0,
-                  unitCostCents: val.unitCostCents || 0,
-                }))
-                .catch(() => ({
-                  variantId: v.id,
-                  sku: v.sku,
-                  name: p.name,
-                  costingMethod: method || "FIFO",
-                  totalQuantity: 0,
-                  totalValueCents: 0,
-                  unitCostCents: 0,
-                })),
-            );
-          } else {
-            tasks.push(() =>
-              Promise.resolve({
-                variantId: v.id,
-                sku: v.sku,
-                name: p.name,
-                costingMethod: method || "FIFO",
-                totalQuantity: 0,
-                totalValueCents: 0,
-                unitCostCents: 0,
-              }),
-            );
-          }
-        }
-      }
-
-      for (let i = 0; i < tasks.length; i += CHUNK_SIZE) {
-        const chunk = tasks.slice(i, i + CHUNK_SIZE);
-        const results = await Promise.all(chunk.map((fn) => fn()));
-        items.push(...results);
-      }
-
-      return items;
-    } catch {
-      return [];
-    }
+    const params = new URLSearchParams({ tenantId });
+    if (locationId) params.set("locationId", locationId);
+    if (method) params.set("method", method);
+    return this.request("GET", `/accounting/valuation-report?${params.toString()}`);
   }
 
   async getSlottingSuggestions(tenantId: string): Promise<any[]> {

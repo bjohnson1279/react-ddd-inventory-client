@@ -231,7 +231,7 @@ export interface OutboxEvent {
 export interface TenantAccountingConfig {
   tenantId: string;
   accountingMethod: 'CASH' | 'ACCRUAL' | 'cash' | 'accrual';
-  costingMethod: 'FIFO' | 'LIFO' | 'WAC' | 'fifo' | 'lifo' | 'wac';
+  costingMethod: 'FIFO' | 'LIFO' | 'WAC' | 'FEFO' | 'fifo' | 'lifo' | 'wac' | 'fefo';
   currencyCode: string;
   fiscalYearStart: string;
 }
