@@ -870,10 +870,46 @@ export class PythonRESTAdapter implements InventoryClient {
     return this.request("POST", `/returns/rmas/${encodeURIComponent(id)}/ship`, { expectedVersion, shipmentId, items });
   }
 
-  async writeOffStock(data: { sku: string; locationId?: string; quantity: number; expectedVersion: number;
+  async writeOffStock(data: { sku: string; locationId?: string; quantity: number | string; unit?: string; uomVersion?: number; expectedVersion: number;
     reasonCode: "DAMAGE" | "THEFT" | "EXPIRED" | "OBSOLETE" | "SHRINKAGE"; reason: string;
     mutationId: string; layerId?: string; lotNumber?: string; reference?: string }): Promise<any> {
     return this.request("POST", "/returns/write-offs", data);
+  }
+
+  async getStockTransfers(tenantId: string): Promise<any[]> {
+    return this.request("GET", `/inventory/transfers?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+  }
+
+  async createStockTransfer(data: { sourceLocationId: string; destinationLocationId: string;
+    items: { sku: string; quantity: number | string; unit?: string; uomVersion?: number; lotNumber?: string }[];
+    reference?: string; mutationId: string }): Promise<any> {
+    return this.request("POST", "/inventory/transfers", data);
+  }
+
+  async reviewStockTransfer(id: string, action: "dispatch" | "receive" | "cancel", data: {
+    expectedVersion: number; reason: string; mutationId: string; sourceVersions?: Record<string, number> }): Promise<any> {
+    return this.request("POST", `/inventory/transfers/${encodeURIComponent(id)}/${action}`, data);
+  }
+
+  async getUomConfiguration(sku: string): Promise<any> {
+    return this.request("GET", `/uom/configurations/${encodeURIComponent(sku)}`);
+  }
+
+  async configureUom(data: { sku: string; baseUnit: string; category: "discrete" | "weight" | "volume";
+    purchaseUnit?: string; saleUnit?: string; rules: { unit: string; factorToBase: string }[];
+    expectedVersion: number; mutationId: string }): Promise<any> {
+    return this.request("POST", "/uom/configurations", data);
+  }
+
+  async convertUom(sku: string, quantity: number | string, fromUnit: string, toUnit?: string): Promise<any> {
+    return this.request("POST", `/uom/configurations/${encodeURIComponent(sku)}/convert`, { quantity, fromUnit, toUnit });
+  }
+
+  async mutateStockInUnit(operation: "receive" | "dispatch" | "allocate" | "release-allocation" | "fulfill-allocation",
+    data: { sku: string; locationId?: string; quantity: number | string; unit: string; uomVersion: number;
+      mutationId: string; expectedVersion?: number; unitCostCents?: number; lotNumber?: string;
+      expirationDate?: string; quarantined?: boolean }): Promise<any> {
+    return this.request("POST", `/inventory/${operation}`, data);
   }
 
   async getValuationReport(

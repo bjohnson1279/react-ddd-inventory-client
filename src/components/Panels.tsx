@@ -129,7 +129,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
                       <code>{item.locationId}</code>
                     </td>
                     <td>
-                      <strong>{item.quantity} units</strong>
+                      <strong>{item.quantity} {item.baseUnit ?? 'units'}</strong>
                     </td>
                     <td>
                       <code>v{item.version}</code>

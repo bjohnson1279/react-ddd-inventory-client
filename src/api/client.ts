@@ -91,6 +91,7 @@ export interface ShopifyConnection {
 }
 
 export interface InventoryItem {
+  baseUnit?: string;
   id: string;
   sku: string;
   locationId: string;

@@ -3,6 +3,36 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe('Python transfers and units transport', () => {
+  it('keeps exact quantities, configuration versions and invoice prices at the boundary', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ version: 1 }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    const configuration = { sku: 'CASE', baseUnit: 'ea', category: 'discrete' as const,
+      purchaseUnit: 'case', rules: [{ unit: 'case', factorToBase: '24' }], expectedVersion: 0, mutationId: 'configure' };
+    await adapter.configureUom(configuration);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(configuration);
+    const receipt = { sku: 'CASE', quantity: '0.5', unit: 'case', uomVersion: 1, unitCostCents: 1001, mutationId: 'receipt' };
+    await adapter.mutateStockInUnit('receive', receipt);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual(receipt);
+    await adapter.convertUom('CASE/ONE', 12, 'ea', 'case');
+    expect(fetchMock.mock.calls[2][0]).toMatch(/CASE%2FONE\/convert$/);
+  });
+
+  it('replays transfer commands with the same mutation and source versions after a lost response', async () => {
+    const fetchMock = vi.fn().mockRejectedValueOnce(new Error('Network lost'))
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'DISPATCHED' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const data = { expectedVersion: 0, sourceVersions: { CASE: 3 }, reason: 'Truck collected', mutationId: 'dispatch-once' };
+    const adapter = new PythonRESTAdapter();
+    await expect(adapter.reviewStockTransfer('transfer/one', 'dispatch', data)).rejects.toThrow('Network lost');
+    await adapter.reviewStockTransfer('transfer/one', 'dispatch', data);
+    expect(fetchMock.mock.calls[0][0]).toMatch(/transfer%2Fone\/dispatch$/);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(data);
+    expect(fetchMock.mock.calls[1][1].body).toEqual(fetchMock.mock.calls[0][1].body);
+  });
+});
+
 describe('Python returns transport', () => {
   it('refreshes the quarantine version after a definite stale-decision rejection', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'changed', version: 0 }] })
