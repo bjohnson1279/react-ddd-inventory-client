@@ -3,6 +3,19 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+it('preserves workforce versions and encodes operator/shift identity', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+  vi.stubGlobal('fetch', fetchMock);
+  const adapter = new PythonRESTAdapter();
+  const body = { tenantId: 'store', expectedVersion: 2, mutationId: 'once', reason: 'Assign operator' };
+  await adapter.workforceCommand('profiles', body, 'worker/id');
+  expect(fetchMock.mock.calls[0][0]).toMatch(/workforce\/profiles\/worker%2Fid$/);
+  expect(fetchMock.mock.calls[0][1].method).toBe('PUT');
+  expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(body);
+  await adapter.getWorkforceSources('store/id', 'shift/id');
+  expect(fetchMock.mock.calls[1][0]).toContain('shift%2Fid/sources?tenantId=store%2Fid');
+});
+
 describe('Python reporting transport', () => {
   it('unwraps persisted definitions and sends authenticated recipient-free inbox requests', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ reports: [{ id: 'real-report' }] }) })

@@ -51,6 +51,7 @@ import { NotificationInboxPanel } from "./components/NotificationInboxPanel";
 import { PythonNotificationInbox } from "./components/PythonNotificationInbox";
 import { PythonReportingPanel } from "./components/PythonReportingPanel";
 import { PythonAgingPanel } from "./components/PythonAgingPanel";
+import { PythonWorkforcePanel } from "./components/PythonWorkforcePanel";
 import { InventoryAgingPanel } from "./components/InventoryAgingPanel";
 import { IntercompanyPanel } from "./panels/IntercompanyPanel";
 import { ApiUsageDashboardPanel } from "./panels/ApiUsageDashboardPanel";
@@ -2712,6 +2713,7 @@ function App() {
 
         {activeTab === "op-depth" && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
+            {backendType === 'python' && <div className="xl:col-span-2"><PythonWorkforcePanel client={client as PythonRESTAdapter} tenantId={tenantId} role={role} sessionKey={token} /></div>}
             <CycleCountDashboardPanel tenantId={tenantId} />
             <SupplierCollaborationPortal tenantId={tenantId} />
             <div className="xl:col-span-2 mt-6">

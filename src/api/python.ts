@@ -1467,4 +1467,33 @@ export class PythonRESTAdapter implements InventoryClient {
       `/usage?tenantId=${encodeURIComponent(tenantId)}`,
     );
   }
+
+  async getMyWorkforce(tenantId: string): Promise<any> {
+    return this.request('GET', `/workforce/me?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getWorkforceOperators(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/workforce/operators?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getWorkforceShifts(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/workforce/shifts?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getStaffingPlans(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/workforce/plans?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getOperatorMetrics(tenantId: string, id: string): Promise<any> {
+    return this.request('GET', `/workforce/operators/${encodeURIComponent(id)}/metrics?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getWorkforceSources(tenantId: string, shiftId: string): Promise<any[]> {
+    return this.request('GET', `/workforce/shifts/${encodeURIComponent(shiftId)}/sources?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async workforceCommand(resource: 'profiles' | 'shifts' | 'plans', data: any, id?: string, action?: 'start' | 'complete' | 'cancel' | 'activities' | 'publish'): Promise<any> {
+    const path = `/workforce/${resource}${id ? '/' + encodeURIComponent(id) : ''}${action ? '/' + action : ''}`;
+    return this.request(resource === 'profiles' ? 'PUT' : 'POST', path, data);
+  }
 }
