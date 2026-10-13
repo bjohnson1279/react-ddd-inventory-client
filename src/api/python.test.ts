@@ -3,6 +3,30 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe('Python reporting transport', () => {
+  it('unwraps persisted definitions and sends authenticated recipient-free inbox requests', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ reports: [{ id: 'real-report' }] }) })
+      .mockResolvedValue({ ok: true, json: async () => [] });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    expect(await adapter.getReportDefinitions('store')).toEqual([{ id: 'real-report' }]);
+    await adapter.getOwnNotifications('store/id');
+    expect(fetchMock.mock.calls[1][0]).toContain('tenantId=store%2Fid');
+    expect(fetchMock.mock.calls[1][0]).not.toContain('user-123');
+    expect(fetchMock.mock.calls[1][0]).not.toContain('userId=');
+  });
+  it('preserves versioned report commands and refuses failed downloads', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({}) }).mockResolvedValue({ ok: false, status: 403 });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    const data = { tenantId: 'store', mutationId: 'retry', expectedVersion: 2, reason: 'Source corrected' };
+    await adapter.reportCommand('/reports/executions/job/retry', data);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(data);
+    await expect(adapter.downloadReportExecution('job/id')).rejects.toThrow('HTTP 403');
+    expect(fetchMock.mock.calls[1][0]).toMatch(/job%2Fid\/content$/);
+  });
+});
+
 describe('Python integration transport', () => {
   it('lists only persisted Shopify connections and never synthesizes mock stores', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => [] })

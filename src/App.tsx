@@ -48,6 +48,9 @@ import { PythonIntegrationsPanel } from "./components/PythonIntegrationsPanel";
 import { CycleCountDashboardPanel } from "./components/CycleCountDashboardPanel";
 import { SupplierCollaborationPortal } from "./components/SupplierCollaborationPortal";
 import { NotificationInboxPanel } from "./components/NotificationInboxPanel";
+import { PythonNotificationInbox } from "./components/PythonNotificationInbox";
+import { PythonReportingPanel } from "./components/PythonReportingPanel";
+import { PythonAgingPanel } from "./components/PythonAgingPanel";
 import { InventoryAgingPanel } from "./components/InventoryAgingPanel";
 import { IntercompanyPanel } from "./panels/IntercompanyPanel";
 import { ApiUsageDashboardPanel } from "./panels/ApiUsageDashboardPanel";
@@ -2712,10 +2715,10 @@ function App() {
             <CycleCountDashboardPanel tenantId={tenantId} />
             <SupplierCollaborationPortal tenantId={tenantId} />
             <div className="xl:col-span-2 mt-6">
-              <InventoryAgingPanel tenantId={tenantId} />
+              {backendType === 'python' ? <PythonAgingPanel client={client as PythonRESTAdapter} tenantId={tenantId} sessionKey={token} /> : <InventoryAgingPanel tenantId={tenantId} />}
             </div>
             <div className="xl:col-span-2 mt-6">
-              <NotificationInboxPanel tenantId={tenantId} />
+              {backendType === 'python' ? <PythonNotificationInbox client={client as PythonRESTAdapter} tenantId={tenantId} sessionKey={token} onOpenReports={() => setActiveTab('reporting' as any)} /> : <NotificationInboxPanel tenantId={tenantId} />}
             </div>
           </div>
         )}
@@ -6883,7 +6886,7 @@ function App() {
         )}
         {(activeTab as string) === "esg" && <EsgEmissionsPanel api={client} />}
         {(activeTab as string) === "reporting" && (
-          <ReportingDashboardPanel client={client} tenantId={tenantId} />
+          backendType === 'python' ? <PythonReportingPanel client={client as PythonRESTAdapter} tenantId={tenantId} role={role} sessionKey={token} /> : <ReportingDashboardPanel client={client} tenantId={tenantId} />
         )}
         {(activeTab as string) === "intercompany" && (
           <IntercompanyPanel tenantId={tenantId} />

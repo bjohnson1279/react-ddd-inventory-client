@@ -1238,10 +1238,11 @@ export class PythonRESTAdapter implements InventoryClient {
 
   // Reporting & Analytics
   async getReportDefinitions(tenantId: string): Promise<any[]> {
-    return await this.request(
+    const result = await this.request(
       "GET",
       `/reports?tenantId=${encodeURIComponent(tenantId)}`,
     );
+    return result.reports;
   }
 
   async createReportDefinition(tenantId: string, payload: any): Promise<any> {
@@ -1254,7 +1255,7 @@ export class PythonRESTAdapter implements InventoryClient {
     cronExpression: string,
     deliveryMethod: string,
   ): Promise<any> {
-    return await this.request("POST", `/reports/${reportId}/schedule`, {
+    return await this.request("POST", `/reports/${encodeURIComponent(reportId)}/schedule`, {
       tenantId,
       cronExpression,
       deliveryMethod,
@@ -1266,7 +1267,7 @@ export class PythonRESTAdapter implements InventoryClient {
     reportId: string,
     format: string,
   ): Promise<any> {
-    return await this.request("POST", `/reports/${reportId}/execute`, {
+    return await this.request("POST", `/reports/${encodeURIComponent(reportId)}/execute`, {
       tenantId,
       format,
     });
@@ -1359,7 +1360,57 @@ export class PythonRESTAdapter implements InventoryClient {
     );
   }
   async markNotificationRead(id: string): Promise<void> {
-    await this.request("POST", `/notifications/${id}/read`);
+    await this.request("POST", `/notifications/${encodeURIComponent(id)}/read`);
+  }
+
+  async getOwnNotifications(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/notifications?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+  }
+
+  async getOwnUnreadCount(): Promise<{ unread_count: number }> {
+    return this.request('GET', '/notifications/inbox/unread');
+  }
+
+  async snoozeOwnNotification(id: string, hours: number): Promise<any> {
+    return this.request('POST', `/notifications/${encodeURIComponent(id)}/snooze`, { hours });
+  }
+
+  async getNotificationManagers(): Promise<any[]> {
+    return this.request('GET', '/notifications/managers');
+  }
+
+  async escalateOwnNotification(id: string, manager: string): Promise<any> {
+    return this.request('POST', `/notifications/${encodeURIComponent(id)}/escalate`, { target_manager_id: manager });
+  }
+
+  async getReportExecutions(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/reports/executions?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+  }
+
+  async getReportSchedules(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/reports/schedules?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async reportCommand(path: string, payload: Record<string, unknown>): Promise<any> {
+    return this.request('POST', path, payload);
+  }
+
+  async processReportExecution(id: string): Promise<any> {
+    return this.request('POST', `/reports/executions/${encodeURIComponent(id)}/process`);
+  }
+
+  async downloadReportExecution(id: string): Promise<Blob> {
+    const response = await fetch(`${PYTHON_BASE_URL}/reports/executions/${encodeURIComponent(id)}/content`, { headers: this.getHeaders() });
+    if (!response.ok) throw Object.assign(new Error(`Report download failed (HTTP ${response.status})`), { status: response.status });
+    return response.blob();
+  }
+
+  async getRetailAlerts(): Promise<any[]> {
+    return this.request('GET', '/alerts');
+  }
+
+  async getRetailAlertConfig(): Promise<any> {
+    return this.request('GET', '/alerts/config');
   }
 
   async generateAgingReport(tenantId: string): Promise<any> {
