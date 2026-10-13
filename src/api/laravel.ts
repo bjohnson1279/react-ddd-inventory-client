@@ -477,9 +477,9 @@ export class LaravelRESTAdapter implements InventoryClient {
     const onboardingId = data.id;
 
     // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < items.length; i += BATCH_SIZE) {
-      const batch = items.slice(i, i + BATCH_SIZE);
+    const CHUNK_SIZE = 10;
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      const batch = items.slice(i, i + CHUNK_SIZE);
       const promises = batch.map((item) =>
         this.request("POST", `/api/onboardings/${onboardingId}/items`, {
           variant_id: item.variantId,
