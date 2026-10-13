@@ -85,6 +85,69 @@ describe("Inventory Backend API Adapters", () => {
         "Network error connecting to GraphQL endpoint",
       );
     });
+
+    it("should gracefully handle GetBatchedBarcodes query failure and default barcodes to empty arrays", async () => {
+      const mockFetch = vi
+        .fn()
+        // First call: getProducts products query succeeds
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: {
+              products: [
+                {
+                  id: "prod-1",
+                  name: "Product 1",
+                  variants: [
+                    {
+                      id: "v-1",
+                      sku: "SKU-FAIL-1",
+                      trackingMode: "quantity",
+                      attributes: [],
+                    },
+                    {
+                      id: "v-2",
+                      sku: "SKU-FAIL-2",
+                      trackingMode: "quantity",
+                      attributes: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+        })
+        // Second call: GetBatchedBarcodes batch query fails
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            errors: [{ message: "GetBatchedBarcodes failed" }],
+          }),
+        });
+      global.fetch = mockFetch;
+
+      const adapter = new GraphQLAdapter();
+      const products = await adapter.getProducts();
+
+      expect(products).toHaveLength(1);
+      expect(products[0].variants).toEqual([
+        {
+          id: "v-1",
+          sku: "SKU-FAIL-1",
+          trackingMode: "quantity",
+          attributes: [],
+          barcodes: [],
+        },
+        {
+          id: "v-2",
+          sku: "SKU-FAIL-2",
+          trackingMode: "quantity",
+          attributes: [],
+          barcodes: [],
+        },
+      ]);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("ExpressRESTAdapter", () => {
