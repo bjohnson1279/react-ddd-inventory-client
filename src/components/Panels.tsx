@@ -44,11 +44,15 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
 }) => {
   // ⚡ Bolt: Memoize derived data counts to prevent O(n) filtering on every render
   const lowStockCount = React.useMemo(
-    () => inventoryItems.filter((item) => item.quantity < 10).length,
+    () =>
+      inventoryItems.reduce(
+        (count, item) => count + (item.quantity < 10 ? 1 : 0),
+        0,
+      ),
     [inventoryItems],
   );
   const activeShopifyConns = React.useMemo(
-    () => shopifyConns.filter((c) => c.isActive).length,
+    () => shopifyConns.reduce((count, c) => count + (c.isActive ? 1 : 0), 0),
     [shopifyConns],
   );
 
@@ -1998,7 +2002,12 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
 }) => {
   // ⚡ Bolt: Memoize filtered array to prevent O(n) filtering on every render
   const sentPurchaseOrders = React.useMemo(
-    () => purchaseOrders.filter((po) => ["sent", "acknowledged", "shipped", "partially_received"].includes(po.status)),
+    () =>
+      purchaseOrders.filter((po) =>
+        ["sent", "acknowledged", "shipped", "partially_received"].includes(
+          po.status,
+        ),
+      ),
     [purchaseOrders],
   );
 
@@ -2109,10 +2118,12 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                     const po = sentPurchaseOrders.find((p) => p.id === id);
                     if (po) {
                       setReceivePoLines(
-                        po.items.map((i: any) => ({
-                          sku: i.sku,
-                          quantity: i.quantity - (i.receivedQuantity || 0),
-                        })).filter((line: any) => line.quantity > 0),
+                        po.items
+                          .map((i: any) => ({
+                            sku: i.sku,
+                            quantity: i.quantity - (i.receivedQuantity || 0),
+                          }))
+                          .filter((line: any) => line.quantity > 0),
                       );
                     }
                   }}

@@ -118,7 +118,7 @@ export const ApprovalWorkflowPanel: React.FC<ApprovalWorkflowPanelProps> = ({
       )}
 
       {loading && workflows.length === 0 ? (
-        <p>Loading workflows...</p>
+        <p role="status" aria-live="polite">Loading workflows...</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {workflows.map((wf) => (

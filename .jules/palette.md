@@ -121,3 +121,7 @@
 ## 2025-01-20 - Accessible Async Loading States
 **Learning:** Raw text like `<p>Loading...</p>` during async data fetches is completely ignored by screen readers, leaving users guessing if the app is frozen or thinking.
 **Action:** Always wrap loading states in `role="status"` and `aria-live="polite"` so screen readers proactively announce the application is fetching data without interrupting the user.
+
+## 2026-10-12 - Add accessible status role to loading state
+**Learning:** Raw text like `<p>Loading...</p>` during async data fetches is completely ignored by screen readers, leaving users guessing if the app is frozen or thinking.
+**Action:** Always wrap loading states in `role="status"` and `aria-live="polite"` so screen readers proactively announce the application is fetching data without interrupting the user.
