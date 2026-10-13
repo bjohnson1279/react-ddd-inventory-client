@@ -32,6 +32,7 @@ import {
 
 const EXPRESS_BASE_URL = "http://localhost:5000/api";
 const EXPRESS_WS_URL = "ws://localhost:5000";
+const BATCH_SIZE = 10;
 
 export class ExpressRESTAdapter implements InventoryClient {
   private getHeaders(customToken?: string): Record<string, string> {
@@ -395,7 +396,6 @@ export class ExpressRESTAdapter implements InventoryClient {
     const onboardingId = data.id;
 
     // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
-    const BATCH_SIZE = 10;
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
       const batch = items.slice(i, i + BATCH_SIZE);
       const promises = batch.map((item) =>
