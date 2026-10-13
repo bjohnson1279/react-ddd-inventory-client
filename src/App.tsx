@@ -19,6 +19,7 @@ import {
   TenantAccountingConfig,
   QuarantinedItem,
   ValuationItem,
+  PurchaseOrder,
 } from "./api/client";
 import { RfidPanel, LotManagementPanel } from "./components/Panels";
 
@@ -179,7 +180,7 @@ function App() {
   const [routingStrategy, setRoutingStrategy] = useState("MINIMIZE_COST");
   const [routingPlan, setRoutingPlan] = useState<any | null>(null);
 
-  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [newPoSupplier, setNewPoSupplier] = useState("");
   const [newPoLines, setNewPoLines] = useState<
     { sku: string; quantity: number; unitCostCents: number }[]
