@@ -17,6 +17,7 @@ import {
   WebhookDeliveryLog,
   WarehouseLocation,
   PutawaySuggestion,
+  SlottingSuggestion,
   PurchaseOrder,
   PurchaseOrderItem,
   BarcodeAssignment,
@@ -983,7 +984,9 @@ export class ExpressRESTAdapter implements InventoryClient {
     }
   }
 
-  async getSlottingSuggestions(tenantId: string): Promise<any[]> {
+  async getSlottingSuggestions(
+    tenantId: string,
+  ): Promise<SlottingSuggestion[]> {
     return this.request(
       "GET",
       `/warehouse-locations/slotting-suggestions?tenantId=${encodeURIComponent(tenantId)}`,
