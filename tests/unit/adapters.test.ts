@@ -85,6 +85,36 @@ describe("Inventory Backend API Adapters", () => {
         "Network error connecting to GraphQL endpoint",
       );
     });
+
+    it("should generate a 64-character hex secret via window.crypto.getRandomValues when creating a webhook", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            createWebhookSubscription: { id: "sub-123" },
+          },
+        }),
+      });
+      global.fetch = mockFetch;
+
+      const getRandomValuesSpy = vi.spyOn(window.crypto, "getRandomValues");
+
+      const adapter = new GraphQLAdapter();
+      await adapter.createWebhook("tenant-1", "https://example.com/webhook", [
+        "stock.updated",
+      ]);
+
+      expect(getRandomValuesSpy).toHaveBeenCalledWith(expect.any(Uint8Array));
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:4000/graphql",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringMatching(/"secret":"[0-9a-f]{64}"/),
+        }),
+      );
+
+      getRandomValuesSpy.mockRestore();
+    });
   });
 
   describe("ExpressRESTAdapter", () => {
