@@ -1,5 +1,6 @@
 import {
   InventoryClient,
+  ApiUsageMetric,
   Role,
   Permission,
   InventoryItem,
@@ -1523,7 +1524,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     );
   }
 
-  async getApiUsageMetrics(tenantId: string): Promise<any[]> {
+  async getApiUsageMetrics(tenantId: string): Promise<ApiUsageMetric[]> {
     return await this.request(
       "GET",
       `/api/usage?tenantId=${encodeURIComponent(tenantId)}`,

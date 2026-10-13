@@ -1,5 +1,6 @@
 import {
   InventoryClient,
+  ApiUsageMetric,
   Role,
   Permission,
   InventoryItem,
@@ -71,7 +72,11 @@ export class PythonRESTAdapter implements InventoryClient {
         } catch {
           parsedError = { error: errorText };
         }
-        throw new Error(parsedError.error || parsedError.detail || `HTTP ${response.status} Error`);
+        throw new Error(
+          parsedError.error ||
+            parsedError.detail ||
+            `HTTP ${response.status} Error`,
+        );
       }
       return await response.json();
     } catch (err: any) {
@@ -446,15 +451,22 @@ export class PythonRESTAdapter implements InventoryClient {
 
   // Reorder Policies
   async getReorderPolicies(tenantId: string): Promise<ReorderPolicy[]> {
-    return this.request("GET", `/reorder-policies?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+    return this.request(
+      "GET",
+      `/reorder-policies?tenantId=${encodeURIComponent(tenantId)}&limit=1000`,
+    );
   }
 
   async saveReorderPolicy(
     tenantId: string,
     policy: ReorderPolicy,
   ): Promise<void> {
-    await this.request("POST", "/reorder-policies", { tenantId, ...policy,
-      expectedVersion: policy.version, mutationId: crypto.randomUUID() });
+    await this.request("POST", "/reorder-policies", {
+      tenantId,
+      ...policy,
+      expectedVersion: policy.version,
+      mutationId: crypto.randomUUID(),
+    });
   }
 
   async evaluateReorderPolicies(tenantId: string): Promise<void> {
@@ -555,7 +567,10 @@ export class PythonRESTAdapter implements InventoryClient {
 
   // Procurement (PO)
   async getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
-    return this.request("GET", `/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+    return this.request(
+      "GET",
+      `/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&limit=1000`,
+    );
   }
 
   async createPurchaseOrder(
@@ -564,13 +579,25 @@ export class PythonRESTAdapter implements InventoryClient {
     items: PurchaseOrderItem[],
   ): Promise<void> {
     const suppliers = await this.getSuppliers(tenantId);
-    const matches = suppliers.filter(row => row.id === supplier || row.name.toLowerCase() === supplier.trim().toLowerCase());
-    if (matches.length > 1) throw new Error("More than one supplier matches this name; choose the intended supplier.");
-    if (matches[0] && !matches[0].isActive) throw new Error("Supplier is inactive.");
-    if (!matches.length && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(supplier)) throw new Error("Supplier not found.");
-    const supplierId = matches[0]?.id || (await this.createSupplier(tenantId, supplier.trim())).id;
+    const matches = suppliers.filter(
+      (row) =>
+        row.id === supplier ||
+        row.name.toLowerCase() === supplier.trim().toLowerCase(),
+    );
+    if (matches.length > 1)
+      throw new Error(
+        "More than one supplier matches this name; choose the intended supplier.",
+      );
+    if (matches[0] && !matches[0].isActive)
+      throw new Error("Supplier is inactive.");
+    if (!matches.length && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(supplier))
+      throw new Error("Supplier not found.");
+    const supplierId =
+      matches[0]?.id ||
+      (await this.createSupplier(tenantId, supplier.trim())).id;
     const pendingKey = `python-po-create:${JSON.stringify({ tenantId, supplierId, items })}`;
-    const mutationId = sessionStorage.getItem(pendingKey) || crypto.randomUUID();
+    const mutationId =
+      sessionStorage.getItem(pendingKey) || crypto.randomUUID();
     sessionStorage.setItem(pendingKey, mutationId);
     await this.request("POST", "/purchase-orders", {
       tenantId,
@@ -582,11 +609,19 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async approvePurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/approve`, { tenantId, mutationId: crypto.randomUUID() });
+    await this.request(
+      "POST",
+      `/purchase-orders/${encodeURIComponent(id)}/approve`,
+      { tenantId, mutationId: crypto.randomUUID() },
+    );
   }
 
   async sendPurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/send`, { tenantId, mutationId: crypto.randomUUID() });
+    await this.request(
+      "POST",
+      `/purchase-orders/${encodeURIComponent(id)}/send`,
+      { tenantId, mutationId: crypto.randomUUID() },
+    );
   }
 
   async receivePurchaseOrder(
@@ -596,30 +631,60 @@ export class PythonRESTAdapter implements InventoryClient {
     receiptId?: string,
   ): Promise<void> {
     const pendingKey = `python-po-receipt:${JSON.stringify({ tenantId, id, items })}`;
-    const stableId = receiptId || sessionStorage.getItem(pendingKey) || crypto.randomUUID();
+    const stableId =
+      receiptId || sessionStorage.getItem(pendingKey) || crypto.randomUUID();
     sessionStorage.setItem(pendingKey, stableId);
-    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/receive`, {
-      tenantId,
-      items,
-      receiptId: stableId,
-    });
+    await this.request(
+      "POST",
+      `/purchase-orders/${encodeURIComponent(id)}/receive`,
+      {
+        tenantId,
+        items,
+        receiptId: stableId,
+      },
+    );
     sessionStorage.removeItem(pendingKey);
   }
 
   async getSuppliers(tenantId: string): Promise<any[]> {
-    return this.request("GET", `/suppliers?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+    return this.request(
+      "GET",
+      `/suppliers?tenantId=${encodeURIComponent(tenantId)}&limit=1000`,
+    );
   }
 
-  async createSupplier(tenantId: string, name: string, email?: string, leadTimeDays = 0): Promise<any> {
-    return this.request("POST", "/suppliers", { tenantId, name, email, leadTimeDays, mutationId: crypto.randomUUID() });
+  async createSupplier(
+    tenantId: string,
+    name: string,
+    email?: string,
+    leadTimeDays = 0,
+  ): Promise<any> {
+    return this.request("POST", "/suppliers", {
+      tenantId,
+      name,
+      email,
+      leadTimeDays,
+      mutationId: crypto.randomUUID(),
+    });
   }
 
   async getReplenishmentSuggestions(tenantId: string): Promise<any[]> {
-    return this.request("GET", `/reorder-policies/suggestions?tenantId=${encodeURIComponent(tenantId)}`);
+    return this.request(
+      "GET",
+      `/reorder-policies/suggestions?tenantId=${encodeURIComponent(tenantId)}`,
+    );
   }
 
-  async draftSuggestedPurchaseOrder(policyId: string, version: number, mutationId: string): Promise<any> {
-    return this.request("POST", `/reorder-policies/${encodeURIComponent(policyId)}/draft`, { expectedVersion: version, mutationId });
+  async draftSuggestedPurchaseOrder(
+    policyId: string,
+    version: number,
+    mutationId: string,
+  ): Promise<any> {
+    return this.request(
+      "POST",
+      `/reorder-policies/${encodeURIComponent(policyId)}/draft`,
+      { expectedVersion: version, mutationId },
+    );
   }
 
   // FEFO & Recall
@@ -854,7 +919,10 @@ export class PythonRESTAdapter implements InventoryClient {
     const params = new URLSearchParams({ tenantId });
     if (locationId) params.set("locationId", locationId);
     if (method) params.set("method", method);
-    return this.request("GET", `/accounting/valuation-report?${params.toString()}`);
+    return this.request(
+      "GET",
+      `/accounting/valuation-report?${params.toString()}`,
+    );
   }
 
   async getSlottingSuggestions(tenantId: string): Promise<any[]> {
@@ -1106,13 +1174,17 @@ export class PythonRESTAdapter implements InventoryClient {
     return { ...result, id: result.record_id };
   }
   async submitCycleCount(id: string, countedLines: any): Promise<void> {
-    const lines = Array.isArray(countedLines) ? countedLines : countedLines.items;
+    const lines = Array.isArray(countedLines)
+      ? countedLines
+      : countedLines.items;
     await this.request("POST", "/api/cycle-counts/submit", {
       record_id: id,
       revision: countedLines.revision ?? 0,
       mutation_id: countedLines.mutationId || crypto.randomUUID(),
-      items: lines.map((line: any) => ({ sku: line.sku,
-        counted_quantity: line.counted_quantity ?? line.countedQuantity })),
+      items: lines.map((line: any) => ({
+        sku: line.sku,
+        counted_quantity: line.counted_quantity ?? line.countedQuantity,
+      })),
     });
   }
   async getCycleCounts(tenantId: string): Promise<any[]> {
@@ -1123,15 +1195,31 @@ export class PythonRESTAdapter implements InventoryClient {
     return rows.map((row: any) => ({ ...row, id: row.record_id }));
   }
 
-  async reviewCycleCount(id: string, action: "approve" | "recount", revision: number,
-    reason: string, mutationId: string): Promise<any> {
-    return this.request("POST", `/api/cycle-counts/${encodeURIComponent(id)}/${action}`,
-      { revision, reason, mutation_id: mutationId });
+  async reviewCycleCount(
+    id: string,
+    action: "approve" | "recount",
+    revision: number,
+    reason: string,
+    mutationId: string,
+  ): Promise<any> {
+    return this.request(
+      "POST",
+      `/api/cycle-counts/${encodeURIComponent(id)}/${action}`,
+      { revision, reason, mutation_id: mutationId },
+    );
   }
 
-  async adjustStock(data: { sku: string; location_id?: string; delta: number;
-    expected_version: number; reason_code: "DAMAGE" | "THEFT" | "FOUND" | "CORRECTION" | "EXPIRED";
-    reason: string; mutation_id: string; unit_cost_cents?: number; lot_number?: string }): Promise<any> {
+  async adjustStock(data: {
+    sku: string;
+    location_id?: string;
+    delta: number;
+    expected_version: number;
+    reason_code: "DAMAGE" | "THEFT" | "FOUND" | "CORRECTION" | "EXPIRED";
+    reason: string;
+    mutation_id: string;
+    unit_cost_cents?: number;
+    lot_number?: string;
+  }): Promise<any> {
     return this.request("POST", "/api/cycle-counts/adjust", data);
   }
 
@@ -1215,7 +1303,7 @@ export class PythonRESTAdapter implements InventoryClient {
     );
   }
 
-  async getApiUsageMetrics(tenantId: string): Promise<any[]> {
+  async getApiUsageMetrics(tenantId: string): Promise<ApiUsageMetric[]> {
     return await this.request(
       "GET",
       `/usage?tenantId=${encodeURIComponent(tenantId)}`,

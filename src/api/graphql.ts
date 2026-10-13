@@ -1,6 +1,7 @@
 import { createClient } from "graphql-ws";
 import {
   InventoryClient,
+  ApiUsageMetric,
   Role,
   Permission,
   InventoryItem,
@@ -1023,7 +1024,7 @@ export class GraphQLAdapter implements InventoryClient {
     return data.intercompanyTransfers || [];
   }
 
-  async getApiUsageMetrics(tenantId: string): Promise<any[]> {
+  async getApiUsageMetrics(tenantId: string): Promise<ApiUsageMetric[]> {
     const data = await this.fetchGraphql(
       `query GetApiUsageMetrics($tenant: ID!) {
       apiUsageMetrics(tenantId: $tenant) { date endpoint calls errors averageLatencyMs }
@@ -1198,9 +1199,7 @@ export class GraphQLAdapter implements InventoryClient {
     return [];
   }
 
-  async verifyComplianceLedger(
-    tenantId: string,
-  ): Promise<{
+  async verifyComplianceLedger(tenantId: string): Promise<{
     isValid: boolean;
     failedSequenceNumber?: number;
     reason?: string;
