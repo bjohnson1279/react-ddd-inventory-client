@@ -577,6 +577,7 @@ describe("Inventory Backend API Adapters", () => {
               assignments: [
                 {
                   id: "b-1",
+                  variant_id: "v-100",
                   barcode_value: "12345678",
                   symbology: "code_128",
                   source: "internal",

@@ -200,23 +200,36 @@ export class LaravelRESTAdapter implements InventoryClient {
 
     // Resolve barcodes for each variant to complete model structure
     const allVariants = rawProducts.flatMap((p: any) => p.variants || []);
+    const variantIdToSkuMap = new Map<string, string>();
+    for (const v of allVariants) {
+      if (v.id) {
+        variantIdToSkuMap.set(v.id, v.sku);
+      }
+    }
     const barcodeMap = new Map<string, any[]>();
 
-    // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
-    const CHUNK_SIZE = 10;
+    // ⚡ Bolt: Chunked bulk fetch execution to eliminate N+1 individual variant requests
+    const CHUNK_SIZE = 50;
     for (let i = 0; i < allVariants.length; i += CHUNK_SIZE) {
       const chunk = allVariants.slice(i, i + CHUNK_SIZE);
-      await Promise.all(
-        chunk.map(async (v: any) => {
-          try {
-            const bcData = await this.request(
-              "GET",
-              `/api/barcodes/variants/${v.id}`,
-            );
-            // Format assignments to match UI expectations
-            const assignments = (bcData.assignments || []).map((a: any) => ({
+      const chunkIds = chunk.map((v: any) => v.id).filter(Boolean);
+      if (chunkIds.length === 0) continue;
+
+      try {
+        const bcData = await this.request(
+          "GET",
+          `/api/barcodes?ids=${chunkIds.join(",")}`,
+        );
+        const bulkAssignments =
+          bcData.assignments || bcData.data || bcData || [];
+        if (Array.isArray(bulkAssignments)) {
+          for (const a of bulkAssignments) {
+            const variantId = a.variant_id || a.variantId;
+            if (!variantId) continue;
+            const sku = variantIdToSkuMap.get(variantId) || a.sku;
+            const formattedAssignment = {
               id: a.id,
-              sku: v.sku,
+              sku,
               barcode: {
                 value: a.barcode_value || a.value,
                 symbology: a.symbology,
@@ -224,13 +237,15 @@ export class LaravelRESTAdapter implements InventoryClient {
               source: a.source,
               isPrimary: a.is_primary || a.isPrimary,
               assignedAt: a.assigned_at || a.assignedAt,
-            }));
-            barcodeMap.set(v.id, assignments);
-          } catch {
-            barcodeMap.set(v.id, []);
+            };
+            const existing = barcodeMap.get(variantId) || [];
+            existing.push(formattedAssignment);
+            barcodeMap.set(variantId, existing);
           }
-        }),
-      );
+        }
+      } catch {
+        // Fallback or leave unmapped
+      }
     }
 
     return rawProducts.map((p: any) => ({
