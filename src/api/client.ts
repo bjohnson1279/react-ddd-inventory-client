@@ -365,6 +365,26 @@ export interface ApiUsageMetric {
   averageLatencyMs: number;
 }
 
+export interface LegalEntity {
+  id: string;
+  tenantId: string;
+  name: string;
+  baseCurrency: string;
+  taxIdentifier?: string;
+  createdAt?: string;
+}
+
+export interface IntercompanyTransfer {
+  id: string;
+  tenantId: string;
+  fromEntityId: string;
+  toEntityId: string;
+  sku: string;
+  quantity: number;
+  createdAt?: string;
+  status?: string;
+}
+
 export type BackendType = "graphql" | "express" | "laravel" | "python";
 export type Tab =
   | "dashboard"
