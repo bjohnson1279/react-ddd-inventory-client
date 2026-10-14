@@ -20,7 +20,6 @@ import {
   SlottingSuggestion,
   PurchaseOrder,
   PurchaseOrderItem,
-  BarcodeAssignment,
   User,
   AuditDiscrepancy,
   OutboxStats,
@@ -28,7 +27,6 @@ import {
   TenantAccountingConfig,
   QuarantinedItem,
   ValuationItem,
-  RfidScanUpdate,
 } from "./client";
 
 const PYTHON_BASE_URL =
@@ -77,8 +75,6 @@ export class PythonRESTAdapter implements InventoryClient {
             parsedError.detail ||
             `HTTP ${response.status} Error`,
         );
-        throw Object.assign(new Error(parsedError.error || parsedError.detail || `HTTP ${response.status} Error`),
-          { status: response.status });
       }
       return await response.json();
     } catch (err: any) {
@@ -499,9 +495,8 @@ export class PythonRESTAdapter implements InventoryClient {
     const onboardingId = data.id;
 
     // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < items.length; i += BATCH_SIZE) {
-      const batch = items.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < items.length; i += 10) {
+      const batch = items.slice(i, i + 10);
       const promises = batch.map((item) =>
         this.request("POST", `/onboarding/${onboardingId}/items`, {
           variantId: item.variantId,
