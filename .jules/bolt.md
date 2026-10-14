@@ -185,6 +185,9 @@
 **Learning:** Using `.filter(...).length` allocates an entire new array containing the matching elements before taking its length, which can cause significant memory and garbage collection overhead for large lists.
 **Action:** Always replace `.filter(...).length` patterns with a single-pass `.reduce((count, item) => count + (condition ? 1 : 0), 0)` to calculate counts without creating throwaway intermediate arrays.
 
+## 2026-03-31 - Bulk Fetch Barcodes in LaravelRESTAdapter
+**Learning:** When fetching nested barcode assignments for product variants in REST adapters, sending mapped single-variant requests sequentially or in small chunks generates N+1 network requests and significant network latency. Batching variant IDs into chunked bulk requests (`/api/barcodes?ids=...`) reduces HTTP overhead from O(N) to O(N/CHUNK_SIZE).
+**Action:** Always prefer bulk resource endpoints with chunked query parameters when fetching related sub-resources for collection models in backend adapters.
 ## 2026-09-07 - Bulk Inventory Stock Level Fetch
 **Learning:** Replacing chunked individual N+1 HTTP requests (`GET /api/inventory/${v.sku}/stock`) with bulk query endpoint requests (`GET /api/inventory/stock?skus=...`) eliminates network round-trip overhead while maintaining full fallback compatibility.
 **Action:** Always batch multi-entity queries into bulk HTTP endpoints using query parameters or bulk endpoints when fetching array items.
