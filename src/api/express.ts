@@ -1,5 +1,6 @@
 import {
   InventoryClient,
+  ApiUsageMetric,
   Role,
   Permission,
   InventoryItem,
@@ -17,6 +18,7 @@ import {
   WebhookDeliveryLog,
   WarehouseLocation,
   PutawaySuggestion,
+  SlottingSuggestion,
   PurchaseOrder,
   PurchaseOrderItem,
   BarcodeAssignment,
@@ -32,6 +34,7 @@ import {
 
 const EXPRESS_BASE_URL = "http://localhost:5000/api";
 const EXPRESS_WS_URL = "ws://localhost:5000";
+const BATCH_SIZE = 10;
 
 export class ExpressRESTAdapter implements InventoryClient {
   private getHeaders(customToken?: string): Record<string, string> {
@@ -395,7 +398,6 @@ export class ExpressRESTAdapter implements InventoryClient {
     const onboardingId = data.id;
 
     // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
-    const BATCH_SIZE = 10;
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
       const batch = items.slice(i, i + BATCH_SIZE);
       const promises = batch.map((item) =>
@@ -983,7 +985,9 @@ export class ExpressRESTAdapter implements InventoryClient {
     }
   }
 
-  async getSlottingSuggestions(tenantId: string): Promise<any[]> {
+  async getSlottingSuggestions(
+    tenantId: string,
+  ): Promise<SlottingSuggestion[]> {
     return this.request(
       "GET",
       `/warehouse-locations/slotting-suggestions?tenantId=${encodeURIComponent(tenantId)}`,
@@ -1320,7 +1324,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     );
   }
 
-  async getApiUsageMetrics(tenantId: string): Promise<any[]> {
+  async getApiUsageMetrics(tenantId: string): Promise<ApiUsageMetric[]> {
     return await this.request(
       "GET",
       `/usage?tenantId=${encodeURIComponent(tenantId)}`,

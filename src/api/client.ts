@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext } from "react";
 
 // --- Core Interface Definitions ---
 export interface Item {
@@ -11,7 +11,7 @@ export interface StockOnboarding {
   id: string;
   tenantId: string;
   locationId: string;
-  status: 'draft' | 'submitted';
+  status: "draft" | "submitted";
   asOfDate: string;
   items: Item[];
 }
@@ -33,7 +33,7 @@ export interface BarcodeAssignment {
 export interface ProductVariant {
   id: string;
   sku: string;
-  trackingMode: 'quantity' | 'serial' | 'lot';
+  trackingMode: "quantity" | "serial" | "lot";
   attributes: { name: string; value: string }[];
   barcodes?: BarcodeAssignment[];
   weightGrams?: number;
@@ -49,7 +49,7 @@ export interface Product {
 export interface JournalLine {
   accountCode: string;
   amountCents: number;
-  type: 'debit' | 'credit';
+  type: "debit" | "credit";
   memo?: string;
 }
 
@@ -58,7 +58,7 @@ export interface JournalEntry {
   tenantId: string;
   date: string;
   description: string;
-  method: 'cash' | 'accrual';
+  method: "cash" | "accrual";
   referenceId?: string;
   lines: JournalLine[];
 }
@@ -73,6 +73,11 @@ export interface StatusTransition {
 }
 
 export interface SerializedItem {
+  version?: number;
+  sku?: string;
+  destinationId?: string | null;
+  reservation?: string | null;
+  costCents?: number | null;
   id: string;
   variantId: string;
   serialNumber: string;
@@ -91,6 +96,7 @@ export interface ShopifyConnection {
 }
 
 export interface InventoryItem {
+  baseUnit?: string;
   id: string;
   sku: string;
   locationId: string;
@@ -169,6 +175,17 @@ export interface PutawaySuggestion {
   suggestedQuantity: number;
 }
 
+export interface SlottingSuggestion {
+  sku: string;
+  currentLocationId: string;
+  currentDistance?: number;
+  currentVelocity?: number;
+  recommendedLocationId?: string;
+  recommendedDistance?: number;
+  potentialSwapSku?: string;
+  estimatedSavings?: number;
+}
+
 export interface PurchaseOrderItem {
   sku: string;
   quantity: number;
@@ -180,7 +197,15 @@ export interface PurchaseOrder {
   id: string;
   tenantId: string;
   supplier: string;
-  status: 'draft' | 'approved' | 'sent' | 'acknowledged' | 'shipped' | 'partially_received' | 'received' | 'cancelled';
+  status:
+    | "draft"
+    | "approved"
+    | "sent"
+    | "acknowledged"
+    | "shipped"
+    | "partially_received"
+    | "received"
+    | "cancelled";
   items: PurchaseOrderItem[];
   createdAt: string;
 }
@@ -216,7 +241,7 @@ export interface AuditDiscrepancy {
   expectedQuantity: number;
   actualQuantity: number;
   discrepancyCount: number;
-  status: 'PENDING' | 'RESOLVED' | 'pending' | 'resolved';
+  status: "PENDING" | "RESOLVED" | "pending" | "resolved";
   detectedAt: string;
   resolvedAt?: string;
 }
@@ -228,6 +253,9 @@ export interface OutboxStats {
 }
 
 export interface OutboxEvent {
+  sequence?: number;
+  version?: number;
+  attempts?: number;
   id: string;
   eventType: string;
   payload: string;
@@ -238,8 +266,16 @@ export interface OutboxEvent {
 
 export interface TenantAccountingConfig {
   tenantId: string;
-  accountingMethod: 'CASH' | 'ACCRUAL' | 'cash' | 'accrual';
-  costingMethod: 'FIFO' | 'LIFO' | 'WAC' | 'FEFO' | 'fifo' | 'lifo' | 'wac' | 'fefo';
+  accountingMethod: "CASH" | "ACCRUAL" | "cash" | "accrual";
+  costingMethod:
+    | "FIFO"
+    | "LIFO"
+    | "WAC"
+    | "FEFO"
+    | "fifo"
+    | "lifo"
+    | "wac"
+    | "fefo";
   currencyCode: string;
   fiscalYearStart: string;
 }
@@ -252,6 +288,8 @@ export interface QuarantinedItem {
   reason: string;
   status: string;
   createdAt: string;
+  version?: number;
+  returnId?: string;
 }
 
 export interface ValuationItem {
@@ -319,12 +357,49 @@ export interface RfidScanUpdate {
   unmatchedEpcs: string[];
 }
 
-export type BackendType = 'graphql' | 'express' | 'laravel' | 'python';
-export type Tab = 'dashboard' | 'onboarding' | 'products' | 'scanning' | 'ledger' | 'serials' | 'shopify' | 'forecasting' | 'routing' | 'procurement' | 'warehouse' | 'webhooks' | 'admin' | 'compliance' | 'rfid' | 'autonomous' | 'conformance' | 'api-specs' | 'anomaly-detection' | 'rebalancing' | 'logistics-erp' | 'approvals' | 'intercompany' | 'api-usage';
+export interface ApiUsageMetric {
+  date: string;
+  endpoint: string;
+  calls: number;
+  errors: number;
+  averageLatencyMs: number;
+}
+
+export type BackendType = "graphql" | "express" | "laravel" | "python";
+export type Tab =
+  | "dashboard"
+  | "onboarding"
+  | "products"
+  | "scanning"
+  | "ledger"
+  | "serials"
+  | "shopify"
+  | "forecasting"
+  | "routing"
+  | "procurement"
+  | "warehouse"
+  | "webhooks"
+  | "admin"
+  | "compliance"
+  | "rfid"
+  | "autonomous"
+  | "conformance"
+  | "api-specs"
+  | "anomaly-detection"
+  | "rebalancing"
+  | "logistics-erp"
+  | "approvals"
+  | "intercompany"
+  | "api-usage";
 
 // --- Abstract Client Interface ---
 export interface InventoryClient {
-  login(tenantId: string, actorId: string, role?: string, password?: string): Promise<string>;
+  login(
+    tenantId: string,
+    actorId: string,
+    role?: string,
+    password?: string,
+  ): Promise<string>;
   getInventoryItems(): Promise<InventoryItem[]>;
   getProducts(): Promise<Product[]>;
   getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]>;
@@ -332,28 +407,79 @@ export interface InventoryClient {
   getJournalEntries(tenantId: string): Promise<JournalEntry[]>;
   getStockOnboardings(tenantId: string): Promise<StockOnboarding[]>;
   createProduct(id: string, name: string): Promise<void>;
-  addProductVariant(productId: string, sku: string, trackingMode: string, attributes: { name: string; value: string }[]): Promise<void>;
-  assignBarcode(sku: string, value: string, symbology: string, source: string, makePrimary: boolean): Promise<void>;
+  addProductVariant(
+    productId: string,
+    sku: string,
+    trackingMode: string,
+    attributes: { name: string; value: string }[],
+  ): Promise<void>;
+  assignBarcode(
+    sku: string,
+    value: string,
+    symbology: string,
+    source: string,
+    makePrimary: boolean,
+  ): Promise<void>;
   generateInternalBarcode(sku: string, tenantId: string): Promise<string>;
-  scanBarcode(value: string, context: string, amount: number, actualQuantity: number, tenantId: string, locationId: string, actorId: string): Promise<any>;
+  scanBarcode(
+    value: string,
+    context: string,
+    amount: number,
+    actualQuantity: number,
+    tenantId: string,
+    locationId: string,
+    actorId: string,
+  ): Promise<any>;
   traceSerialHistory(serialNumber: string): Promise<SerializedItem>;
-  connectShopify(tenantId: string, storeDomain: string, accessToken: string): Promise<void>;
-  connectAmazon(tenantId: string, sellerId: string, mwsAuthToken: string, marketplaceId: string): Promise<void>;
-  connectWooCommerce(tenantId: string, storeUrl: string, consumerKey: string, consumerSecret: string): Promise<void>;
-  createJournalEntry(tenantId: string, description: string, method: string, lines: JournalLine[]): Promise<void>;
-  createStockOnboarding(tenantId: string, locationId: string, asOfDate: string, items: Item[]): Promise<void>;
+  connectShopify(
+    tenantId: string,
+    storeDomain: string,
+    accessToken: string,
+  ): Promise<void>;
+  connectAmazon(
+    tenantId: string,
+    sellerId: string,
+    mwsAuthToken: string,
+    marketplaceId: string,
+  ): Promise<void>;
+  connectWooCommerce(
+    tenantId: string,
+    storeUrl: string,
+    consumerKey: string,
+    consumerSecret: string,
+  ): Promise<void>;
+  createJournalEntry(
+    tenantId: string,
+    description: string,
+    method: string,
+    lines: JournalLine[],
+  ): Promise<void>;
+  createStockOnboarding(
+    tenantId: string,
+    locationId: string,
+    asOfDate: string,
+    items: Item[],
+  ): Promise<void>;
   submitStockOnboarding(onboardingId: string): Promise<void>;
-  
+
   // Dynamic Forecasting Feature
   getForecastingReport(locationId: string): Promise<ForecastingReportItem[]>;
 
   // Real-time Barcode Scanning
-  subscribeBarcodeScans(tenantId: string, onScan: (scan: any) => void): () => void;
+  subscribeBarcodeScans(
+    tenantId: string,
+    onScan: (scan: any) => void,
+  ): () => void;
 
   // --- Advanced Admin Operations ---
-  
+
   // Order Routing
-  routeOrder(sku: string, quantity: number, destinationAddress: string, strategyName: string): Promise<FulfillmentPlan>;
+  routeOrder(
+    sku: string,
+    quantity: number,
+    destinationAddress: string,
+    strategyName: string,
+  ): Promise<FulfillmentPlan>;
 
   // Reorder Policies
   getReorderPolicies(tenantId: string): Promise<ReorderPolicy[]>;
@@ -362,45 +488,90 @@ export interface InventoryClient {
 
   // Webhooks
   getWebhooks(tenantId: string): Promise<WebhookSubscription[]>;
-  createWebhook(tenantId: string, url: string, eventTypes: string[]): Promise<void>;
+  createWebhook(
+    tenantId: string,
+    url: string,
+    eventTypes: string[],
+  ): Promise<void>;
   deleteWebhook(tenantId: string, id: string): Promise<void>;
   getWebhookDeliveries(tenantId: string): Promise<WebhookDeliveryLog[]>;
 
   // WMS Layout
   getWarehouseLocations(tenantId: string): Promise<WarehouseLocation[]>;
-  saveWarehouseLocation(tenantId: string, location: WarehouseLocation): Promise<void>;
+  saveWarehouseLocation(
+    tenantId: string,
+    location: WarehouseLocation,
+  ): Promise<void>;
   deleteWarehouseLocation(tenantId: string, id: string): Promise<void>;
-  getPutawaySuggestions(tenantId: string, sku: string, quantity: number): Promise<PutawaySuggestion[]>;
+  getPutawaySuggestions(
+    tenantId: string,
+    sku: string,
+    quantity: number,
+  ): Promise<PutawaySuggestion[]>;
   getOptimizedPickRoute(tenantId: string, skus: string[]): Promise<string[]>;
-  getSlottingSuggestions(tenantId: string): Promise<any[]>;
+  getSlottingSuggestions(tenantId: string): Promise<SlottingSuggestion[]>;
   getComplianceLedger(tenantId: string): Promise<any[]>;
-  verifyComplianceLedger(tenantId: string): Promise<{ isValid: boolean; failedSequenceNumber?: number; reason?: string }>;
+  verifyComplianceLedger(
+    tenantId: string,
+  ): Promise<{
+    isValid: boolean;
+    failedSequenceNumber?: number;
+    reason?: string;
+  }>;
   reconstructState(tenantId: string, timestamp?: string): Promise<any>;
   replayAudit(tenantId: string, upToTimestamp?: string): Promise<any[]>;
-  getCacheStats(): Promise<{ hits: number; misses: number; hitRatio: number; invalidations: number; activeKeysCount: number }>;
-  clearCache(tenantId?: string): Promise<{ success: boolean; clearedKeysCount: number }>;
-
+  getCacheStats(): Promise<{
+    hits: number;
+    misses: number;
+    hitRatio: number;
+    invalidations: number;
+    activeKeysCount: number;
+  }>;
+  clearCache(
+    tenantId?: string,
+  ): Promise<{ success: boolean; clearedKeysCount: number }>;
 
   // Procurement (PO)
   getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]>;
-  createPurchaseOrder(tenantId: string, supplier: string, items: PurchaseOrderItem[]): Promise<void>;
+  createPurchaseOrder(
+    tenantId: string,
+    supplier: string,
+    items: PurchaseOrderItem[],
+  ): Promise<void>;
   approvePurchaseOrder(tenantId: string, id: string): Promise<void>;
   sendPurchaseOrder(tenantId: string, id: string): Promise<void>;
-  receivePurchaseOrder(tenantId: string, id: string, items: { sku: string; quantity: number }[]): Promise<void>;
+  receivePurchaseOrder(
+    tenantId: string,
+    id: string,
+    items: { sku: string; quantity: number }[],
+  ): Promise<void>;
 
   // FEFO & Recall
-  getFefoPickSuggestions(tenantId: string, sku: string, quantity: number): Promise<any[]>;
+  getFefoPickSuggestions(
+    tenantId: string,
+    sku: string,
+    quantity: number,
+  ): Promise<any[]>;
   traceRecall(tenantId: string, lotNumber: string): Promise<any>;
 
   // --- Unified Admin Portal Operations ---
   getUsers(tenantId: string): Promise<User[]>;
-  inviteUser(tenantId: string, email: string, role: string): Promise<{ userId: string; temporaryPassword?: string }>;
+  inviteUser(
+    tenantId: string,
+    email: string,
+    role: string,
+  ): Promise<{ userId: string; temporaryPassword?: string }>;
   updateUserRole(tenantId: string, userId: string, role: string): Promise<void>;
-  
+
   // RBAC
   getRoles(tenantId: string): Promise<Role[]>;
   getPermissions(): Promise<Permission[]>;
-  createRole(tenantId: string, name: string, description: string, permissionIds: string[]): Promise<Role>;
+  createRole(
+    tenantId: string,
+    name: string,
+    description: string,
+    permissionIds: string[],
+  ): Promise<Role>;
   updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void>;
   deleteRole(roleId: string): Promise<void>;
 
@@ -408,65 +579,157 @@ export interface InventoryClient {
   getApprovalWorkflows(): Promise<any[]>;
   toggleApprovalWorkflow(id: string): Promise<any>;
   getPendingApprovals(): Promise<any[]>;
-  submitApprovalDecision(id: string, decision: 'APPROVED' | 'REJECTED' | 'REQUEST_MORE_INFO', notes?: string): Promise<any>;
+  submitApprovalDecision(
+    id: string,
+    decision: "APPROVED" | "REJECTED" | "REQUEST_MORE_INFO",
+    notes?: string,
+  ): Promise<any>;
   getApprovalHistory(requestId: string): Promise<any[]>;
 
   runAudit(tenantId: string): Promise<any>;
   getDiscrepancies(tenantId: string): Promise<AuditDiscrepancy[]>;
-  resolveDiscrepancy(tenantId: string, id: string, notes: string): Promise<void>;
+  resolveDiscrepancy(
+    tenantId: string,
+    id: string,
+    notes: string,
+  ): Promise<void>;
 
   getOutboxStats(): Promise<OutboxStats>;
   getDeadLetterEvents(limit?: number): Promise<OutboxEvent[]>;
   retryOutboxEvent(id: string): Promise<void>;
 
   getTenantConfig(tenantId: string): Promise<TenantAccountingConfig>;
-  saveTenantConfig(tenantId: string, config: { accountingMethod: string; costingMethod: string }): Promise<void>;
+  saveTenantConfig(
+    tenantId: string,
+    config: { accountingMethod: string; costingMethod: string },
+  ): Promise<void>;
 
-  assembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void>;
-  disassembleKit(tenantId: string, locationId: string, kitSku: string, quantity: number, actorId: string, referenceId: string): Promise<void>;
+  assembleKit(
+    tenantId: string,
+    locationId: string,
+    kitSku: string,
+    quantity: number,
+    actorId: string,
+    referenceId: string,
+  ): Promise<void>;
+  disassembleKit(
+    tenantId: string,
+    locationId: string,
+    kitSku: string,
+    quantity: number,
+    actorId: string,
+    referenceId: string,
+  ): Promise<void>;
 
   getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]>;
-  resolveQuarantine(tenantId: string, id: string, resolution: string): Promise<void>;
+  resolveQuarantine(
+    tenantId: string,
+    id: string,
+    resolution: string,
+  ): Promise<void>;
 
-  getValuationReport(tenantId: string, locationId?: string, method?: string): Promise<ValuationItem[]>;
+  getValuationReport(
+    tenantId: string,
+    locationId?: string,
+    method?: string,
+  ): Promise<ValuationItem[]>;
 
   // RFID Ingestion
   getRfidTags(tenantId: string): Promise<RfidTag[]>;
-  assignRfidTag(tenantId: string, epc: string, sku: string, serialNumber: string): Promise<void>;
-  simulateRfidScan(tenantId: string, locationId: string, tags: string[]): Promise<void>;
-  subscribeRfidScans(tenantId: string, onScan: (event: RfidScanUpdate) => void): () => void;
+  assignRfidTag(
+    tenantId: string,
+    epc: string,
+    sku: string,
+    serialNumber: string,
+  ): Promise<void>;
+  simulateRfidScan(
+    tenantId: string,
+    locationId: string,
+    tags: string[],
+  ): Promise<void>;
+  subscribeRfidScans(
+    tenantId: string,
+    onScan: (event: RfidScanUpdate) => void,
+  ): () => void;
 
-  analyzeInventoryAnomalies(tenantId: string, startDate?: string, endDate?: string): Promise<any>;
+  analyzeInventoryAnomalies(
+    tenantId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<any>;
   getRebalanceMatrix(tenantId: string): Promise<any>;
 
   // Reporting & Analytics
   getReportDefinitions(tenantId: string): Promise<ReportDefinition[]>;
-  createReportDefinition(tenantId: string, payload: Partial<ReportDefinition>): Promise<{ id: string }>;
-  scheduleReport(tenantId: string, reportId: string, cronExpression: string, deliveryMethod: string): Promise<{ scheduleId: string }>;
-  executeReport(tenantId: string, reportId: string, format: string): Promise<{ executionId: string }>;
+  createReportDefinition(
+    tenantId: string,
+    payload: Partial<ReportDefinition>,
+  ): Promise<{ id: string }>;
+  scheduleReport(
+    tenantId: string,
+    reportId: string,
+    cronExpression: string,
+    deliveryMethod: string,
+  ): Promise<{ scheduleId: string }>;
+  executeReport(
+    tenantId: string,
+    reportId: string,
+    format: string,
+  ): Promise<{ executionId: string }>;
   getDashboardWidgets(tenantId: string): Promise<DashboardWidget[]>;
-  saveDashboardWidget(tenantId: string, widget: Partial<DashboardWidget>): Promise<{ id: string }>;
+  saveDashboardWidget(
+    tenantId: string,
+    widget: Partial<DashboardWidget>,
+  ): Promise<{ id: string }>;
 
   // --- Item 15: Operational Depth ---
   // Intercompany
-  createLegalEntity(tenantId: string, name: string, baseCurrency: string, taxIdentifier?: string): Promise<any>;
+  createLegalEntity(
+    tenantId: string,
+    name: string,
+    baseCurrency: string,
+    taxIdentifier?: string,
+  ): Promise<any>;
   getLegalEntities(tenantId: string): Promise<any[]>;
-  executeIntercompanyTransfer(dto: { tenantId: string, fromEntityId: string, toEntityId: string, sku: string, quantity: number, unitCostCents: number, markupPercentage: number, dutyCents?: number }): Promise<any>;
+  executeIntercompanyTransfer(dto: {
+    tenantId: string;
+    fromEntityId: string;
+    toEntityId: string;
+    sku: string;
+    quantity: number;
+    unitCostCents: number;
+    markupPercentage: number;
+    dutyCents?: number;
+  }): Promise<any>;
   getIntercompanyTransfers(tenantId: string): Promise<any[]>;
+  getLegalEntities(tenantId: string): Promise<LegalEntity[]>;
+  getIntercompanyTransfers(tenantId: string): Promise<IntercompanyTransfer[]>;
 
   // API Usage
-  getApiUsageMetrics(tenantId: string): Promise<any[]>;
+  getApiUsageMetrics(tenantId: string): Promise<ApiUsageMetric[]>;
 
-  startCycleCount(tenantId: string, name: string, isBlindCount: boolean, abcClass?: string, zone?: string): Promise<any>;
+  startCycleCount(
+    tenantId: string,
+    name: string,
+    isBlindCount: boolean,
+    abcClass?: string,
+    zone?: string,
+  ): Promise<any>;
   submitCycleCount(id: string, countedLines: any): Promise<void>;
   getCycleCounts(tenantId: string): Promise<any[]>;
-  
-  submitASN(tenantId: string, poId: string, supplierId: string, expectedArrivalDate: string, lines: any[]): Promise<any>;
+
+  submitASN(
+    tenantId: string,
+    poId: string,
+    supplierId: string,
+    expectedArrivalDate: string,
+    lines: any[],
+  ): Promise<any>;
   getASNs(tenantId: string, supplierId: string): Promise<any[]>;
-  
+
   getNotifications(tenantId: string, userId: string): Promise<any[]>;
   markNotificationRead(id: string): Promise<void>;
-  
+
   generateAgingReport(tenantId: string): Promise<any>;
 }
 
@@ -477,12 +740,16 @@ export interface ClientContextType {
   setBackendType: (type: BackendType) => void;
 }
 
-export const InventoryClientContext = createContext<ClientContextType | null>(null);
+export const InventoryClientContext = createContext<ClientContextType | null>(
+  null,
+);
 
 export const useInventory = () => {
   const context = useContext(InventoryClientContext);
   if (!context) {
-    throw new Error('useInventory must be used within an InventoryClientProvider');
+    throw new Error(
+      "useInventory must be used within an InventoryClientProvider",
+    );
   }
   return context;
 };

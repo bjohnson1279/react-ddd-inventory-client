@@ -85,6 +85,78 @@ describe("Inventory Backend API Adapters", () => {
         "Network error connecting to GraphQL endpoint",
       );
     });
+
+    it("should generate a 64-character hex secret via window.crypto.getRandomValues when creating a webhook", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            createWebhookSubscription: { id: "sub-123" },
+          },
+        }),
+      });
+      global.fetch = mockFetch;
+
+      const getRandomValuesSpy = vi.spyOn(window.crypto, "getRandomValues");
+
+      const adapter = new GraphQLAdapter();
+      await adapter.createWebhook("tenant-1", "https://example.com/webhook", [
+        "stock.updated",
+      ]);
+
+      expect(getRandomValuesSpy).toHaveBeenCalledWith(expect.any(Uint8Array));
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:4000/graphql",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringMatching(/"secret":"[0-9a-f]{64}"/),
+        }),
+      );
+
+      getRandomValuesSpy.mockRestore();
+    it("should gracefully handle GetBatchedBarcodes query failure and default barcodes to empty arrays", async () => {
+      const mockFetch = vi
+        .fn()
+        // First call: getProducts products query succeeds
+        .mockResolvedValueOnce({
+              products: [
+                {
+                  id: "prod-1",
+                  name: "Product 1",
+                  variants: [
+                    {
+                      id: "v-1",
+                      sku: "SKU-FAIL-1",
+                      trackingMode: "quantity",
+                      attributes: [],
+                    {
+                      id: "v-2",
+                      sku: "SKU-FAIL-2",
+                      trackingMode: "quantity",
+                      attributes: [],
+                  ],
+              ],
+        })
+        // Second call: GetBatchedBarcodes batch query fails
+        .mockResolvedValueOnce({
+            errors: [{ message: "GetBatchedBarcodes failed" }],
+      const products = await adapter.getProducts();
+      expect(products).toHaveLength(1);
+      expect(products[0].variants).toEqual([
+        {
+          id: "v-1",
+          sku: "SKU-FAIL-1",
+          trackingMode: "quantity",
+          attributes: [],
+          barcodes: [],
+        {
+          id: "v-2",
+          sku: "SKU-FAIL-2",
+          trackingMode: "quantity",
+          attributes: [],
+          barcodes: [],
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("ExpressRESTAdapter", () => {
@@ -451,6 +523,53 @@ describe("Inventory Backend API Adapters", () => {
         unmatchedEpcs: [],
       });
       unsubscribe();
+    });
+
+    it("should handle JSON parse error in subscribeRfidScans when SSE message is malformed", async () => {
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      const mockReader = {
+        read: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              "data: " +
+                JSON.stringify({
+                  type: "rfid_scan_processed",
+                  message: "{invalid-json-payload",
+                }) +
+                "\n\n",
+            ),
+          })
+          .mockResolvedValueOnce({ done: true }),
+      };
+
+      const mockFetchSse = vi.fn().mockResolvedValue({
+        body: { getReader: () => mockReader },
+      });
+      global.fetch = mockFetchSse as any;
+
+      const adapter = new LaravelRESTAdapter();
+      const onScanProcessed = vi.fn();
+      const unsubscribe = adapter.subscribeRfidScans(
+        "tenant-1",
+        onScanProcessed,
+      );
+
+      // wait for stream to process
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Laravel SSE Rfid Parse Error:",
+        expect.any(SyntaxError),
+      );
+      expect(onScanProcessed).not.toHaveBeenCalled();
+
+      unsubscribe();
+      consoleSpy.mockRestore();
     });
 
     describe("login method", () => {
@@ -972,6 +1091,151 @@ describe("Inventory Backend API Adapters", () => {
       await adapter.assignRfidTag("tenant-1", "EPC-EXP-1", "SKU-EXP", "SN-EXP");
       await adapter.simulateRfidScan("tenant-1", "LOC-A", ["EPC-EXP-1"]);
       expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+
+    it("should handle invalid JSON in subscribeRfidScans and subscribeBarcodeScans onmessage without throwing", () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      let instanceCount = 0;
+      let createdInstances: any[] = [];
+
+      class MockWebSocket {
+        static OPEN = 1;
+        readyState = 1;
+        onmessage: ((event: { data: string }) => void) | null = null;
+        onerror: ((err: any) => void) | null = null;
+
+        listeners: Record<string, Function[]> = {};
+
+        constructor(public url: string) {
+          instanceCount++;
+          createdInstances.push(this);
+        }
+
+        addEventListener(event: string, fn: Function) {
+          if (!this.listeners[event]) this.listeners[event] = [];
+          this.listeners[event].push(fn);
+        }
+
+        send = vi.fn();
+        close = vi.fn();
+      }
+
+      const originalWebSocket = global.WebSocket;
+      global.WebSocket = MockWebSocket as any;
+
+      const adapter = new ExpressRESTAdapter();
+
+      // Test subscribeRfidScans
+      const onScanProcessed = vi.fn();
+      const unsubscribeRfid = adapter.subscribeRfidScans(
+        "tenant-1",
+        onScanProcessed,
+      );
+
+      const rfidWs = createdInstances[createdInstances.length - 1];
+
+      // Trigger open event to exercise send
+      if (rfidWs.listeners["open"]) {
+        rfidWs.listeners["open"].forEach((fn: Function) => fn());
+      }
+      expect(rfidWs.send).toHaveBeenCalled();
+
+      // Send invalid JSON
+      rfidWs.onmessage({ data: "INVALID_JSON_STRING" });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Express WS Rfid Parse Error:",
+        expect.any(SyntaxError),
+      );
+      expect(onScanProcessed).not.toHaveBeenCalled();
+
+      // Send valid JSON to ensure callback is invoked
+      rfidWs.onmessage({
+        data: JSON.stringify({
+          type: "rfid_scan_processed",
+          id: "scan-1",
+          tenantId: "tenant-1",
+          locationId: "loc-1",
+          totalCount: 5,
+          matchedCount: 5,
+          unmatchedCount: 0,
+          unmatchedEpcs: [],
+        }),
+      });
+
+      expect(onScanProcessed).toHaveBeenCalledWith({
+        id: "scan-1",
+        tenantId: "tenant-1",
+        locationId: "loc-1",
+        totalCount: 5,
+        matchedCount: 5,
+        unmatchedCount: 0,
+        unmatchedEpcs: [],
+      });
+
+      // Trigger onerror
+      rfidWs.onerror("WS Error Test");
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Express WS Rfid Error:",
+        "WS Error Test",
+      );
+
+      unsubscribeRfid();
+      expect(rfidWs.close).toHaveBeenCalled();
+
+      // Test subscribeBarcodeScans
+      const onBarcodeScan = vi.fn();
+      const unsubscribeBarcode = adapter.subscribeBarcodeScans(
+        "tenant-1",
+        onBarcodeScan,
+      );
+
+      const barcodeWs = createdInstances[createdInstances.length - 1];
+
+      // Send invalid JSON
+      barcodeWs.onmessage({ data: "INVALID_JSON_STRING" });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Express WS Parse Error:",
+        expect.any(SyntaxError),
+      );
+      expect(onBarcodeScan).not.toHaveBeenCalled();
+
+      // Send valid JSON
+      barcodeWs.onmessage({
+        data: JSON.stringify({
+          type: "barcode_scanned",
+          scanValue: "123456",
+          symbology: "CODE128",
+          context: "inventory",
+          status: "success",
+          time: "2026-01-01T00:00:00Z",
+        }),
+      });
+
+      expect(onBarcodeScan).toHaveBeenCalledWith({
+        scanValue: "123456",
+        symbology: "CODE128",
+        context: "inventory",
+        status: "Scanned successfully",
+        time: "2026-01-01T00:00:00Z",
+      });
+
+      // Trigger onerror
+      barcodeWs.onerror("WS Error Test Barcode");
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Express WS Error:",
+        "WS Error Test Barcode",
+      );
+
+      unsubscribeBarcode();
+      expect(barcodeWs.close).toHaveBeenCalled();
+
+      global.WebSocket = originalWebSocket;
+      consoleErrorSpy.mockRestore();
     });
   });
   describe("PythonRESTAdapter", () => {
