@@ -972,6 +972,151 @@ describe("Inventory Backend API Adapters", () => {
       await adapter.simulateRfidScan("tenant-1", "LOC-A", ["EPC-EXP-1"]);
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
+
+    it("should handle invalid JSON in subscribeRfidScans and subscribeBarcodeScans onmessage without throwing", () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      let instanceCount = 0;
+      let createdInstances: any[] = [];
+
+      class MockWebSocket {
+        static OPEN = 1;
+        readyState = 1;
+        onmessage: ((event: { data: string }) => void) | null = null;
+        onerror: ((err: any) => void) | null = null;
+
+        listeners: Record<string, Function[]> = {};
+
+        constructor(public url: string) {
+          instanceCount++;
+          createdInstances.push(this);
+        }
+
+        addEventListener(event: string, fn: Function) {
+          if (!this.listeners[event]) this.listeners[event] = [];
+          this.listeners[event].push(fn);
+        }
+
+        send = vi.fn();
+        close = vi.fn();
+      }
+
+      const originalWebSocket = global.WebSocket;
+      global.WebSocket = MockWebSocket as any;
+
+      const adapter = new ExpressRESTAdapter();
+
+      // Test subscribeRfidScans
+      const onScanProcessed = vi.fn();
+      const unsubscribeRfid = adapter.subscribeRfidScans(
+        "tenant-1",
+        onScanProcessed,
+      );
+
+      const rfidWs = createdInstances[createdInstances.length - 1];
+
+      // Trigger open event to exercise send
+      if (rfidWs.listeners["open"]) {
+        rfidWs.listeners["open"].forEach((fn: Function) => fn());
+      }
+      expect(rfidWs.send).toHaveBeenCalled();
+
+      // Send invalid JSON
+      rfidWs.onmessage({ data: "INVALID_JSON_STRING" });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Express WS Rfid Parse Error:",
+        expect.any(SyntaxError),
+      );
+      expect(onScanProcessed).not.toHaveBeenCalled();
+
+      // Send valid JSON to ensure callback is invoked
+      rfidWs.onmessage({
+        data: JSON.stringify({
+          type: "rfid_scan_processed",
+          id: "scan-1",
+          tenantId: "tenant-1",
+          locationId: "loc-1",
+          totalCount: 5,
+          matchedCount: 5,
+          unmatchedCount: 0,
+          unmatchedEpcs: [],
+        }),
+      });
+
+      expect(onScanProcessed).toHaveBeenCalledWith({
+        id: "scan-1",
+        tenantId: "tenant-1",
+        locationId: "loc-1",
+        totalCount: 5,
+        matchedCount: 5,
+        unmatchedCount: 0,
+        unmatchedEpcs: [],
+      });
+
+      // Trigger onerror
+      rfidWs.onerror("WS Error Test");
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Express WS Rfid Error:",
+        "WS Error Test",
+      );
+
+      unsubscribeRfid();
+      expect(rfidWs.close).toHaveBeenCalled();
+
+      // Test subscribeBarcodeScans
+      const onBarcodeScan = vi.fn();
+      const unsubscribeBarcode = adapter.subscribeBarcodeScans(
+        "tenant-1",
+        onBarcodeScan,
+      );
+
+      const barcodeWs = createdInstances[createdInstances.length - 1];
+
+      // Send invalid JSON
+      barcodeWs.onmessage({ data: "INVALID_JSON_STRING" });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Express WS Parse Error:",
+        expect.any(SyntaxError),
+      );
+      expect(onBarcodeScan).not.toHaveBeenCalled();
+
+      // Send valid JSON
+      barcodeWs.onmessage({
+        data: JSON.stringify({
+          type: "barcode_scanned",
+          scanValue: "123456",
+          symbology: "CODE128",
+          context: "inventory",
+          status: "success",
+          time: "2026-01-01T00:00:00Z",
+        }),
+      });
+
+      expect(onBarcodeScan).toHaveBeenCalledWith({
+        scanValue: "123456",
+        symbology: "CODE128",
+        context: "inventory",
+        status: "Scanned successfully",
+        time: "2026-01-01T00:00:00Z",
+      });
+
+      // Trigger onerror
+      barcodeWs.onerror("WS Error Test Barcode");
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Express WS Error:",
+        "WS Error Test Barcode",
+      );
+
+      unsubscribeBarcode();
+      expect(barcodeWs.close).toHaveBeenCalled();
+
+      global.WebSocket = originalWebSocket;
+      consoleErrorSpy.mockRestore();
+    });
   });
   describe("PythonRESTAdapter", () => {
     it("should query slotting suggestions route successfully", async () => {
