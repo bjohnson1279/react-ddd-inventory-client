@@ -328,7 +328,9 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
           {connections ? (
             <pre>{JSON.stringify(connections, null, 2)}</pre>
           ) : (
-            <p>Loading connections...</p>
+            <p role="status" aria-live="polite">
+              Loading connections...
+            </p>
           )}
         </div>
       </div>

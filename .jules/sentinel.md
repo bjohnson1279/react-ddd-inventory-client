@@ -156,3 +156,12 @@
 **Vulnerability:** API requests passed unencoded variables into query strings (e.g. `?sku=${sku}`) and path parameters (e.g. `/${id}?`).
 **Learning:** Variables interpolated into URL paths and query strings can introduce URL Injection, Parameter Pollution, or malformed requests if they contain characters like `&`, `#`, or `/`.
 **Prevention:** All dynamic variables used in API fetch URLs (both query parameters and path segments) must be safely encoded using `encodeURIComponent()`.
+
+## 2026-10-20 - Insecure Webhook Secret Generation
+**Vulnerability:** Generating webhook secrets using `crypto.randomUUID()` in GraphQL adapter.
+**Learning:** `crypto.randomUUID()` generates low-entropy (122 bits) formatted UUID strings rather than cryptographically secure, high-entropy secret tokens required for HMAC webhook signature validation.
+**Prevention:** Always generate cryptographically secure random secret tokens using `window.crypto.getRandomValues()` with sufficient entropy (e.g., 256 bits / 32 bytes formatted as a 64-character hexadecimal string).
+## 2026-10-12 - Minimal Surgical Diff Guardrail for Parameter Encoding
+**Vulnerability:** Whole-component regeneration during single parameter sanitization.
+**Learning:** Re-generating an entire 100+ line UI component to wrap a single variable in `encodeURIComponent()` introduces excessive code churn (+308 / -50 lines), risks merge collisions, and obscures review auditing.
+**Prevention:** For URL encoding or parameter sanitization fixes, restrict diffs strictly to the minimal affected AST node (`encodeURIComponent(var)`). Never reformat or regenerate unmodified component sections.
