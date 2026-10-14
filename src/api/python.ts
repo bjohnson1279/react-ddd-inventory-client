@@ -1,5 +1,6 @@
 import {
   InventoryClient,
+  ApiUsageMetric,
   Role,
   Permission,
   InventoryItem,
@@ -1547,7 +1548,7 @@ export class PythonRESTAdapter implements InventoryClient {
     );
   }
 
-  async getApiUsageMetrics(tenantId: string): Promise<any[]> {
+  async getApiUsageMetrics(tenantId: string): Promise<ApiUsageMetric[]> {
     return await this.request(
       "GET",
       `/usage?tenantId=${encodeURIComponent(tenantId)}`,

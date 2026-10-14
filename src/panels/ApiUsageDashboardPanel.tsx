@@ -1,10 +1,12 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { useInventory } from '../api/client';
-import { Activity, Zap } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from "react";
+import { useInventory, ApiUsageMetric } from "../api/client";
+import { Activity, Zap } from "lucide-react";
 
-export const ApiUsageDashboardPanel: React.FC<{ tenantId: string }> = ({ tenantId }) => {
+export const ApiUsageDashboardPanel: React.FC<{ tenantId: string }> = ({
+  tenantId,
+}) => {
   const { client } = useInventory();
-  const [metrics, setMetrics] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<ApiUsageMetric[]>([]);
 
   useEffect(() => {
     client.getApiUsageMetrics(tenantId).then(setMetrics).catch(console.error);
@@ -14,7 +16,7 @@ export const ApiUsageDashboardPanel: React.FC<{ tenantId: string }> = ({ tenantI
     let calls = 0;
     let errs = 0;
     let latSum = 0;
-    metrics.forEach(m => {
+    metrics.forEach((m) => {
       calls += m.calls || 0;
       errs += m.errors || 0;
       latSum += (m.averageLatencyMs || 0) * (m.calls || 0);
@@ -40,14 +42,18 @@ export const ApiUsageDashboardPanel: React.FC<{ tenantId: string }> = ({ tenantI
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
           <Zap className="text-amber-500 mb-2" size={24} />
-          <div className="text-3xl font-bold text-slate-800">{avgLatency} ms</div>
+          <div className="text-3xl font-bold text-slate-800">
+            {avgLatency} ms
+          </div>
           <div className="text-sm text-slate-500 mt-1">Avg Latency</div>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
-          <h3 className="text-lg font-semibold text-slate-800">Daily API Usage Breakdown</h3>
+          <h3 className="text-lg font-semibold text-slate-800">
+            Daily API Usage Breakdown
+          </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -57,22 +63,32 @@ export const ApiUsageDashboardPanel: React.FC<{ tenantId: string }> = ({ tenantI
                 <th className="py-3 px-6 font-medium">Endpoint</th>
                 <th className="py-3 px-6 font-medium text-right">Calls</th>
                 <th className="py-3 px-6 font-medium text-right">Errors</th>
-                <th className="py-3 px-6 font-medium text-right">Avg Latency (ms)</th>
+                <th className="py-3 px-6 font-medium text-right">
+                  Avg Latency (ms)
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {metrics.map((m, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50">
                   <td className="py-3 px-6 text-slate-700">{m.date}</td>
-                  <td className="py-3 px-6 text-slate-700 font-mono text-xs">{m.endpoint}</td>
-                  <td className="py-3 px-6 text-right font-medium">{m.calls}</td>
-                  <td className="py-3 px-6 text-right text-red-600">{m.errors}</td>
+                  <td className="py-3 px-6 text-slate-700 font-mono text-xs">
+                    {m.endpoint}
+                  </td>
+                  <td className="py-3 px-6 text-right font-medium">
+                    {m.calls}
+                  </td>
+                  <td className="py-3 px-6 text-right text-red-600">
+                    {m.errors}
+                  </td>
                   <td className="py-3 px-6 text-right">{m.averageLatencyMs}</td>
                 </tr>
               ))}
               {metrics.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-500">No metrics available.</td>
+                  <td colSpan={5} className="py-8 text-center text-slate-500">
+                    No metrics available.
+                  </td>
                 </tr>
               )}
             </tbody>

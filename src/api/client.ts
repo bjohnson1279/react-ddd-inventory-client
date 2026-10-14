@@ -357,6 +357,14 @@ export interface RfidScanUpdate {
   unmatchedEpcs: string[];
 }
 
+export interface ApiUsageMetric {
+  date: string;
+  endpoint: string;
+  calls: number;
+  errors: number;
+  averageLatencyMs: number;
+}
+
 export type BackendType = "graphql" | "express" | "laravel" | "python";
 export type Tab =
   | "dashboard"
@@ -698,7 +706,7 @@ export interface InventoryClient {
   getIntercompanyTransfers(tenantId: string): Promise<IntercompanyTransfer[]>;
 
   // API Usage
-  getApiUsageMetrics(tenantId: string): Promise<any[]>;
+  getApiUsageMetrics(tenantId: string): Promise<ApiUsageMetric[]>;
 
   startCycleCount(
     tenantId: string,
