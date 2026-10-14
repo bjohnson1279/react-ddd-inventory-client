@@ -597,7 +597,11 @@ export class GraphQLAdapter implements InventoryClient {
     url: string,
     eventTypes: string[],
   ): Promise<void> {
-    const secret = crypto.randomUUID();
+    const array = new Uint8Array(32);
+    window.crypto.getRandomValues(array);
+    const secret = Array.from(array, (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
     await this.fetchGraphql(
       `mutation CreateSub($url: String!, $secret: String!, $events: [String!]!) {
       createWebhookSubscription(targetUrl: $url, secret: $secret, eventTypes: $events) { id }
