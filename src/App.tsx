@@ -19,6 +19,7 @@ import {
   TenantAccountingConfig,
   QuarantinedItem,
   ValuationItem,
+  SlottingSuggestion,
   PurchaseOrder,
 } from "./api/client";
 import { RfidPanel, LotManagementPanel } from "./components/Panels";
@@ -267,9 +268,12 @@ function App() {
 
   // --- Slotting Optimizer States ---
 
-  const [slottingSuggestions, setSlottingSuggestions] = useState<any[]>([]);
+  const [slottingSuggestions, setSlottingSuggestions] = useState<
+    SlottingSuggestion[]
+  >([]);
   const [loadingSlotting, setLoadingSlotting] = useState(false);
-  const [hoveredSuggestion, setHoveredSuggestion] = useState<any | null>(null);
+  const [hoveredSuggestion, setHoveredSuggestion] =
+    useState<SlottingSuggestion | null>(null);
 
   // ⚡ Bolt: Memoize variantMap and itemsByLocation to prevent expensive re-creations on every render (e.g. during hover interactions)
   const variantMap = useMemo(() => {

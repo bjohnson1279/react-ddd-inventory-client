@@ -175,6 +175,17 @@ export interface PutawaySuggestion {
   suggestedQuantity: number;
 }
 
+export interface SlottingSuggestion {
+  sku: string;
+  currentLocationId: string;
+  currentDistance?: number;
+  currentVelocity?: number;
+  recommendedLocationId?: string;
+  recommendedDistance?: number;
+  potentialSwapSku?: string;
+  estimatedSavings?: number;
+}
+
 export interface PurchaseOrderItem {
   sku: string;
   quantity: number;
@@ -346,28 +357,6 @@ export interface RfidScanUpdate {
   unmatchedEpcs: string[];
 }
 
-export interface LegalEntity {
-  id: string;
-  tenantId?: string;
-  name: string;
-  baseCurrency: string;
-  taxIdentifier?: string;
-}
-
-export interface IntercompanyTransfer {
-  id: string;
-  tenantId?: string;
-  fromEntityId: string;
-  toEntityId: string;
-  sku: string;
-  quantity: number;
-  unitCostCents?: number;
-  markupPercentage?: number;
-  dutyCents?: number;
-  status?: string;
-  createdAt?: string;
-}
-
 export type BackendType = "graphql" | "express" | "laravel" | "python";
 export type Tab =
   | "dashboard"
@@ -512,7 +501,7 @@ export interface InventoryClient {
     quantity: number,
   ): Promise<PutawaySuggestion[]>;
   getOptimizedPickRoute(tenantId: string, skus: string[]): Promise<string[]>;
-  getSlottingSuggestions(tenantId: string): Promise<any[]>;
+  getSlottingSuggestions(tenantId: string): Promise<SlottingSuggestion[]>;
   getComplianceLedger(tenantId: string): Promise<any[]>;
   verifyComplianceLedger(
     tenantId: string,
@@ -693,7 +682,7 @@ export interface InventoryClient {
     baseCurrency: string,
     taxIdentifier?: string,
   ): Promise<any>;
-  getLegalEntities(tenantId: string): Promise<LegalEntity[]>;
+  getLegalEntities(tenantId: string): Promise<any[]>;
   executeIntercompanyTransfer(dto: {
     tenantId: string;
     fromEntityId: string;
@@ -704,6 +693,8 @@ export interface InventoryClient {
     markupPercentage: number;
     dutyCents?: number;
   }): Promise<any>;
+  getIntercompanyTransfers(tenantId: string): Promise<any[]>;
+  getLegalEntities(tenantId: string): Promise<LegalEntity[]>;
   getIntercompanyTransfers(tenantId: string): Promise<IntercompanyTransfer[]>;
 
   // API Usage

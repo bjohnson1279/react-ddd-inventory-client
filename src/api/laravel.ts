@@ -17,6 +17,7 @@ import {
   WebhookDeliveryLog,
   WarehouseLocation,
   PutawaySuggestion,
+  SlottingSuggestion,
   PurchaseOrder,
   PurchaseOrderItem,
   User,
@@ -1213,7 +1214,9 @@ export class LaravelRESTAdapter implements InventoryClient {
     }
   }
 
-  async getSlottingSuggestions(tenantId: string): Promise<any[]> {
+  async getSlottingSuggestions(
+    tenantId: string,
+  ): Promise<SlottingSuggestion[]> {
     return await this.request(
       "GET",
       `/api/warehouse-locations/slotting-suggestions?tenantId=${encodeURIComponent(tenantId)}`,

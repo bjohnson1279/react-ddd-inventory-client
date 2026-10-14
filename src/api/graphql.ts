@@ -18,6 +18,7 @@ import {
   WebhookDeliveryLog,
   WarehouseLocation,
   PutawaySuggestion,
+  SlottingSuggestion,
   PurchaseOrder,
   PurchaseOrderItem,
   User,
@@ -1175,7 +1176,9 @@ export class GraphQLAdapter implements InventoryClient {
     });
   }
 
-  async getSlottingSuggestions(tenantId: string): Promise<any[]> {
+  async getSlottingSuggestions(
+    tenantId: string,
+  ): Promise<SlottingSuggestion[]> {
     const query = `
       query GetSlottingSuggestions {
         slottingSuggestions {
@@ -1198,9 +1201,7 @@ export class GraphQLAdapter implements InventoryClient {
     return [];
   }
 
-  async verifyComplianceLedger(
-    tenantId: string,
-  ): Promise<{
+  async verifyComplianceLedger(tenantId: string): Promise<{
     isValid: boolean;
     failedSequenceNumber?: number;
     reason?: string;
