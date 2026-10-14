@@ -20,8 +20,11 @@ import {
   QuarantinedItem,
   ValuationItem,
   SlottingSuggestion,
+  PurchaseOrder,
 } from "./api/client";
 import { RfidPanel, LotManagementPanel } from "./components/Panels";
+import { FinancialAccountingPanel } from "./components/FinancialAccountingPanel";
+import type { PythonRESTAdapter } from "./api/python";
 
 import {
   addScanToQueue,
@@ -43,9 +46,14 @@ import { ApprovalInboxPanel } from "./components/ApprovalInboxPanel";
 import { ApprovalWorkflowPanel } from "./components/ApprovalWorkflowPanel";
 import { ReportingDashboardPanel } from "./components/ReportingDashboardPanel";
 import { OmnichannelIntegrationPanel } from "./components/OmnichannelIntegrationPanel";
+import { PythonIntegrationsPanel } from "./components/PythonIntegrationsPanel";
 import { CycleCountDashboardPanel } from "./components/CycleCountDashboardPanel";
 import { SupplierCollaborationPortal } from "./components/SupplierCollaborationPortal";
 import { NotificationInboxPanel } from "./components/NotificationInboxPanel";
+import { PythonNotificationInbox } from "./components/PythonNotificationInbox";
+import { PythonReportingPanel } from "./components/PythonReportingPanel";
+import { PythonAgingPanel } from "./components/PythonAgingPanel";
+import { PythonWorkforcePanel } from "./components/PythonWorkforcePanel";
 import { InventoryAgingPanel } from "./components/InventoryAgingPanel";
 import { IntercompanyPanel } from "./panels/IntercompanyPanel";
 import { ApiUsageDashboardPanel } from "./panels/ApiUsageDashboardPanel";
@@ -180,7 +188,7 @@ function App() {
   const [routingStrategy, setRoutingStrategy] = useState("MINIMIZE_COST");
   const [routingPlan, setRoutingPlan] = useState<any | null>(null);
 
-  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [newPoSupplier, setNewPoSupplier] = useState("");
   const [newPoLines, setNewPoLines] = useState<
     { sku: string; quantity: number; unitCostCents: number }[]
@@ -688,6 +696,14 @@ function App() {
   };
 
   // --- Data Loading Functions ---
+  const loadLedgerData = async () => {
+    setLoading(true);
+    setMessage(previous => previous?.type === 'error' ? null : previous);
+    try { setJournals(await client.getJournalEntries(tenantId)); }
+    catch (err: any) { setMessage({ type: 'error', text: err.message }); }
+    finally { setLoading(false); }
+  };
+
   const loadDashboardData = async () => {
     setLoading(true);
     try {
@@ -695,8 +711,10 @@ function App() {
       const [invData, prodData, connData, glData] = await Promise.all([
         client.getInventoryItems(),
         client.getProducts(),
-        client.getShopifyConnections(tenantId),
-        client.getJournalEntries(tenantId),
+        backendType !== 'python' || ['admin', 'manager'].includes(role.toLowerCase())
+          ? client.getShopifyConnections(tenantId) : Promise.resolve([]),
+        backendType !== 'python' || ['admin', 'manager', 'accountant'].includes(role.toLowerCase())
+          ? client.getJournalEntries(tenantId) : Promise.resolve([]),
       ]);
       setInventoryItems(invData || []);
       setProducts(prodData || []);
@@ -976,9 +994,9 @@ function App() {
     } else if (activeTab === "products") {
       loadDashboardData();
     } else if (activeTab === "ledger") {
-      loadDashboardData();
+      loadLedgerData();
     } else if (activeTab === "shopify") {
-      loadDashboardData();
+      if (backendType !== 'python') loadDashboardData();
     } else if (activeTab === "forecasting") {
       loadForecastingReport();
       loadReorderPolicies();
@@ -1538,7 +1556,7 @@ function App() {
     e.preventDefault();
     if (
       !window.confirm(
-        "Are you sure you want to post this journal entry? This will permanently post to the General Ledger and cannot be reversed.",
+        "Post this balanced journal to the general ledger?",
       )
     ) {
       return;
@@ -1560,7 +1578,7 @@ function App() {
         { accountCode: "1000", amountCents: 0, type: "debit", memo: "" },
         { accountCode: "2000", amountCents: 0, type: "credit", memo: "" },
       ]);
-      loadDashboardData();
+      loadLedgerData();
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
     } finally {
@@ -2016,7 +2034,7 @@ function App() {
       await client.retryOutboxEvent(id);
       setMessage({
         type: "success",
-        text: "Outbox event retried successfully.",
+        text: "Outbox event requeued for delivery.",
       });
       loadAdminData("outbox");
     } catch (err: any) {
@@ -2281,7 +2299,7 @@ function App() {
             >
               📊 Operational Depth
             </div>
-            {role === "admin" && (
+            {(role === "admin" || (backendType === 'python' && role === 'manager')) && (
               <div
                 className={`nav-link ${activeTab === "shopify" ? "active" : ""}`}
                 onClick={() => setActiveTab("shopify")}
@@ -2315,7 +2333,7 @@ function App() {
                 📥 Stock Onboarding
               </div>
             )}
-            {(role === "admin" || role === "accountant") && (
+            {(role === "admin" || role === "accountant" || (backendType === 'python' && role === 'manager')) && (
               <div
                 className={`nav-link ${activeTab === "ledger" ? "active" : ""}`}
                 onClick={() => setActiveTab("ledger")}
@@ -2623,7 +2641,7 @@ function App() {
               </div>
               <div className="stat-card accent">
                 <span className="stat-title">Double-Entry Ledger</span>
-                <span className="stat-value">{journals.length}</span>
+                <span className="stat-value">{backendType === 'python' && !['admin', 'manager', 'accountant'].includes(role.toLowerCase()) ? 'Restricted' : journals.length}</span>
                 <span className="stat-desc">Recorded Journal Entries</span>
               </div>
             </div>
@@ -2711,19 +2729,20 @@ function App() {
 
         {activeTab === "op-depth" && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
+            {backendType === 'python' && <div className="xl:col-span-2"><PythonWorkforcePanel client={client as PythonRESTAdapter} tenantId={tenantId} role={role} sessionKey={token} /></div>}
             <CycleCountDashboardPanel tenantId={tenantId} />
             <SupplierCollaborationPortal tenantId={tenantId} />
             <div className="xl:col-span-2 mt-6">
-              <InventoryAgingPanel tenantId={tenantId} />
+              {backendType === 'python' ? <PythonAgingPanel client={client as PythonRESTAdapter} tenantId={tenantId} sessionKey={token} /> : <InventoryAgingPanel tenantId={tenantId} />}
             </div>
             <div className="xl:col-span-2 mt-6">
-              <NotificationInboxPanel tenantId={tenantId} />
+              {backendType === 'python' ? <PythonNotificationInbox client={client as PythonRESTAdapter} tenantId={tenantId} sessionKey={token} onOpenReports={() => setActiveTab('reporting' as any)} /> : <NotificationInboxPanel tenantId={tenantId} />}
             </div>
           </div>
         )}
 
         {activeTab === "shopify" && (
-          <OmnichannelIntegrationPanel tenantId={tenantId} />
+          backendType === 'python' ? <PythonIntegrationsPanel client={client as PythonRESTAdapter} tenantId={tenantId} /> : <OmnichannelIntegrationPanel tenantId={tenantId} />
         )}
 
         {activeTab === "products" && (
@@ -3419,6 +3438,8 @@ function App() {
 
         {activeTab === "ledger" && (
           <div className="grid-cols-2">
+            {backendType === 'python' && ['admin', 'manager', 'accountant'].includes(role.toLowerCase()) &&
+              <FinancialAccountingPanel client={client as PythonRESTAdapter} tenantId={tenantId} onPosted={loadLedgerData} />}
             <div className="glass-panel">
               <h3 className="form-section-title">
                 Record General Ledger Journal
@@ -3564,9 +3585,7 @@ function App() {
                       journals.map((entry) => (
                         <tr key={entry.id}>
                           <td>
-                            {new Date(
-                              entry.date || new Date(),
-                            ).toLocaleDateString()}
+                            {entry.date ? /^\d{4}-\d{2}-\d{2}$/.test(entry.date) ? entry.date : new Date(entry.date).toLocaleDateString() : "Unknown"}
                           </td>
                           <td>
                             <strong>{entry.description}</strong>
@@ -6237,8 +6256,7 @@ function App() {
                                 color: "var(--text-muted)",
                               }}
                             >
-                              No dead-lettered events recorded. Event stream is
-                              healthy!
+                              No dead-lettered events recorded.
                             </td>
                           </tr>
                         ) : (
@@ -6261,7 +6279,7 @@ function App() {
                                 {e.error || "Message retry execution failure."}
                               </td>
                               <td>
-                                {new Date(e.occurredAt).toLocaleTimeString()}
+                                {e.occurredAt ? new Date(e.occurredAt).toLocaleTimeString() : "Unknown"}
                               </td>
                               <td>
                                 <button
@@ -6888,7 +6906,7 @@ function App() {
         )}
         {(activeTab as string) === "esg" && <EsgEmissionsPanel api={client} />}
         {(activeTab as string) === "reporting" && (
-          <ReportingDashboardPanel client={client} tenantId={tenantId} />
+          backendType === 'python' ? <PythonReportingPanel client={client as PythonRESTAdapter} tenantId={tenantId} role={role} sessionKey={token} /> : <ReportingDashboardPanel client={client} tenantId={tenantId} />
         )}
         {(activeTab as string) === "intercompany" && (
           <IntercompanyPanel tenantId={tenantId} />

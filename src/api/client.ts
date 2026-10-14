@@ -73,6 +73,11 @@ export interface StatusTransition {
 }
 
 export interface SerializedItem {
+  version?: number;
+  sku?: string;
+  destinationId?: string | null;
+  reservation?: string | null;
+  costCents?: number | null;
   id: string;
   variantId: string;
   serialNumber: string;
@@ -91,6 +96,7 @@ export interface ShopifyConnection {
 }
 
 export interface InventoryItem {
+  baseUnit?: string;
   id: string;
   sku: string;
   locationId: string;
@@ -247,6 +253,9 @@ export interface OutboxStats {
 }
 
 export interface OutboxEvent {
+  sequence?: number;
+  version?: number;
+  attempts?: number;
   id: string;
   eventType: string;
   payload: string;
@@ -279,6 +288,8 @@ export interface QuarantinedItem {
   reason: string;
   status: string;
   createdAt: string;
+  version?: number;
+  returnId?: string;
 }
 
 export interface ValuationItem {
@@ -683,6 +694,8 @@ export interface InventoryClient {
     dutyCents?: number;
   }): Promise<any>;
   getIntercompanyTransfers(tenantId: string): Promise<any[]>;
+  getLegalEntities(tenantId: string): Promise<LegalEntity[]>;
+  getIntercompanyTransfers(tenantId: string): Promise<IntercompanyTransfer[]>;
 
   // API Usage
   getApiUsageMetrics(tenantId: string): Promise<any[]>;
