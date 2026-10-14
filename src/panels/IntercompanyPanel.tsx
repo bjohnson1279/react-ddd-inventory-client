@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useInventory } from "../api/client";
+import { useInventory, LegalEntity, IntercompanyTransfer } from "../api/client";
 import { Building2, ArrowRightLeft, Plus } from "lucide-react";
 
 export const IntercompanyPanel: React.FC<{ tenantId: string }> = ({
@@ -7,8 +7,8 @@ export const IntercompanyPanel: React.FC<{ tenantId: string }> = ({
 }) => {
   const { client } = useInventory();
 
-  const [entities, setEntities] = useState<any[]>([]);
-  const [transfers, setTransfers] = useState<any[]>([]);
+  const [entities, setEntities] = useState<LegalEntity[]>([]);
+  const [transfers, setTransfers] = useState<IntercompanyTransfer[]>([]);
 
   const [name, setName] = useState("");
   const [baseCurrency, setBaseCurrency] = useState("USD");
@@ -24,7 +24,7 @@ export const IntercompanyPanel: React.FC<{ tenantId: string }> = ({
 
   // ⚡ Bolt: Replace O(N*M) array find inside render loop with O(N+M) Map lookup for entity names
   const entityMap = useMemo(() => {
-    const map = new Map();
+    const map = new Map<string, string>();
     entities.forEach((e) => map.set(e.id, e.name));
     return map;
   }, [entities]);

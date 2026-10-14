@@ -17,6 +17,7 @@ import {
   WebhookDeliveryLog,
   WarehouseLocation,
   PutawaySuggestion,
+  SlottingSuggestion,
   PurchaseOrder,
   PurchaseOrderItem,
   User,
@@ -157,36 +158,89 @@ export class LaravelRESTAdapter implements InventoryClient {
       const stockItems: InventoryItem[] = [];
       const variants = productsList.flatMap((p: any) => p.variants || []);
 
-      // ⚡ Bolt: Use Promise.all to fetch stock levels concurrently in chunks to prevent N+1 bottleneck
-      const chunkSize = 20;
-      for (let i = 0; i < variants.length; i += chunkSize) {
-        const chunk = variants.slice(i, i + chunkSize);
-        const chunkResults = await Promise.all(
-          chunk.map(async (v: any) => {
-            try {
-              const stockRes = await this.request(
-                "GET",
-                `/api/inventory/${v.sku}/stock`,
-              );
-              return {
+      // ⚡ Bolt: Replaced N+1 individual HTTP queries with chunked bulk query GET /api/inventory/stock?skus=...
+      // and individual request fallback to eliminate network round-trip bottleneck.
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < variants.length; i += CHUNK_SIZE) {
+        const chunk = variants.slice(i, i + CHUNK_SIZE);
+        const skusQuery = chunk
+          .map((v: any) => encodeURIComponent(v.sku))
+          .join(",");
+
+        try {
+          const bulkRes = await this.request(
+            "GET",
+            `/api/inventory/stock?skus=${skusQuery}`,
+          );
+          const stockList = Array.isArray(bulkRes?.stocks)
+            ? bulkRes.stocks
+            : Array.isArray(bulkRes)
+              ? bulkRes
+              : bulkRes && typeof bulkRes === "object" && (bulkRes.sku || bulkRes.location_id || bulkRes.available_quantity !== undefined || bulkRes.quantity !== undefined)
+                ? [{ sku: bulkRes.sku || (chunk.length === 1 ? chunk[0].sku : undefined), ...bulkRes }]
+                : [];
+          const stockMap = new Map<string, any>();
+          for (const s of stockList) {
+            if (s && s.sku) {
+              stockMap.set(s.sku, s);
+            }
+          }
+
+          for (const v of chunk) {
+            const stockRes = stockMap.get(v.sku);
+            if (stockRes) {
+              stockItems.push({
                 id: `${v.id}-stock`,
                 sku: v.sku,
-                locationId: stockRes.location_id || "default",
-                quantity: stockRes.available_quantity ?? stockRes.quantity ?? 0,
+                locationId:
+                  stockRes.location_id || stockRes.locationId || "default",
+                quantity:
+                  stockRes.available_quantity ??
+                  stockRes.availableQuantity ??
+                  stockRes.quantity ??
+                  0,
                 version: 1,
-              };
-            } catch {
-              return {
+              });
+            } else {
+              stockItems.push({
                 id: `${v.id}-stock`,
                 sku: v.sku,
                 locationId: "default",
                 quantity: 0,
                 version: 1,
-              };
+              });
             }
-          }),
-        );
-        stockItems.push(...chunkResults);
+          }
+        } catch {
+          // Fallback to individual requests if bulk endpoint is not available or fails
+          const chunkResults = await Promise.all(
+            chunk.map(async (v: any) => {
+              try {
+                const stockRes = await this.request(
+                  "GET",
+                  `/api/inventory/${v.sku}/stock`,
+                );
+                return {
+                  id: `${v.id}-stock`,
+                  sku: v.sku,
+                  locationId: stockRes.location_id || "default",
+                  quantity:
+                    stockRes.available_quantity ?? stockRes.quantity ?? 0,
+                  version: 1,
+                };
+              } catch {
+                return {
+                  id: `${v.id}-stock`,
+                  sku: v.sku,
+                  locationId: "default",
+                  quantity: 0,
+                  version: 1,
+                };
+              }
+            }),
+          );
+          stockItems.push(...chunkResults);
+        }
       }
       return stockItems;
     } catch {
@@ -477,9 +531,9 @@ export class LaravelRESTAdapter implements InventoryClient {
     const onboardingId = data.id;
 
     // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < items.length; i += BATCH_SIZE) {
-      const batch = items.slice(i, i + BATCH_SIZE);
+    const CHUNK_SIZE = 10;
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      const batch = items.slice(i, i + CHUNK_SIZE);
       const promises = batch.map((item) =>
         this.request("POST", `/api/onboardings/${onboardingId}/items`, {
           variant_id: item.variantId,
@@ -1160,7 +1214,9 @@ export class LaravelRESTAdapter implements InventoryClient {
     }
   }
 
-  async getSlottingSuggestions(tenantId: string): Promise<any[]> {
+  async getSlottingSuggestions(
+    tenantId: string,
+  ): Promise<SlottingSuggestion[]> {
     return await this.request(
       "GET",
       `/api/warehouse-locations/slotting-suggestions?tenantId=${encodeURIComponent(tenantId)}`,
