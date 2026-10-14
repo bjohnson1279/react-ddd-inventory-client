@@ -678,8 +678,11 @@ function App() {
         type: "success",
         text: "Authentication successful. Secure session started!",
       });
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Login failed." });
+    } catch (err: unknown) {
+      setMessage({
+        type: "error",
+        text: (err as Error).message || "Login failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -720,10 +723,10 @@ function App() {
       setProducts(prodData || []);
       setShopifyConns(connData || []);
       setJournals(glData || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to connect to backend server.",
+        text: (err as Error).message || "Failed to connect to backend server.",
       });
     } finally {
       setLoading(false);
@@ -735,8 +738,8 @@ function App() {
     try {
       const data = await client.getStockOnboardings(tenantId);
       setOnboardings(data || []);
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -747,10 +750,10 @@ function App() {
     try {
       const data = await client.getForecastingReport(locationId);
       setForecastingReport(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load forecasting report.",
+        text: (err as Error).message || "Failed to load forecasting report.",
       });
     } finally {
       setLoading(false);
@@ -762,10 +765,10 @@ function App() {
     try {
       const data = await client.getPurchaseOrders(tenantId);
       setPurchaseOrders(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load Purchase Orders.",
+        text: (err as Error).message || "Failed to load Purchase Orders.",
       });
     } finally {
       setLoading(false);
@@ -777,10 +780,10 @@ function App() {
     try {
       const data = await client.getWarehouseLocations(tenantId);
       setWmsLocations(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load WMS locations.",
+        text: (err as Error).message || "Failed to load WMS locations.",
       });
     } finally {
       setLoading(false);
@@ -792,7 +795,7 @@ function App() {
     try {
       const data = await client.getSlottingSuggestions(tenantId);
       setSlottingSuggestions(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[SlottingSuggestions] Failed to load:", err);
     } finally {
       setLoadingSlotting(false);
@@ -804,10 +807,10 @@ function App() {
     try {
       const data = await client.getComplianceLedger(tenantId);
       setComplianceLedger(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load Compliance Ledger.",
+        text: (err as Error).message || "Failed to load Compliance Ledger.",
       });
     } finally {
       setLoading(false);
@@ -831,10 +834,10 @@ function App() {
           text: `Compliance Ledger compromised! Failed at sequence #${result.failedSequenceNumber}.`,
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Verification execution failed.",
+        text: (err as Error).message || "Verification execution failed.",
       });
     } finally {
       setVerifyingLedger(false);
@@ -853,10 +856,10 @@ function App() {
         type: "success",
         text: `Reconstructed state as of ${res.timestamp} (${res.eventsReplayedCount} events replayed).`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "State reconstruction failed.",
+        text: (err as Error).message || "State reconstruction failed.",
       });
     } finally {
       setReconstructingState(false);
@@ -875,10 +878,10 @@ function App() {
         type: "success",
         text: `Loaded ${steps.length} audit replay steps.`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Audit replay failed.",
+        text: (err as Error).message || "Audit replay failed.",
       });
     } finally {
       setReplayingAudit(false);
@@ -889,7 +892,7 @@ function App() {
     try {
       const stats = await client.getCacheStats();
       setCacheStats(stats);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn("Failed to fetch cache stats:", err);
     }
   };
@@ -902,10 +905,10 @@ function App() {
         text: `Tier-2 Distributed Redis Cache flushed (${result.clearedKeysCount} keys cleared).`,
       });
       handleFetchCacheStats();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to flush cache.",
+        text: (err as Error).message || "Failed to flush cache.",
       });
     }
   };
@@ -917,10 +920,11 @@ function App() {
       setWebhooks(subs || []);
       const logs = await client.getWebhookDeliveries(tenantId);
       setWebhookDeliveries(logs || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load Webhook configurations.",
+        text:
+          (err as Error).message || "Failed to load Webhook configurations.",
       });
     } finally {
       setLoading(false);
@@ -932,10 +936,10 @@ function App() {
     try {
       const data = await client.getReorderPolicies(tenantId);
       setReorderPolicies(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load Reorder Policies.",
+        text: (err as Error).message || "Failed to load Reorder Policies.",
       });
     } finally {
       setLoading(false);
@@ -973,11 +977,11 @@ function App() {
         const v = await client.getValuationReport(tenantId, undefined, method);
         setValuationItems(v);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load admin data:", err);
       setMessage({
         type: "error",
-        text: err.message || "Failed to load administrative data.",
+        text: (err as Error).message || "Failed to load administrative data.",
       });
     } finally {
       setLoading(false);
@@ -1311,8 +1315,8 @@ function App() {
       setNewProdId("");
       setNewProdName("");
       loadDashboardData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1336,8 +1340,8 @@ function App() {
       setNewVarSku("");
       setNewVarAttrs([{ name: "", value: "" }]);
       loadDashboardData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1358,8 +1362,8 @@ function App() {
       setAssignSku("");
       setAssignVal("");
       loadDashboardData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1371,8 +1375,8 @@ function App() {
       const generated = await client.generateInternalBarcode(sku, tenantId);
       setMessage({ type: "success", text: `Generated barcode: ${generated}` });
       loadDashboardData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1389,8 +1393,8 @@ function App() {
       );
       setMessage({ type: "success", text: `Draft onboarding sheet created.` });
       loadOnboardings();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1413,8 +1417,8 @@ function App() {
       });
       loadOnboardings();
       setSelectedOnboarding(null);
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1437,8 +1441,11 @@ function App() {
           text: `All ${res.successCount} buffered scans synced successfully.`,
         });
       }
-    } catch (err: any) {
-      setMessage({ type: "error", text: `Sync failed: ${err.message}` });
+    } catch (err: unknown) {
+      setMessage({
+        type: "error",
+        text: `Sync failed: ${(err as Error).message}`,
+      });
     } finally {
       setLoading(false);
     }
@@ -1498,17 +1505,17 @@ function App() {
           text: "Scan successfully routed to workflow context.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setScanHistory((prev) => [
         {
           time: new Date().toLocaleTimeString(),
           scan: scanVal,
           context: scanContext,
-          status: `Error: ${err.message}`,
+          status: `Error: ${(err as Error).message}`,
         },
         ...prev,
       ]);
-      setMessage({ type: "error", text: err.message });
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1526,8 +1533,8 @@ function App() {
         );
       }
       setTracedItem(data);
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1545,8 +1552,8 @@ function App() {
       setNewShopifyDomain("");
       setNewShopifyToken("");
       loadDashboardData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1578,6 +1585,9 @@ function App() {
         { accountCode: "1000", amountCents: 0, type: "debit", memo: "" },
         { accountCode: "2000", amountCents: 0, type: "credit", memo: "" },
       ]);
+      loadDashboardData();
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
       loadLedgerData();
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
@@ -1604,8 +1614,11 @@ function App() {
         type: "success",
         text: "Order routing optimization completed successfully!",
       });
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Routing failed." });
+    } catch (err: unknown) {
+      setMessage({
+        type: "error",
+        text: (err as Error).message || "Routing failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1626,10 +1639,10 @@ function App() {
       setNewPoSupplier("");
       setNewPoLines([{ sku: "", quantity: 1, unitCostCents: 1000 }]);
       loadPurchaseOrders();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to create Purchase Order.",
+        text: (err as Error).message || "Failed to create Purchase Order.",
       });
     } finally {
       setLoading(false);
@@ -1642,8 +1655,11 @@ function App() {
       await client.approvePurchaseOrder(tenantId, id);
       setMessage({ type: "success", text: `Purchase Order ${id} approved.` });
       loadPurchaseOrders();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Approval failed." });
+    } catch (err: unknown) {
+      setMessage({
+        type: "error",
+        text: (err as Error).message || "Approval failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1658,8 +1674,11 @@ function App() {
         text: `Purchase Order ${id} sent to supplier.`,
       });
       loadPurchaseOrders();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Sending PO failed." });
+    } catch (err: unknown) {
+      setMessage({
+        type: "error",
+        text: (err as Error).message || "Sending PO failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1679,10 +1698,10 @@ function App() {
       setReceivePoLines([]);
       loadPurchaseOrders();
       loadDashboardData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Receiving PO items failed.",
+        text: (err as Error).message || "Receiving PO items failed.",
       });
     } finally {
       setLoading(false);
@@ -1714,10 +1733,10 @@ function App() {
       setWmsWidth(1);
       setWmsHeight(1);
       loadWmsLocations();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Saving WMS location failed.",
+        text: (err as Error).message || "Saving WMS location failed.",
       });
     } finally {
       setLoading(false);
@@ -1739,10 +1758,10 @@ function App() {
         text: `Warehouse location ${id} deleted.`,
       });
       loadWmsLocations();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Deleting WMS location failed.",
+        text: (err as Error).message || "Deleting WMS location failed.",
       });
     } finally {
       setLoading(false);
@@ -1763,10 +1782,10 @@ function App() {
         type: "success",
         text: "Putaway recommendation generated!",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to suggest putaway.",
+        text: (err as Error).message || "Failed to suggest putaway.",
       });
     } finally {
       setLoading(false);
@@ -1789,10 +1808,10 @@ function App() {
         type: "success",
         text: "Pick path optimization completed.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Pick path optimization failed.",
+        text: (err as Error).message || "Pick path optimization failed.",
       });
     } finally {
       setLoading(false);
@@ -1810,10 +1829,10 @@ function App() {
       });
       setWebhookUrl("");
       loadWebhooks();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to subscribe webhook.",
+        text: (err as Error).message || "Failed to subscribe webhook.",
       });
     } finally {
       setLoading(false);
@@ -1835,10 +1854,10 @@ function App() {
         text: `Webhook subscription ${id} deleted.`,
       });
       loadWebhooks();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to unsubscribe webhook.",
+        text: (err as Error).message || "Failed to unsubscribe webhook.",
       });
     } finally {
       setLoading(false);
@@ -1863,10 +1882,10 @@ function App() {
       setPolicySku("");
       setPolicyLoc("");
       loadReorderPolicies();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to save reorder policy.",
+        text: (err as Error).message || "Failed to save reorder policy.",
       });
     } finally {
       setLoading(false);
@@ -1882,10 +1901,10 @@ function App() {
         text: "Dynamic ROP recalculations and safety checks completed!",
       });
       loadForecastingReport();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "ROP evaluation failed.",
+        text: (err as Error).message || "ROP evaluation failed.",
       });
     } finally {
       setLoading(false);
@@ -1906,10 +1925,10 @@ function App() {
         type: "success",
         text: "FEFO pick recommendations loaded.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "FEFO calculation failed.",
+        text: (err as Error).message || "FEFO calculation failed.",
       });
     } finally {
       setLoading(false);
@@ -1923,10 +1942,10 @@ function App() {
       const data = await client.traceRecall(tenantId, recallLotNum);
       setRecallResult(data);
       setMessage({ type: "success", text: "Recall trace report compiled." });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Recall tracing failed.",
+        text: (err as Error).message || "Recall tracing failed.",
       });
     } finally {
       setLoading(false);
@@ -1951,10 +1970,10 @@ function App() {
       });
       setNewUserEmail("");
       loadAdminData("users");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to invite user.",
+        text: (err as Error).message || "Failed to invite user.",
       });
     } finally {
       setLoading(false);
@@ -1971,10 +1990,10 @@ function App() {
         text: `Successfully updated user role to ${uRole}.`,
       });
       loadAdminData("users");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to update user role.",
+        text: (err as Error).message || "Failed to update user role.",
       });
     } finally {
       setLoading(false);
@@ -1991,10 +2010,10 @@ function App() {
         : "Audit triggered/completed successfully.";
       setMessage({ type: "success", text });
       loadAdminData("audits");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to trigger audit.",
+        text: (err as Error).message || "Failed to trigger audit.",
       });
     } finally {
       setLoading(false);
@@ -2017,10 +2036,10 @@ function App() {
         return next;
       });
       loadAdminData("audits");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to resolve discrepancy.",
+        text: (err as Error).message || "Failed to resolve discrepancy.",
       });
     } finally {
       setLoading(false);
@@ -2037,10 +2056,10 @@ function App() {
         text: "Outbox event requeued for delivery.",
       });
       loadAdminData("outbox");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to retry outbox event.",
+        text: (err as Error).message || "Failed to retry outbox event.",
       });
     } finally {
       setLoading(false);
@@ -2061,10 +2080,10 @@ function App() {
         text: "Tenant accounting configuration updated.",
       });
       loadAdminData("tenantConfig");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to save tenant config.",
+        text: (err as Error).message || "Failed to save tenant config.",
       });
     } finally {
       setLoading(false);
@@ -2095,10 +2114,10 @@ function App() {
       });
       setKitSku("");
       setKitRef("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to assemble kit.",
+        text: (err as Error).message || "Failed to assemble kit.",
       });
     } finally {
       setLoading(false);
@@ -2129,10 +2148,10 @@ function App() {
       });
       setKitSku("");
       setKitRef("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to disassemble kit.",
+        text: (err as Error).message || "Failed to disassemble kit.",
       });
     } finally {
       setLoading(false);
@@ -2155,10 +2174,10 @@ function App() {
         return next;
       });
       loadAdminData("quarantine");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to resolve quarantine.",
+        text: (err as Error).message || "Failed to resolve quarantine.",
       });
     } finally {
       setLoading(false);
