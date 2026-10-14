@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Spinner } from "./Panels";
 
 const CVGatewayDashboard: React.FC = () => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -134,9 +135,15 @@ const CVGatewayDashboard: React.FC = () => {
             onClick={handleAnalyze}
             disabled={loading}
             aria-busy={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 disabled:bg-blue-300"
+            className="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 disabled:bg-blue-300 flex items-center justify-center gap-2"
           >
-            {loading ? "Analyzing..." : "Run CV Analysis"}
+            {loading ? (
+              <>
+                <Spinner /> Analyzing...
+              </>
+            ) : (
+              "Run CV Analysis"
+            )}
           </button>
         </div>
       )}
@@ -176,9 +183,15 @@ const CVGatewayDashboard: React.FC = () => {
               onClick={handleApprove}
               disabled={approving}
               aria-busy={approving}
-              className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed"
+              className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {approving ? "Approving..." : "Approve Received Stock"}
+              {approving ? (
+                <>
+                  <Spinner /> Approving...
+                </>
+              ) : (
+                "Approve Received Stock"
+              )}
             </button>
           )}
         </div>
