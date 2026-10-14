@@ -19,8 +19,12 @@ import {
   TenantAccountingConfig,
   QuarantinedItem,
   ValuationItem,
+  SlottingSuggestion,
+  PurchaseOrder,
 } from "./api/client";
 import { RfidPanel, LotManagementPanel } from "./components/Panels";
+import { FinancialAccountingPanel } from "./components/FinancialAccountingPanel";
+import type { PythonRESTAdapter } from "./api/python";
 
 import {
   addScanToQueue,
@@ -42,9 +46,14 @@ import { ApprovalInboxPanel } from "./components/ApprovalInboxPanel";
 import { ApprovalWorkflowPanel } from "./components/ApprovalWorkflowPanel";
 import { ReportingDashboardPanel } from "./components/ReportingDashboardPanel";
 import { OmnichannelIntegrationPanel } from "./components/OmnichannelIntegrationPanel";
+import { PythonIntegrationsPanel } from "./components/PythonIntegrationsPanel";
 import { CycleCountDashboardPanel } from "./components/CycleCountDashboardPanel";
 import { SupplierCollaborationPortal } from "./components/SupplierCollaborationPortal";
 import { NotificationInboxPanel } from "./components/NotificationInboxPanel";
+import { PythonNotificationInbox } from "./components/PythonNotificationInbox";
+import { PythonReportingPanel } from "./components/PythonReportingPanel";
+import { PythonAgingPanel } from "./components/PythonAgingPanel";
+import { PythonWorkforcePanel } from "./components/PythonWorkforcePanel";
 import { InventoryAgingPanel } from "./components/InventoryAgingPanel";
 import { IntercompanyPanel } from "./panels/IntercompanyPanel";
 import { ApiUsageDashboardPanel } from "./panels/ApiUsageDashboardPanel";
@@ -179,7 +188,7 @@ function App() {
   const [routingStrategy, setRoutingStrategy] = useState("MINIMIZE_COST");
   const [routingPlan, setRoutingPlan] = useState<any | null>(null);
 
-  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [newPoSupplier, setNewPoSupplier] = useState("");
   const [newPoLines, setNewPoLines] = useState<
     { sku: string; quantity: number; unitCostCents: number }[]
@@ -259,9 +268,12 @@ function App() {
 
   // --- Slotting Optimizer States ---
 
-  const [slottingSuggestions, setSlottingSuggestions] = useState<any[]>([]);
+  const [slottingSuggestions, setSlottingSuggestions] = useState<
+    SlottingSuggestion[]
+  >([]);
   const [loadingSlotting, setLoadingSlotting] = useState(false);
-  const [hoveredSuggestion, setHoveredSuggestion] = useState<any | null>(null);
+  const [hoveredSuggestion, setHoveredSuggestion] =
+    useState<SlottingSuggestion | null>(null);
 
   // ⚡ Bolt: Memoize variantMap and itemsByLocation to prevent expensive re-creations on every render (e.g. during hover interactions)
   const variantMap = useMemo(() => {
@@ -666,8 +678,11 @@ function App() {
         type: "success",
         text: "Authentication successful. Secure session started!",
       });
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Login failed." });
+    } catch (err: unknown) {
+      setMessage({
+        type: "error",
+        text: (err as Error).message || "Login failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -684,6 +699,14 @@ function App() {
   };
 
   // --- Data Loading Functions ---
+  const loadLedgerData = async () => {
+    setLoading(true);
+    setMessage(previous => previous?.type === 'error' ? null : previous);
+    try { setJournals(await client.getJournalEntries(tenantId)); }
+    catch (err: any) { setMessage({ type: 'error', text: err.message }); }
+    finally { setLoading(false); }
+  };
+
   const loadDashboardData = async () => {
     setLoading(true);
     try {
@@ -691,17 +714,19 @@ function App() {
       const [invData, prodData, connData, glData] = await Promise.all([
         client.getInventoryItems(),
         client.getProducts(),
-        client.getShopifyConnections(tenantId),
-        client.getJournalEntries(tenantId),
+        backendType !== 'python' || ['admin', 'manager'].includes(role.toLowerCase())
+          ? client.getShopifyConnections(tenantId) : Promise.resolve([]),
+        backendType !== 'python' || ['admin', 'manager', 'accountant'].includes(role.toLowerCase())
+          ? client.getJournalEntries(tenantId) : Promise.resolve([]),
       ]);
       setInventoryItems(invData || []);
       setProducts(prodData || []);
       setShopifyConns(connData || []);
       setJournals(glData || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to connect to backend server.",
+        text: (err as Error).message || "Failed to connect to backend server.",
       });
     } finally {
       setLoading(false);
@@ -713,8 +738,8 @@ function App() {
     try {
       const data = await client.getStockOnboardings(tenantId);
       setOnboardings(data || []);
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -725,10 +750,10 @@ function App() {
     try {
       const data = await client.getForecastingReport(locationId);
       setForecastingReport(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load forecasting report.",
+        text: (err as Error).message || "Failed to load forecasting report.",
       });
     } finally {
       setLoading(false);
@@ -740,10 +765,10 @@ function App() {
     try {
       const data = await client.getPurchaseOrders(tenantId);
       setPurchaseOrders(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load Purchase Orders.",
+        text: (err as Error).message || "Failed to load Purchase Orders.",
       });
     } finally {
       setLoading(false);
@@ -755,10 +780,10 @@ function App() {
     try {
       const data = await client.getWarehouseLocations(tenantId);
       setWmsLocations(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load WMS locations.",
+        text: (err as Error).message || "Failed to load WMS locations.",
       });
     } finally {
       setLoading(false);
@@ -770,7 +795,7 @@ function App() {
     try {
       const data = await client.getSlottingSuggestions(tenantId);
       setSlottingSuggestions(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[SlottingSuggestions] Failed to load:", err);
     } finally {
       setLoadingSlotting(false);
@@ -782,10 +807,10 @@ function App() {
     try {
       const data = await client.getComplianceLedger(tenantId);
       setComplianceLedger(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load Compliance Ledger.",
+        text: (err as Error).message || "Failed to load Compliance Ledger.",
       });
     } finally {
       setLoading(false);
@@ -809,10 +834,10 @@ function App() {
           text: `Compliance Ledger compromised! Failed at sequence #${result.failedSequenceNumber}.`,
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Verification execution failed.",
+        text: (err as Error).message || "Verification execution failed.",
       });
     } finally {
       setVerifyingLedger(false);
@@ -831,10 +856,10 @@ function App() {
         type: "success",
         text: `Reconstructed state as of ${res.timestamp} (${res.eventsReplayedCount} events replayed).`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "State reconstruction failed.",
+        text: (err as Error).message || "State reconstruction failed.",
       });
     } finally {
       setReconstructingState(false);
@@ -853,10 +878,10 @@ function App() {
         type: "success",
         text: `Loaded ${steps.length} audit replay steps.`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Audit replay failed.",
+        text: (err as Error).message || "Audit replay failed.",
       });
     } finally {
       setReplayingAudit(false);
@@ -867,7 +892,7 @@ function App() {
     try {
       const stats = await client.getCacheStats();
       setCacheStats(stats);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn("Failed to fetch cache stats:", err);
     }
   };
@@ -880,10 +905,10 @@ function App() {
         text: `Tier-2 Distributed Redis Cache flushed (${result.clearedKeysCount} keys cleared).`,
       });
       handleFetchCacheStats();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to flush cache.",
+        text: (err as Error).message || "Failed to flush cache.",
       });
     }
   };
@@ -895,10 +920,11 @@ function App() {
       setWebhooks(subs || []);
       const logs = await client.getWebhookDeliveries(tenantId);
       setWebhookDeliveries(logs || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load Webhook configurations.",
+        text:
+          (err as Error).message || "Failed to load Webhook configurations.",
       });
     } finally {
       setLoading(false);
@@ -910,10 +936,10 @@ function App() {
     try {
       const data = await client.getReorderPolicies(tenantId);
       setReorderPolicies(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to load Reorder Policies.",
+        text: (err as Error).message || "Failed to load Reorder Policies.",
       });
     } finally {
       setLoading(false);
@@ -951,11 +977,11 @@ function App() {
         const v = await client.getValuationReport(tenantId, undefined, method);
         setValuationItems(v);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load admin data:", err);
       setMessage({
         type: "error",
-        text: err.message || "Failed to load administrative data.",
+        text: (err as Error).message || "Failed to load administrative data.",
       });
     } finally {
       setLoading(false);
@@ -972,9 +998,9 @@ function App() {
     } else if (activeTab === "products") {
       loadDashboardData();
     } else if (activeTab === "ledger") {
-      loadDashboardData();
+      loadLedgerData();
     } else if (activeTab === "shopify") {
-      loadDashboardData();
+      if (backendType !== 'python') loadDashboardData();
     } else if (activeTab === "forecasting") {
       loadForecastingReport();
       loadReorderPolicies();
@@ -1289,8 +1315,8 @@ function App() {
       setNewProdId("");
       setNewProdName("");
       loadDashboardData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1314,8 +1340,8 @@ function App() {
       setNewVarSku("");
       setNewVarAttrs([{ name: "", value: "" }]);
       loadDashboardData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1336,8 +1362,8 @@ function App() {
       setAssignSku("");
       setAssignVal("");
       loadDashboardData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1349,8 +1375,8 @@ function App() {
       const generated = await client.generateInternalBarcode(sku, tenantId);
       setMessage({ type: "success", text: `Generated barcode: ${generated}` });
       loadDashboardData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1367,8 +1393,8 @@ function App() {
       );
       setMessage({ type: "success", text: `Draft onboarding sheet created.` });
       loadOnboardings();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1391,8 +1417,8 @@ function App() {
       });
       loadOnboardings();
       setSelectedOnboarding(null);
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1415,8 +1441,11 @@ function App() {
           text: `All ${res.successCount} buffered scans synced successfully.`,
         });
       }
-    } catch (err: any) {
-      setMessage({ type: "error", text: `Sync failed: ${err.message}` });
+    } catch (err: unknown) {
+      setMessage({
+        type: "error",
+        text: `Sync failed: ${(err as Error).message}`,
+      });
     } finally {
       setLoading(false);
     }
@@ -1476,17 +1505,17 @@ function App() {
           text: "Scan successfully routed to workflow context.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setScanHistory((prev) => [
         {
           time: new Date().toLocaleTimeString(),
           scan: scanVal,
           context: scanContext,
-          status: `Error: ${err.message}`,
+          status: `Error: ${(err as Error).message}`,
         },
         ...prev,
       ]);
-      setMessage({ type: "error", text: err.message });
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1504,8 +1533,8 @@ function App() {
         );
       }
       setTracedItem(data);
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1523,8 +1552,8 @@ function App() {
       setNewShopifyDomain("");
       setNewShopifyToken("");
       loadDashboardData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
     } finally {
       setLoading(false);
     }
@@ -1534,7 +1563,7 @@ function App() {
     e.preventDefault();
     if (
       !window.confirm(
-        "Are you sure you want to post this journal entry? This will permanently post to the General Ledger and cannot be reversed.",
+        "Post this balanced journal to the general ledger?",
       )
     ) {
       return;
@@ -1557,6 +1586,9 @@ function App() {
         { accountCode: "2000", amountCents: 0, type: "credit", memo: "" },
       ]);
       loadDashboardData();
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: (err as Error).message });
+      loadLedgerData();
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
     } finally {
@@ -1582,8 +1614,11 @@ function App() {
         type: "success",
         text: "Order routing optimization completed successfully!",
       });
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Routing failed." });
+    } catch (err: unknown) {
+      setMessage({
+        type: "error",
+        text: (err as Error).message || "Routing failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1604,10 +1639,10 @@ function App() {
       setNewPoSupplier("");
       setNewPoLines([{ sku: "", quantity: 1, unitCostCents: 1000 }]);
       loadPurchaseOrders();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to create Purchase Order.",
+        text: (err as Error).message || "Failed to create Purchase Order.",
       });
     } finally {
       setLoading(false);
@@ -1620,8 +1655,11 @@ function App() {
       await client.approvePurchaseOrder(tenantId, id);
       setMessage({ type: "success", text: `Purchase Order ${id} approved.` });
       loadPurchaseOrders();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Approval failed." });
+    } catch (err: unknown) {
+      setMessage({
+        type: "error",
+        text: (err as Error).message || "Approval failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1636,8 +1674,11 @@ function App() {
         text: `Purchase Order ${id} sent to supplier.`,
       });
       loadPurchaseOrders();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Sending PO failed." });
+    } catch (err: unknown) {
+      setMessage({
+        type: "error",
+        text: (err as Error).message || "Sending PO failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -1657,10 +1698,10 @@ function App() {
       setReceivePoLines([]);
       loadPurchaseOrders();
       loadDashboardData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Receiving PO items failed.",
+        text: (err as Error).message || "Receiving PO items failed.",
       });
     } finally {
       setLoading(false);
@@ -1692,10 +1733,10 @@ function App() {
       setWmsWidth(1);
       setWmsHeight(1);
       loadWmsLocations();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Saving WMS location failed.",
+        text: (err as Error).message || "Saving WMS location failed.",
       });
     } finally {
       setLoading(false);
@@ -1717,10 +1758,10 @@ function App() {
         text: `Warehouse location ${id} deleted.`,
       });
       loadWmsLocations();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Deleting WMS location failed.",
+        text: (err as Error).message || "Deleting WMS location failed.",
       });
     } finally {
       setLoading(false);
@@ -1741,10 +1782,10 @@ function App() {
         type: "success",
         text: "Putaway recommendation generated!",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to suggest putaway.",
+        text: (err as Error).message || "Failed to suggest putaway.",
       });
     } finally {
       setLoading(false);
@@ -1767,10 +1808,10 @@ function App() {
         type: "success",
         text: "Pick path optimization completed.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Pick path optimization failed.",
+        text: (err as Error).message || "Pick path optimization failed.",
       });
     } finally {
       setLoading(false);
@@ -1788,10 +1829,10 @@ function App() {
       });
       setWebhookUrl("");
       loadWebhooks();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to subscribe webhook.",
+        text: (err as Error).message || "Failed to subscribe webhook.",
       });
     } finally {
       setLoading(false);
@@ -1813,10 +1854,10 @@ function App() {
         text: `Webhook subscription ${id} deleted.`,
       });
       loadWebhooks();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to unsubscribe webhook.",
+        text: (err as Error).message || "Failed to unsubscribe webhook.",
       });
     } finally {
       setLoading(false);
@@ -1841,10 +1882,10 @@ function App() {
       setPolicySku("");
       setPolicyLoc("");
       loadReorderPolicies();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to save reorder policy.",
+        text: (err as Error).message || "Failed to save reorder policy.",
       });
     } finally {
       setLoading(false);
@@ -1860,10 +1901,10 @@ function App() {
         text: "Dynamic ROP recalculations and safety checks completed!",
       });
       loadForecastingReport();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "ROP evaluation failed.",
+        text: (err as Error).message || "ROP evaluation failed.",
       });
     } finally {
       setLoading(false);
@@ -1884,10 +1925,10 @@ function App() {
         type: "success",
         text: "FEFO pick recommendations loaded.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "FEFO calculation failed.",
+        text: (err as Error).message || "FEFO calculation failed.",
       });
     } finally {
       setLoading(false);
@@ -1901,10 +1942,10 @@ function App() {
       const data = await client.traceRecall(tenantId, recallLotNum);
       setRecallResult(data);
       setMessage({ type: "success", text: "Recall trace report compiled." });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Recall tracing failed.",
+        text: (err as Error).message || "Recall tracing failed.",
       });
     } finally {
       setLoading(false);
@@ -1929,10 +1970,10 @@ function App() {
       });
       setNewUserEmail("");
       loadAdminData("users");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to invite user.",
+        text: (err as Error).message || "Failed to invite user.",
       });
     } finally {
       setLoading(false);
@@ -1949,10 +1990,10 @@ function App() {
         text: `Successfully updated user role to ${uRole}.`,
       });
       loadAdminData("users");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to update user role.",
+        text: (err as Error).message || "Failed to update user role.",
       });
     } finally {
       setLoading(false);
@@ -1969,10 +2010,10 @@ function App() {
         : "Audit triggered/completed successfully.";
       setMessage({ type: "success", text });
       loadAdminData("audits");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to trigger audit.",
+        text: (err as Error).message || "Failed to trigger audit.",
       });
     } finally {
       setLoading(false);
@@ -1995,10 +2036,10 @@ function App() {
         return next;
       });
       loadAdminData("audits");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to resolve discrepancy.",
+        text: (err as Error).message || "Failed to resolve discrepancy.",
       });
     } finally {
       setLoading(false);
@@ -2012,13 +2053,13 @@ function App() {
       await client.retryOutboxEvent(id);
       setMessage({
         type: "success",
-        text: "Outbox event retried successfully.",
+        text: "Outbox event requeued for delivery.",
       });
       loadAdminData("outbox");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to retry outbox event.",
+        text: (err as Error).message || "Failed to retry outbox event.",
       });
     } finally {
       setLoading(false);
@@ -2039,10 +2080,10 @@ function App() {
         text: "Tenant accounting configuration updated.",
       });
       loadAdminData("tenantConfig");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to save tenant config.",
+        text: (err as Error).message || "Failed to save tenant config.",
       });
     } finally {
       setLoading(false);
@@ -2073,10 +2114,10 @@ function App() {
       });
       setKitSku("");
       setKitRef("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to assemble kit.",
+        text: (err as Error).message || "Failed to assemble kit.",
       });
     } finally {
       setLoading(false);
@@ -2107,10 +2148,10 @@ function App() {
       });
       setKitSku("");
       setKitRef("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to disassemble kit.",
+        text: (err as Error).message || "Failed to disassemble kit.",
       });
     } finally {
       setLoading(false);
@@ -2133,10 +2174,10 @@ function App() {
         return next;
       });
       loadAdminData("quarantine");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to resolve quarantine.",
+        text: (err as Error).message || "Failed to resolve quarantine.",
       });
     } finally {
       setLoading(false);
@@ -2277,7 +2318,7 @@ function App() {
             >
               📊 Operational Depth
             </div>
-            {role === "admin" && (
+            {(role === "admin" || (backendType === 'python' && role === 'manager')) && (
               <div
                 className={`nav-link ${activeTab === "shopify" ? "active" : ""}`}
                 onClick={() => setActiveTab("shopify")}
@@ -2311,7 +2352,7 @@ function App() {
                 📥 Stock Onboarding
               </div>
             )}
-            {(role === "admin" || role === "accountant") && (
+            {(role === "admin" || role === "accountant" || (backendType === 'python' && role === 'manager')) && (
               <div
                 className={`nav-link ${activeTab === "ledger" ? "active" : ""}`}
                 onClick={() => setActiveTab("ledger")}
@@ -2619,7 +2660,7 @@ function App() {
               </div>
               <div className="stat-card accent">
                 <span className="stat-title">Double-Entry Ledger</span>
-                <span className="stat-value">{journals.length}</span>
+                <span className="stat-value">{backendType === 'python' && !['admin', 'manager', 'accountant'].includes(role.toLowerCase()) ? 'Restricted' : journals.length}</span>
                 <span className="stat-desc">Recorded Journal Entries</span>
               </div>
             </div>
@@ -2707,19 +2748,20 @@ function App() {
 
         {activeTab === "op-depth" && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
+            {backendType === 'python' && <div className="xl:col-span-2"><PythonWorkforcePanel client={client as PythonRESTAdapter} tenantId={tenantId} role={role} sessionKey={token} /></div>}
             <CycleCountDashboardPanel tenantId={tenantId} />
             <SupplierCollaborationPortal tenantId={tenantId} />
             <div className="xl:col-span-2 mt-6">
-              <InventoryAgingPanel tenantId={tenantId} />
+              {backendType === 'python' ? <PythonAgingPanel client={client as PythonRESTAdapter} tenantId={tenantId} sessionKey={token} /> : <InventoryAgingPanel tenantId={tenantId} />}
             </div>
             <div className="xl:col-span-2 mt-6">
-              <NotificationInboxPanel tenantId={tenantId} />
+              {backendType === 'python' ? <PythonNotificationInbox client={client as PythonRESTAdapter} tenantId={tenantId} sessionKey={token} onOpenReports={() => setActiveTab('reporting' as any)} /> : <NotificationInboxPanel tenantId={tenantId} />}
             </div>
           </div>
         )}
 
         {activeTab === "shopify" && (
-          <OmnichannelIntegrationPanel tenantId={tenantId} />
+          backendType === 'python' ? <PythonIntegrationsPanel client={client as PythonRESTAdapter} tenantId={tenantId} /> : <OmnichannelIntegrationPanel tenantId={tenantId} />
         )}
 
         {activeTab === "products" && (
@@ -3415,6 +3457,8 @@ function App() {
 
         {activeTab === "ledger" && (
           <div className="grid-cols-2">
+            {backendType === 'python' && ['admin', 'manager', 'accountant'].includes(role.toLowerCase()) &&
+              <FinancialAccountingPanel client={client as PythonRESTAdapter} tenantId={tenantId} onPosted={loadLedgerData} />}
             <div className="glass-panel">
               <h3 className="form-section-title">
                 Record General Ledger Journal
@@ -3560,9 +3604,7 @@ function App() {
                       journals.map((entry) => (
                         <tr key={entry.id}>
                           <td>
-                            {new Date(
-                              entry.date || new Date(),
-                            ).toLocaleDateString()}
+                            {entry.date ? /^\d{4}-\d{2}-\d{2}$/.test(entry.date) ? entry.date : new Date(entry.date).toLocaleDateString() : "Unknown"}
                           </td>
                           <td>
                             <strong>{entry.description}</strong>
@@ -6233,8 +6275,7 @@ function App() {
                                 color: "var(--text-muted)",
                               }}
                             >
-                              No dead-lettered events recorded. Event stream is
-                              healthy!
+                              No dead-lettered events recorded.
                             </td>
                           </tr>
                         ) : (
@@ -6257,7 +6298,7 @@ function App() {
                                 {e.error || "Message retry execution failure."}
                               </td>
                               <td>
-                                {new Date(e.occurredAt).toLocaleTimeString()}
+                                {e.occurredAt ? new Date(e.occurredAt).toLocaleTimeString() : "Unknown"}
                               </td>
                               <td>
                                 <button
@@ -6884,7 +6925,7 @@ function App() {
         )}
         {(activeTab as string) === "esg" && <EsgEmissionsPanel api={client} />}
         {(activeTab as string) === "reporting" && (
-          <ReportingDashboardPanel client={client} tenantId={tenantId} />
+          backendType === 'python' ? <PythonReportingPanel client={client as PythonRESTAdapter} tenantId={tenantId} role={role} sessionKey={token} /> : <ReportingDashboardPanel client={client} tenantId={tenantId} />
         )}
         {(activeTab as string) === "intercompany" && (
           <IntercompanyPanel tenantId={tenantId} />

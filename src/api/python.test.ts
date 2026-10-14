@@ -3,6 +3,264 @@ import { PythonRESTAdapter } from './python';
 
 afterEach(() => vi.unstubAllGlobals());
 
+it('preserves workforce versions and encodes operator/shift identity', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+  vi.stubGlobal('fetch', fetchMock);
+  const adapter = new PythonRESTAdapter();
+  const body = { tenantId: 'store', expectedVersion: 2, mutationId: 'once', reason: 'Assign operator' };
+  await adapter.workforceCommand('profiles', body, 'worker/id');
+  expect(fetchMock.mock.calls[0][0]).toMatch(/workforce\/profiles\/worker%2Fid$/);
+  expect(fetchMock.mock.calls[0][1].method).toBe('PUT');
+  expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(body);
+  await adapter.getWorkforceSources('store/id', 'shift/id');
+  expect(fetchMock.mock.calls[1][0]).toContain('shift%2Fid/sources?tenantId=store%2Fid');
+});
+
+describe('Python reporting transport', () => {
+  it('unwraps persisted definitions and sends authenticated recipient-free inbox requests', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ reports: [{ id: 'real-report' }] }) })
+      .mockResolvedValue({ ok: true, json: async () => [] });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    expect(await adapter.getReportDefinitions('store')).toEqual([{ id: 'real-report' }]);
+    await adapter.getOwnNotifications('store/id');
+    expect(fetchMock.mock.calls[1][0]).toContain('tenantId=store%2Fid');
+    expect(fetchMock.mock.calls[1][0]).not.toContain('user-123');
+    expect(fetchMock.mock.calls[1][0]).not.toContain('userId=');
+  });
+  it('preserves versioned report commands and refuses failed downloads', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({}) }).mockResolvedValue({ ok: false, status: 403 });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    const data = { tenantId: 'store', mutationId: 'retry', expectedVersion: 2, reason: 'Source corrected' };
+    await adapter.reportCommand('/reports/executions/job/retry', data);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(data);
+    await expect(adapter.downloadReportExecution('job/id')).rejects.toThrow('HTTP 403');
+    expect(fetchMock.mock.calls[1][0]).toMatch(/job%2Fid\/content$/);
+  });
+});
+
+describe('Python integration transport', () => {
+  it('lists only persisted Shopify connections and never synthesizes mock stores', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'store', provider: 'SHOPIFY', origin: 'actual.myshopify.com', active: true }, { id: 'sink', provider: 'EVENT_SINK' }] });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    expect(await adapter.getShopifyConnections('tenant')).toEqual([]);
+    expect(await adapter.getShopifyConnections('tenant')).toEqual([{ id: 'store', tenantId: 'tenant', platform: 'shopify', storeDomain: 'actual.myshopify.com', isActive: true }]);
+  });
+
+  it('preserves tenant, mutation and version fields and encodes connection/order paths', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    const command = { tenantId: 'tenant', expectedVersion: 3, mutationId: 'retry', reason: 'Reviewed recovery' };
+    await adapter.retryIntegrationDelivery('job/id', command);
+    expect(fetchMock.mock.calls[0][0]).toMatch(/job%2Fid\/retry$/);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(command);
+    await adapter.completeIntegrationOrder('order/id', 'cancel', command);
+    expect(fetchMock.mock.calls[1][0]).toMatch(/order%2Fid\/cancel$/);
+  });
+});
+
+describe('Python financial accounting transport', () => {
+  it('posts the actual balanced journal and replays the same command after a lost response', async () => {
+    const fetchMock = vi.fn().mockRejectedValueOnce(new Error('Response lost'))
+      .mockResolvedValue({ ok: true, json: async () => ({ id: 'journal', method: 'accrual', lines: [] }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const lines = [{ accountCode: '1000', amountCents: 101, type: 'debit' as const, memo: 'Cash' },
+      { accountCode: '3000', amountCents: 101, type: 'credit' as const, memo: 'Opening equity' }];
+    await expect(new PythonRESTAdapter().createJournalEntry('store', 'Actual opening', 'accrual', lines)).rejects.toThrow('Response lost');
+    await new PythonRESTAdapter().createJournalEntry('store', 'Actual opening', 'accrual', lines);
+    expect(fetchMock.mock.calls[0][0]).toMatch(/\/accounting\/journals$/);
+    const payload = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(payload.lines).toEqual(lines);
+    expect(payload.description).toBe('Actual opening');
+    expect(payload.quantity).toBeUndefined();
+    expect(payload.sku).toBeUndefined();
+    expect(fetchMock.mock.calls[1][1].body).toBe(fetchMock.mock.calls[0][1].body);
+  });
+
+  it('keeps document amounts, source links, settlement versions and tenant selectors', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'document' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    const doc = { tenantId: 'store', kind: 'SALE' as const, date: '2026-10-12', reference: 'sale', counterparty: 'Customer',
+      amountCents: 350, sourceIds: ['movement'], mutationId: 'doc-once', reason: 'Actual sale amount' };
+    await adapter.createFinancialDocument(doc);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(doc);
+    const payment = { tenantId: 'store', expectedVersion: 1, amountCents: 150, date: '2026-10-12', reference: 'bank-receipt', mutationId: 'pay-once', reason: 'Actual payment' };
+    await adapter.settleFinancialDocument('doc/id', payment);
+    expect(fetchMock.mock.calls[1][0]).toMatch(/doc%2Fid\/settle$/);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual(payment);
+    await adapter.getFinancialStatus('store/id');
+    expect(fetchMock.mock.calls[2][0]).toMatch(/tenantId=store%2Fid$/);
+  });
+
+  it('paginates real journal rows and surfaces accounting read failures', async () => {
+    const entries = Array.from({ length: 1000 }, (_, index) => ({ id: String(index), lines: [] }));
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => entries })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'last', lines: [] }] })
+      .mockResolvedValue({ ok: false, status: 403, text: async () => JSON.stringify({ detail: 'Finance permission required' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await new PythonRESTAdapter().getJournalEntries('store')).toHaveLength(1001);
+    expect(fetchMock.mock.calls[1][0]).toMatch(/offset=1000$/);
+    await expect(new PythonRESTAdapter().getFinancialTrialBalance('store')).rejects.toThrow('Finance permission required');
+  });
+});
+
+describe('Python serial and kit transport', () => {
+  it('preserves serial identity, lifecycle version and command IDs', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'serial', status: 'in_stock', version: 1 }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    await adapter.traceSerialHistory('SN:1');
+    expect(fetchMock.mock.calls[0][0]).toMatch(/SN%3A1$/);
+    const payload = { expectedVersion: 1, mutationId: 'sale-once', reason: 'Sale', referenceId: 'sale-1' };
+    await adapter.changeSerial('SN:1', 'sell', payload);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual(payload);
+    await adapter.defineKit({ sku: 'KIT', name: 'Bundle', components: [{ sku: 'PART', quantity: 2 }], expectedVersion: 0, mutationId: 'formula', reason: 'New bundle' });
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body).components).toEqual([{ sku: 'PART', quantity: 2 }]);
+  });
+
+  it('captures kit and source versions and replays an uncertain assembly with the same command', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ version: 3, components: [{ sku: 'PART', quantity: 2 }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ sku: 'PART', locationId: 'shop', version: 7 }] })
+      .mockRejectedValueOnce(new Error('Network lost'))
+      .mockResolvedValue({ ok: true, json: async () => ({ quantity: 1 }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(new PythonRESTAdapter().assembleKit('store', 'shop', 'KIT', 1, 'ignored-client-actor', 'assembly-once')).rejects.toThrow('Network lost');
+    await new PythonRESTAdapter().assembleKit('store', 'shop', 'KIT', 1, 'ignored-client-actor', 'assembly-once');
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const payload = JSON.parse(fetchMock.mock.calls[2][1].body);
+    expect(payload.expectedVersion).toBe(3);
+    expect(payload.tenantId).toBe('store');
+    expect(payload.stockVersions).toEqual({ PART: 7, KIT: 0 });
+    expect(payload.actorId).toBeUndefined();
+    expect(fetchMock.mock.calls[3][1].body).toBe(fetchMock.mock.calls[2][1].body);
+    await expect(new PythonRESTAdapter().assembleKit('store', 'shop', 'KIT', 2, 'actor', 'assembly-once')).rejects.toThrow('another quantity');
+  });
+});
+
+describe('Python event delivery transport', () => {
+  it('loads actual delivery counters and exposes denied access instead of empty results', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ pending: 3, published: 7, failed: 2 }) })
+      .mockResolvedValue({ ok: false, status: 403, text: async () => JSON.stringify({ detail: 'Access denied' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    expect(await adapter.getOutboxStats()).toEqual({ pendingCount: 3, publishedCount: 7, failedCount: 2 });
+    await expect(adapter.getOutboxStats()).rejects.toThrow('Access denied');
+    await expect(adapter.getDeadLetterEvents()).rejects.toThrow('Access denied');
+  });
+
+  it('replays the same retry after an uncertain response without requiring the event to remain dead-lettered', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'DEAD_LETTER', version: 4 }) })
+      .mockRejectedValueOnce(new Error('Network lost'))
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'PENDING' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(new PythonRESTAdapter().retryOutboxEvent('lost/once')).rejects.toThrow('Network lost');
+    await new PythonRESTAdapter().retryOutboxEvent('lost/once');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1][0]).toMatch(/lost%2Fonce\/retry$/);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).expectedVersion).toBe(4);
+    expect(fetchMock.mock.calls[2][1].body).toEqual(fetchMock.mock.calls[1][1].body);
+  });
+
+  it('refreshes a version after a definite conflict and retains actual dead-letter metadata', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'DEAD_LETTER', version: 1 }) })
+      .mockResolvedValueOnce({ ok: false, status: 409, text: async () => JSON.stringify({ detail: 'Stale retry' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'DEAD_LETTER', version: 2 }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'PENDING' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'dead', eventType: 'StockChanged', payload: { tenantId: 'store' },
+        status: 'DEAD_LETTER', error: 'PublishTimeout', version: 5, attempts: 2, sequence: 1, createdAt: '2026-10-12T00:00:00Z' }] });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    await expect(adapter.retryOutboxEvent('changed')).rejects.toThrow('Stale retry');
+    await adapter.retryOutboxEvent('changed');
+    expect(JSON.parse(fetchMock.mock.calls[3][1].body).expectedVersion).toBe(2);
+    expect(await adapter.getDeadLetterEvents()).toEqual([{ id: 'dead', eventType: 'StockChanged', payload: '{"tenantId":"store"}',
+      status: 'DEAD_LETTER', error: 'PublishTimeout', version: 5, attempts: 2, sequence: 1, occurredAt: '2026-10-12T00:00:00Z' }]);
+  });
+});
+
+describe('Python transfers and units transport', () => {
+  it('keeps exact quantities, configuration versions and invoice prices at the boundary', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ version: 1 }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    const configuration = { sku: 'CASE', baseUnit: 'ea', category: 'discrete' as const,
+      purchaseUnit: 'case', rules: [{ unit: 'case', factorToBase: '24' }], expectedVersion: 0, mutationId: 'configure' };
+    await adapter.configureUom(configuration);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(configuration);
+    const receipt = { sku: 'CASE', quantity: '0.5', unit: 'case', uomVersion: 1, unitCostCents: 1001, mutationId: 'receipt' };
+    await adapter.mutateStockInUnit('receive', receipt);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual(receipt);
+    await adapter.convertUom('CASE/ONE', 12, 'ea', 'case');
+    expect(fetchMock.mock.calls[2][0]).toMatch(/CASE%2FONE\/convert$/);
+  });
+
+  it('replays transfer commands with the same mutation and source versions after a lost response', async () => {
+    const fetchMock = vi.fn().mockRejectedValueOnce(new Error('Network lost'))
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'DISPATCHED' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const data = { expectedVersion: 0, sourceVersions: { CASE: 3 }, reason: 'Truck collected', mutationId: 'dispatch-once' };
+    const adapter = new PythonRESTAdapter();
+    await expect(adapter.reviewStockTransfer('transfer/one', 'dispatch', data)).rejects.toThrow('Network lost');
+    await adapter.reviewStockTransfer('transfer/one', 'dispatch', data);
+    expect(fetchMock.mock.calls[0][0]).toMatch(/transfer%2Fone\/dispatch$/);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(data);
+    expect(fetchMock.mock.calls[1][1].body).toEqual(fetchMock.mock.calls[0][1].body);
+  });
+});
+
+describe('Python returns transport', () => {
+  it('refreshes the quarantine version after a definite stale-decision rejection', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'changed', version: 0 }] })
+      .mockResolvedValueOnce({ ok: false, status: 409, text: async () => JSON.stringify({ detail: 'Stale decision' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'changed', version: 1 }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'RESTOCKED' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    await expect(adapter.resolveQuarantine('store-a', 'changed', 'RESTOCK')).rejects.toThrow('Stale decision');
+    await adapter.resolveQuarantine('store-a', 'changed', 'RESTOCK');
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).expectedVersion).toBe(0);
+    expect(JSON.parse(fetchMock.mock.calls[3][1].body).expectedVersion).toBe(1);
+  });
+  it('loads persisted quarantine data and exposes authorization failures', async () => {
+    const rows = [{ id: 'held', version: 2, quantity: 1, status: 'QUARANTINED' }];
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => rows })
+      .mockResolvedValue({ ok: false, status: 403, text: async () => JSON.stringify({ detail: 'Access denied' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    expect(await adapter.getQuarantinedItems('store-a')).toEqual(rows);
+    await expect(adapter.getQuarantinedItems('store-a')).rejects.toThrow('Access denied');
+  });
+
+  it('replays a quarantine decision after an uncertain response without needing a still-pending row', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true,
+      json: async () => [{ id: 'held-retry', version: 2 }] }).mockRejectedValueOnce(new Error('Network lost'))
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'RESTOCKED' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(new PythonRESTAdapter().resolveQuarantine('store-a', 'held-retry', 'RESTOCK')).rejects.toThrow('Network lost');
+    await new PythonRESTAdapter().resolveQuarantine('store-a', 'held-retry', 'RESTOCK');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const first = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(first.expectedVersion).toBe(2);
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual(first);
+  });
+
+  it('sends explicit return versions, receipt IDs and write-off references', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'return' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new PythonRESTAdapter();
+    await adapter.receiveReturn('return', 1, 'arrival', [{ layerId: 'source-layer', quantity: 1 }]);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ expectedVersion: 1, receiptId: 'arrival',
+      items: [{ layerId: 'source-layer', quantity: 1 }] });
+    await adapter.writeOffStock({ sku: 'A', quantity: 1, expectedVersion: 3, reasonCode: 'DAMAGE', reason: 'Broken', mutationId: 'loss' });
+    expect(fetchMock.mock.calls[1][0]).toMatch(/\/returns\/write-offs$/);
+  });
+});
+
 describe('Python procurement transport', () => {
   it('reuses a PO creation mutation ID after an uncertain response', async () => {
     const supplier = { ok: true, json: async () => [{ id: 'vendor-retry', name: 'Retry vendor', isActive: true }] };

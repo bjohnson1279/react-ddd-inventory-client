@@ -19,6 +19,7 @@ import {
   WebhookDeliveryLog,
   WarehouseLocation,
   PutawaySuggestion,
+  SlottingSuggestion,
   PurchaseOrder,
   PurchaseOrderItem,
   User,
@@ -597,7 +598,11 @@ export class GraphQLAdapter implements InventoryClient {
     url: string,
     eventTypes: string[],
   ): Promise<void> {
-    const secret = crypto.randomUUID();
+    const array = new Uint8Array(32);
+    window.crypto.getRandomValues(array);
+    const secret = Array.from(array, (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
     await this.fetchGraphql(
       `mutation CreateSub($url: String!, $secret: String!, $events: [String!]!) {
       createWebhookSubscription(targetUrl: $url, secret: $secret, eventTypes: $events) { id }
@@ -1176,7 +1181,9 @@ export class GraphQLAdapter implements InventoryClient {
     });
   }
 
-  async getSlottingSuggestions(tenantId: string): Promise<any[]> {
+  async getSlottingSuggestions(
+    tenantId: string,
+  ): Promise<SlottingSuggestion[]> {
     const query = `
       query GetSlottingSuggestions {
         slottingSuggestions {
