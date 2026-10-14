@@ -516,6 +516,53 @@ describe("Inventory Backend API Adapters", () => {
       unsubscribe();
     });
 
+    it("should handle JSON parse error in subscribeRfidScans when SSE message is malformed", async () => {
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      const mockReader = {
+        read: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              "data: " +
+                JSON.stringify({
+                  type: "rfid_scan_processed",
+                  message: "{invalid-json-payload",
+                }) +
+                "\n\n",
+            ),
+          })
+          .mockResolvedValueOnce({ done: true }),
+      };
+
+      const mockFetchSse = vi.fn().mockResolvedValue({
+        body: { getReader: () => mockReader },
+      });
+      global.fetch = mockFetchSse as any;
+
+      const adapter = new LaravelRESTAdapter();
+      const onScanProcessed = vi.fn();
+      const unsubscribe = adapter.subscribeRfidScans(
+        "tenant-1",
+        onScanProcessed,
+      );
+
+      // wait for stream to process
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Laravel SSE Rfid Parse Error:",
+        expect.any(SyntaxError),
+      );
+      expect(onScanProcessed).not.toHaveBeenCalled();
+
+      unsubscribe();
+      consoleSpy.mockRestore();
+    });
+
     describe("login method", () => {
       it("should throw when password parameter is missing", async () => {
         const adapter = new LaravelRESTAdapter();
