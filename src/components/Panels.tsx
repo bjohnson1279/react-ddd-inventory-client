@@ -133,7 +133,9 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
                       <code>{item.locationId}</code>
                     </td>
                     <td>
-                      <strong>{item.quantity} {item.baseUnit ?? 'units'}</strong>
+                      <strong>
+                        {item.quantity} {item.baseUnit ?? "units"}
+                      </strong>
                     </td>
                     <td>
                       <code>v{item.version}</code>
@@ -3330,7 +3332,7 @@ export const LotManagementPanel = () => {
       if (action === "trace") {
         const activeToken = localStorage.getItem("auth_token") || "";
         const res = await fetch(
-          `/api/lots/${encodeURIComponent(lotNumber)}/traceability?variantId=${variantId}`,
+          `/api/lots/${encodeURIComponent(lotNumber)}/traceability?variantId=${encodeURIComponent(variantId)}`,
           {
             headers: activeToken
               ? { Authorization: `Bearer ${activeToken}` }

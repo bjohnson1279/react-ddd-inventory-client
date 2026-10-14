@@ -624,7 +624,7 @@ export class ExpressRESTAdapter implements InventoryClient {
       // ⚡ Bolt: Replaced N+1 parallel requests with a single bulk fetch to eliminate network overhead.
       const response = await this.request(
         "GET",
-        `/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&ids=${ids.join(",")}`,
+        `/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&ids=${encodeURIComponent(ids.join(","))}`,
       );
 
       const bulkData = response?.data || response || [];
