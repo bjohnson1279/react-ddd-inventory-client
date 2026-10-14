@@ -17,9 +17,9 @@ import {
   WebhookDeliveryLog,
   WarehouseLocation,
   PutawaySuggestion,
+  SlottingSuggestion,
   PurchaseOrder,
   PurchaseOrderItem,
-  BarcodeAssignment,
   User,
   AuditDiscrepancy,
   OutboxStats,
@@ -27,7 +27,6 @@ import {
   TenantAccountingConfig,
   QuarantinedItem,
   ValuationItem,
-  RfidScanUpdate,
 } from "./client";
 
 const PYTHON_BASE_URL =
@@ -71,7 +70,11 @@ export class PythonRESTAdapter implements InventoryClient {
         } catch {
           parsedError = { error: errorText };
         }
-        throw new Error(parsedError.error || parsedError.detail || `HTTP ${response.status} Error`);
+        throw new Error(
+          parsedError.error ||
+            parsedError.detail ||
+            `HTTP ${response.status} Error`,
+        );
       }
       return await response.json();
     } catch (err: any) {
@@ -166,25 +169,119 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
-    // In Python, shopify connections are stored in databases, but the API may not expose a list connection route.
-    // Fall back to returning a default list.
-    return [
-      {
-        id: "conn-1",
-        tenantId,
-        platform: "shopify",
-        storeDomain: "mock-store.myshopify.com",
-        isActive: true,
-      },
-    ];
+    const connections = await this.getConnections(tenantId);
+    return connections.filter((row: any) => row.provider === 'SHOPIFY').map((row: any) => ({
+      id: row.id, tenantId, platform: 'shopify', storeDomain: row.origin, isActive: row.active,
+    }));
+  }
+
+  async createIntegrationConnection(data: Record<string, unknown>): Promise<any> {
+    return this.request('POST', '/integrations/connections', data);
+  }
+
+  async setIntegrationConnectionActive(id: string, data: Record<string, unknown>): Promise<any> {
+    return this.request('POST', `/integrations/connections/${encodeURIComponent(id)}/active`, data);
+  }
+
+  async getIntegrationDeliveries(tenantId: string): Promise<any[]> {
+    const rows: any[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const page = await this.request('GET', `/integrations/deliveries?tenantId=${encodeURIComponent(tenantId)}&limit=1000&offset=${offset}`);
+      rows.push(...page);
+      if (page.length < 1000) return rows;
+    }
+  }
+
+  async retryIntegrationDelivery(id: string, data: Record<string, unknown>): Promise<any> {
+    return this.request('POST', `/integrations/deliveries/${encodeURIComponent(id)}/retry`, data);
+  }
+
+  async dispatchIntegrationConnection(id: string): Promise<any> {
+    return this.request('POST', `/integrations/connections/${encodeURIComponent(id)}/dispatch`);
+  }
+
+  async getIntegrationOrders(tenantId: string): Promise<any[]> {
+    const rows: any[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const page = await this.request('GET', `/integrations/orders?tenantId=${encodeURIComponent(tenantId)}&limit=1000&offset=${offset}`);
+      rows.push(...page);
+      if (page.length < 1000) return rows;
+    }
+  }
+
+  async completeIntegrationOrder(id: string, action: 'fulfill' | 'cancel', data: Record<string, unknown>): Promise<any> {
+    return this.request('POST', `/integrations/orders/${encodeURIComponent(id)}/${action}`, data);
   }
 
   async getJournalEntries(tenantId: string): Promise<JournalEntry[]> {
-    const data = await this.request(
-      "GET",
-      `/accounting/ledger?tenantId=${encodeURIComponent(tenantId)}`,
-    );
-    return data || [];
+    const entries: JournalEntry[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const page = await this.request("GET", `/accounting/ledger?tenantId=${encodeURIComponent(tenantId)}&limit=1000&offset=${offset}`);
+      entries.push(...page);
+      if (page.length < 1000) return entries;
+    }
+  }
+
+  async getFinancialStatus(tenantId: string): Promise<any> {
+    return this.request("GET", `/accounting/financial/status?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getFinancialOpeningPreview(tenantId: string): Promise<any> {
+    return this.request("GET", `/accounting/financial/opening-preview?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async activateFinancialAccounting(data: { tenantId?: string; expectedVersion: number; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", "/accounting/financial/activate", data);
+  }
+
+  async getFinancialTrialBalance(tenantId: string, asOf?: string): Promise<any> {
+    return this.request("GET", `/accounting/trial-balance?tenantId=${encodeURIComponent(tenantId)}${asOf ? `&asOf=${encodeURIComponent(asOf)}` : ""}`);
+  }
+
+  async getFinancialReconciliation(tenantId: string): Promise<any> {
+    return this.request("GET", `/accounting/financial/reconciliation?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getFinancialSources(tenantId: string, status?: string): Promise<any[]> {
+    return this.request("GET", `/accounting/sources?tenantId=${encodeURIComponent(tenantId)}&limit=1000${status ? `&status=${encodeURIComponent(status)}` : ""}`);
+  }
+
+  async postFinancialJournal(data: { tenantId?: string; date: string; description: string; method: string; lines: JournalLine[];
+    mutationId: string; reason: string; referenceId?: string }): Promise<JournalEntry> {
+    return this.request("POST", "/accounting/journals", data);
+  }
+
+  async reverseFinancialJournal(id: string, data: { tenantId?: string; date: string; mutationId: string; reason: string }): Promise<JournalEntry> {
+    return this.request("POST", `/accounting/journals/${encodeURIComponent(id)}/reverse`, data);
+  }
+
+  async closeFinancialPeriod(data: { tenantId?: string; closedThrough: string; expectedVersion: number; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", "/accounting/financial/close-period", data);
+  }
+
+  async createFinancialDocument(data: { tenantId?: string; kind: "SALE" | "PURCHASE"; date: string; reference: string;
+    counterparty: string; supplierId?: string; amountCents: number; sourceIds: string[]; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", "/accounting/documents", data);
+  }
+
+  async settleFinancialDocument(id: string, data: { tenantId?: string; expectedVersion: number; amountCents: number;
+    date: string; reference: string; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", `/accounting/documents/${encodeURIComponent(id)}/settle`, data);
+  }
+
+  async applyFinancialCredit(id: string, data: { tenantId?: string; expectedVersion: number; sourceId: string; amountCents: number;
+    date: string; reference: string; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", `/accounting/documents/${encodeURIComponent(id)}/credit`, data);
+  }
+
+  async refundFinancialDocument(id: string, data: { tenantId?: string; expectedVersion: number; amountCents: number;
+    date: string; reference: string; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", `/accounting/documents/${encodeURIComponent(id)}/refund`, data);
+  }
+
+  async resolveFinancialSource(id: string, data: { tenantId?: string; expectedVersion: number; date: string;
+    referenceId: string; lines: JournalLine[]; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", `/accounting/sources/${encodeURIComponent(id)}/resolve`, data);
   }
 
   async getStockOnboardings(tenantId: string): Promise<StockOnboarding[]> {
@@ -264,7 +361,64 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async traceSerialHistory(serialNumber: string): Promise<SerializedItem> {
-    return this.request("GET", `/serials/trace/${serialNumber}`);
+    return this.request("GET", `/serials/trace/${encodeURIComponent(serialNumber)}`);
+  }
+
+  async registerSerial(data: { sku: string; serialNumber: string; locationId?: string; mutationId: string; reason: string; referenceId?: string }): Promise<SerializedItem> {
+    return this.request("POST", "/serials", data);
+  }
+
+  async getSerializedItems(sku?: string): Promise<SerializedItem[]> {
+    return this.request("GET", `/serials?limit=1000${sku ? `&sku=${encodeURIComponent(sku)}` : ""}`);
+  }
+
+  async changeSerial(serialNumber: string, action: "receive" | "sell" | "return" | "restock" | "quarantine" | "damage" | "write-off" | "transfer" | "reserve" | "release" | "price",
+    data: { expectedVersion: number; mutationId: string; reason: string; referenceId: string; locationId?: string; destinationId?: string; unitCostCents?: number; expirationDate?: string }): Promise<SerializedItem> {
+    return this.request("POST", `/serials/${encodeURIComponent(serialNumber)}/${action}`, data);
+  }
+
+  async getKitDefinitions(): Promise<any[]> {
+    return this.request("GET", "/kits?limit=1000");
+  }
+
+  async defineKit(data: { sku: string; name: string; components: { sku: string; quantity: number }[];
+    expectedVersion: number; mutationId: string; reason: string }): Promise<any> {
+    return this.request("POST", "/kits", data);
+  }
+
+  async mutateKit(action: "assemble" | "disassemble" | "sale", data: { tenantId?: string; kitSku: string; locationId: string; quantity: number;
+    expectedVersion: number; stockVersions: Record<string, number>; mutationId: string; reason: string; referenceId: string }): Promise<any> {
+    return this.request("POST", `/kits/${action}`, data);
+  }
+
+  private async legacyKitCommand(action: "assemble" | "disassemble", tenantId: string, locationId: string, kitSku: string, quantity: number, referenceId: string): Promise<void> {
+    const cacheKey = `python-kit:${JSON.stringify([action, tenantId, locationId, kitSku, referenceId])}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    let payload;
+    if (cached) {
+      payload = JSON.parse(cached);
+      if (payload.quantity !== quantity) throw new Error("Kit reference was already used with another quantity.");
+    } else {
+      const formula = await this.request("GET", `/kits/${encodeURIComponent(kitSku)}`);
+      const stock: any[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const page = await this.request("GET", `/inventory?tenantId=${encodeURIComponent(tenantId)}&limit=1000&offset=${offset}`);
+        stock.push(...page);
+        if (page.length < 1000) break;
+      }
+      const skus = action === "disassemble" ? [kitSku] : [...formula.components.map((c: any) => c.sku), kitSku];
+      const stockVersions = Object.fromEntries(skus.map((sku: string) => [sku, stock.find((s: any) => s.sku === sku && s.locationId === locationId)?.version ?? 0]));
+      payload = { tenantId, kitSku, locationId, quantity, expectedVersion: formula.version, stockVersions,
+        mutationId: crypto.randomUUID(), reason: `Operator requested ${action}`, referenceId };
+      sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+    }
+    try {
+      await this.mutateKit(action, payload);
+    } catch (error: any) {
+      if ([400, 401, 403, 404, 409, 422].includes(error.status)) sessionStorage.removeItem(cacheKey);
+      throw error;
+    }
+    // Keep the original versioned command for an explicit repeat of this reference.
   }
 
   async connectShopify(
@@ -313,21 +467,18 @@ export class PythonRESTAdapter implements InventoryClient {
     method: string,
     lines: JournalLine[],
   ): Promise<void> {
-    // Express records journals based on specific workflows (received/sold)
-    // Map to the appropriate REST payload
-    // ⚡ Bolt: Replace O(2N) .filter().reduce() with a single-pass O(N) loop to reduce callback overhead and array allocation
-    let totalAmount = 0;
-    for (const l of lines) {
-      if (l.type === "debit") totalAmount += l.amountCents;
+    const pendingKey = `python-journal:${JSON.stringify([PYTHON_BASE_URL, tenantId, description, method, lines])}`;
+    const cached = sessionStorage.getItem(pendingKey);
+    const payload = cached ? JSON.parse(cached) : { tenantId, description, method, lines,
+      date: new Date().toISOString().slice(0, 10), mutationId: crypto.randomUUID(), reason: "Operator posted manual journal" };
+    sessionStorage.setItem(pendingKey, JSON.stringify(payload));
+    try {
+      await this.postFinancialJournal(payload);
+    } catch (error: any) {
+      if ([400, 401, 403, 404, 409, 422].includes(error.status)) sessionStorage.removeItem(pendingKey);
+      throw error;
     }
-    const sku = lines[0]?.memo || "SKU-1";
-    await this.request("POST", "/accounting/stock-received", {
-      tenantId,
-      sku,
-      quantity: 1,
-      unitCostCents: totalAmount,
-      method: method.toLowerCase(),
-    });
+    sessionStorage.removeItem(pendingKey);
   }
 
   async createStockOnboarding(
@@ -344,9 +495,8 @@ export class PythonRESTAdapter implements InventoryClient {
     const onboardingId = data.id;
 
     // ⚡ Bolt: Chunked Promise.all execution to prevent overwhelming server while resolving N+1 sequential requests
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < items.length; i += BATCH_SIZE) {
-      const batch = items.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < items.length; i += 10) {
+      const batch = items.slice(i, i + 10);
       const promises = batch.map((item) =>
         this.request("POST", `/onboarding/${onboardingId}/items`, {
           variantId: item.variantId,
@@ -446,15 +596,22 @@ export class PythonRESTAdapter implements InventoryClient {
 
   // Reorder Policies
   async getReorderPolicies(tenantId: string): Promise<ReorderPolicy[]> {
-    return this.request("GET", `/reorder-policies?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+    return this.request(
+      "GET",
+      `/reorder-policies?tenantId=${encodeURIComponent(tenantId)}&limit=1000`,
+    );
   }
 
   async saveReorderPolicy(
     tenantId: string,
     policy: ReorderPolicy,
   ): Promise<void> {
-    await this.request("POST", "/reorder-policies", { tenantId, ...policy,
-      expectedVersion: policy.version, mutationId: crypto.randomUUID() });
+    await this.request("POST", "/reorder-policies", {
+      tenantId,
+      ...policy,
+      expectedVersion: policy.version,
+      mutationId: crypto.randomUUID(),
+    });
   }
 
   async evaluateReorderPolicies(tenantId: string): Promise<void> {
@@ -555,7 +712,10 @@ export class PythonRESTAdapter implements InventoryClient {
 
   // Procurement (PO)
   async getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
-    return this.request("GET", `/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+    return this.request(
+      "GET",
+      `/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&limit=1000`,
+    );
   }
 
   async createPurchaseOrder(
@@ -564,13 +724,25 @@ export class PythonRESTAdapter implements InventoryClient {
     items: PurchaseOrderItem[],
   ): Promise<void> {
     const suppliers = await this.getSuppliers(tenantId);
-    const matches = suppliers.filter(row => row.id === supplier || row.name.toLowerCase() === supplier.trim().toLowerCase());
-    if (matches.length > 1) throw new Error("More than one supplier matches this name; choose the intended supplier.");
-    if (matches[0] && !matches[0].isActive) throw new Error("Supplier is inactive.");
-    if (!matches.length && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(supplier)) throw new Error("Supplier not found.");
-    const supplierId = matches[0]?.id || (await this.createSupplier(tenantId, supplier.trim())).id;
+    const matches = suppliers.filter(
+      (row) =>
+        row.id === supplier ||
+        row.name.toLowerCase() === supplier.trim().toLowerCase(),
+    );
+    if (matches.length > 1)
+      throw new Error(
+        "More than one supplier matches this name; choose the intended supplier.",
+      );
+    if (matches[0] && !matches[0].isActive)
+      throw new Error("Supplier is inactive.");
+    if (!matches.length && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(supplier))
+      throw new Error("Supplier not found.");
+    const supplierId =
+      matches[0]?.id ||
+      (await this.createSupplier(tenantId, supplier.trim())).id;
     const pendingKey = `python-po-create:${JSON.stringify({ tenantId, supplierId, items })}`;
-    const mutationId = sessionStorage.getItem(pendingKey) || crypto.randomUUID();
+    const mutationId =
+      sessionStorage.getItem(pendingKey) || crypto.randomUUID();
     sessionStorage.setItem(pendingKey, mutationId);
     await this.request("POST", "/purchase-orders", {
       tenantId,
@@ -582,11 +754,19 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async approvePurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/approve`, { tenantId, mutationId: crypto.randomUUID() });
+    await this.request(
+      "POST",
+      `/purchase-orders/${encodeURIComponent(id)}/approve`,
+      { tenantId, mutationId: crypto.randomUUID() },
+    );
   }
 
   async sendPurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/send`, { tenantId, mutationId: crypto.randomUUID() });
+    await this.request(
+      "POST",
+      `/purchase-orders/${encodeURIComponent(id)}/send`,
+      { tenantId, mutationId: crypto.randomUUID() },
+    );
   }
 
   async receivePurchaseOrder(
@@ -596,30 +776,60 @@ export class PythonRESTAdapter implements InventoryClient {
     receiptId?: string,
   ): Promise<void> {
     const pendingKey = `python-po-receipt:${JSON.stringify({ tenantId, id, items })}`;
-    const stableId = receiptId || sessionStorage.getItem(pendingKey) || crypto.randomUUID();
+    const stableId =
+      receiptId || sessionStorage.getItem(pendingKey) || crypto.randomUUID();
     sessionStorage.setItem(pendingKey, stableId);
-    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/receive`, {
-      tenantId,
-      items,
-      receiptId: stableId,
-    });
+    await this.request(
+      "POST",
+      `/purchase-orders/${encodeURIComponent(id)}/receive`,
+      {
+        tenantId,
+        items,
+        receiptId: stableId,
+      },
+    );
     sessionStorage.removeItem(pendingKey);
   }
 
   async getSuppliers(tenantId: string): Promise<any[]> {
-    return this.request("GET", `/suppliers?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+    return this.request(
+      "GET",
+      `/suppliers?tenantId=${encodeURIComponent(tenantId)}&limit=1000`,
+    );
   }
 
-  async createSupplier(tenantId: string, name: string, email?: string, leadTimeDays = 0): Promise<any> {
-    return this.request("POST", "/suppliers", { tenantId, name, email, leadTimeDays, mutationId: crypto.randomUUID() });
+  async createSupplier(
+    tenantId: string,
+    name: string,
+    email?: string,
+    leadTimeDays = 0,
+  ): Promise<any> {
+    return this.request("POST", "/suppliers", {
+      tenantId,
+      name,
+      email,
+      leadTimeDays,
+      mutationId: crypto.randomUUID(),
+    });
   }
 
   async getReplenishmentSuggestions(tenantId: string): Promise<any[]> {
-    return this.request("GET", `/reorder-policies/suggestions?tenantId=${encodeURIComponent(tenantId)}`);
+    return this.request(
+      "GET",
+      `/reorder-policies/suggestions?tenantId=${encodeURIComponent(tenantId)}`,
+    );
   }
 
-  async draftSuggestedPurchaseOrder(policyId: string, version: number, mutationId: string): Promise<any> {
-    return this.request("POST", `/reorder-policies/${encodeURIComponent(policyId)}/draft`, { expectedVersion: version, mutationId });
+  async draftSuggestedPurchaseOrder(
+    policyId: string,
+    version: number,
+    mutationId: string,
+  ): Promise<any> {
+    return this.request(
+      "POST",
+      `/reorder-policies/${encodeURIComponent(policyId)}/draft`,
+      { expectedVersion: version, mutationId },
+    );
   }
 
   // FEFO & Recall
@@ -729,40 +939,35 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async getOutboxStats(): Promise<OutboxStats> {
-    try {
-      const stats = await this.request("GET", `/outbox/stats`);
-      return {
-        pendingCount: stats?.pending || 0,
-        publishedCount: stats?.published || 0,
-        failedCount: stats?.failed || 0,
-      };
-    } catch {
-      return { pendingCount: 0, publishedCount: 0, failedCount: 0 };
-    }
+    const stats = await this.request("GET", "/outbox/stats");
+    return { pendingCount: stats.pending, publishedCount: stats.published, failedCount: stats.failed };
   }
 
   async getDeadLetterEvents(limit?: number): Promise<OutboxEvent[]> {
-    try {
-      const res = await this.request(
-        "GET",
-        `/outbox/dead-letter${limit ? `?limit=${limit}` : ""}`,
-      );
-      return (res || []).map((e: any) => ({
-        id: e.id,
-        eventType: e.eventType || e.type || "UnknownEvent",
-        payload:
-          typeof e.payload === "string" ? e.payload : JSON.stringify(e.payload),
-        error: e.error || e.errorMessage || "",
-        status: e.status || "Failed",
-        occurredAt: e.occurredAt || e.createdAt || new Date().toISOString(),
-      }));
-    } catch {
-      return [];
-    }
+    const res = await this.request("GET", `/outbox/dead-letter${limit !== undefined ? `?limit=${limit}` : ""}`);
+    return res.map((event: any) => ({ id: event.id, eventType: event.eventType,
+      payload: JSON.stringify(event.payload), error: event.error, status: event.status,
+      occurredAt: event.createdAt ?? "", version: event.version, attempts: event.attempts, sequence: event.sequence }));
   }
 
   async retryOutboxEvent(id: string): Promise<void> {
-    await this.request("POST", `/outbox/${id}/retry`);
+    const pendingKey = `python-outbox-retry:${id}`;
+    const cached = sessionStorage.getItem(pendingKey);
+    let payload;
+    if (cached) payload = JSON.parse(cached);
+    else {
+      const event = await this.request("GET", `/outbox/${encodeURIComponent(id)}`);
+      if (event.status !== "DEAD_LETTER") throw new Error("Only a dead-letter event can be retried; refresh the list.");
+      payload = { expectedVersion: event.version, mutationId: crypto.randomUUID(), reason: "Operator requested redelivery" };
+      sessionStorage.setItem(pendingKey, JSON.stringify(payload));
+    }
+    try {
+      await this.request("POST", `/outbox/${encodeURIComponent(id)}/retry`, payload);
+    } catch (error: any) {
+      if ([400, 401, 403, 404, 409, 422].includes(error.status)) sessionStorage.removeItem(pendingKey);
+      throw error;
+    }
+    sessionStorage.removeItem(pendingKey);
   }
 
   async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
@@ -787,14 +992,7 @@ export class PythonRESTAdapter implements InventoryClient {
     actorId: string,
     referenceId: string,
   ): Promise<void> {
-    await this.request("POST", `/kits/assemble`, {
-      tenantId,
-      locationId,
-      kitSku,
-      quantity,
-      actorId,
-      referenceId,
-    });
+    await this.legacyKitCommand("assemble", tenantId, locationId, kitSku, quantity, referenceId);
   }
 
   async disassembleKit(
@@ -805,34 +1003,11 @@ export class PythonRESTAdapter implements InventoryClient {
     actorId: string,
     referenceId: string,
   ): Promise<void> {
-    await this.request("POST", `/kits/disassemble`, {
-      tenantId,
-      locationId,
-      kitSku,
-      quantity,
-      actorId,
-      referenceId,
-    });
+    await this.legacyKitCommand("disassemble", tenantId, locationId, kitSku, quantity, referenceId);
   }
 
   async getQuarantinedItems(tenantId: string): Promise<QuarantinedItem[]> {
-    try {
-      const res = await this.request(
-        "GET",
-        `/returns/quarantine?tenantId=${encodeURIComponent(tenantId)}`,
-      );
-      return (res || []).map((q: any) => ({
-        id: q.id,
-        sku: q.sku || q.variantId || "",
-        locationId: q.locationId || "",
-        quantity: q.quantity || 0,
-        reason: q.reason || "",
-        status: q.status || "Quarantined",
-        createdAt: q.createdAt || new Date().toISOString(),
-      }));
-    } catch {
-      return [];
-    }
+    return this.request("GET", `/returns/quarantine?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
   }
 
   async resolveQuarantine(
@@ -840,10 +1015,91 @@ export class PythonRESTAdapter implements InventoryClient {
     id: string,
     resolution: string,
   ): Promise<void> {
-    await this.request("POST", `/returns/quarantine/${id}/resolve`, {
-      tenantId,
-      resolution,
-    });
+    const pendingKey = `python-quarantine:${JSON.stringify({ tenantId, id, resolution })}`;
+    const cached = sessionStorage.getItem(pendingKey);
+    let data;
+    if (cached) data = JSON.parse(cached);
+    else {
+      const item = (await this.getQuarantinedItems(tenantId)).find(row => row.id === id);
+      if (!item || item.version === undefined) throw new Error("Quarantine item is no longer pending; refresh the list.");
+      data = { tenantId, resolution, expectedVersion: item.version,
+        reason: "Inspection decision", mutationId: crypto.randomUUID() };
+      sessionStorage.setItem(pendingKey, JSON.stringify(data));
+    }
+    try {
+      await this.request("POST", `/returns/quarantine/${encodeURIComponent(id)}/resolve`, data);
+    } catch (error: any) {
+      if ([400, 404, 409, 422].includes(error.status)) sessionStorage.removeItem(pendingKey);
+      throw error;
+    }
+    sessionStorage.removeItem(pendingKey);
+  }
+
+  async getReturns(tenantId: string): Promise<any[]> {
+    return this.request("GET", `/returns/rmas?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+  }
+
+  async createReturn(tenantId: string, data: { kind?: "CUSTOMER" | "SUPPLIER"; sourceMovementId: string;
+    items: { layerId: string; quantity: number; disposition?: "RESTOCK" | "QUARANTINE" | "SCRAP" | "RETURN_TO_VENDOR" }[];
+    reason: string; refundReference?: string; mutationId: string }): Promise<any> {
+    return this.request("POST", "/returns/rmas", { tenantId, ...data });
+  }
+
+  async reviewReturn(id: string, action: "authorize" | "cancel", expectedVersion: number,
+    reason: string, mutationId: string): Promise<any> {
+    return this.request("POST", `/returns/rmas/${encodeURIComponent(id)}/${action}`, { expectedVersion, reason, mutationId });
+  }
+
+  async receiveReturn(id: string, expectedVersion: number, receiptId: string,
+    items: { layerId: string; quantity: number }[]): Promise<any> {
+    return this.request("POST", `/returns/rmas/${encodeURIComponent(id)}/receive`, { expectedVersion, receiptId, items });
+  }
+
+  async shipSupplierReturn(id: string, expectedVersion: number, shipmentId: string,
+    items: { layerId: string; quantity: number }[]): Promise<any> {
+    return this.request("POST", `/returns/rmas/${encodeURIComponent(id)}/ship`, { expectedVersion, shipmentId, items });
+  }
+
+  async writeOffStock(data: { sku: string; locationId?: string; quantity: number | string; unit?: string; uomVersion?: number; expectedVersion: number;
+    reasonCode: "DAMAGE" | "THEFT" | "EXPIRED" | "OBSOLETE" | "SHRINKAGE"; reason: string;
+    mutationId: string; layerId?: string; lotNumber?: string; reference?: string }): Promise<any> {
+    return this.request("POST", "/returns/write-offs", data);
+  }
+
+  async getStockTransfers(tenantId: string): Promise<any[]> {
+    return this.request("GET", `/inventory/transfers?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+  }
+
+  async createStockTransfer(data: { sourceLocationId: string; destinationLocationId: string;
+    items: { sku: string; quantity: number | string; unit?: string; uomVersion?: number; lotNumber?: string }[];
+    reference?: string; mutationId: string }): Promise<any> {
+    return this.request("POST", "/inventory/transfers", data);
+  }
+
+  async reviewStockTransfer(id: string, action: "dispatch" | "receive" | "cancel", data: {
+    expectedVersion: number; reason: string; mutationId: string; sourceVersions?: Record<string, number> }): Promise<any> {
+    return this.request("POST", `/inventory/transfers/${encodeURIComponent(id)}/${action}`, data);
+  }
+
+  async getUomConfiguration(sku: string): Promise<any> {
+    return this.request("GET", `/uom/configurations/${encodeURIComponent(sku)}`);
+  }
+
+  async configureUom(data: { sku: string; baseUnit: string; category: "discrete" | "weight" | "volume";
+    purchaseUnit?: string; saleUnit?: string; rules: { unit: string; factorToBase: string }[];
+    expectedVersion: number; mutationId: string }): Promise<any> {
+    return this.request("POST", "/uom/configurations", data);
+  }
+
+  async convertUom(sku: string, quantity: number | string, fromUnit: string, toUnit?: string): Promise<any> {
+    return this.request("POST", `/uom/configurations/${encodeURIComponent(sku)}/convert`, { quantity, fromUnit, toUnit });
+  }
+
+  async mutateStockInUnit(operation: "receive" | "dispatch" | "allocate" | "release-allocation" | "fulfill-allocation",
+    data: { sku: string; locationId?: string; quantity: number | string; unit: string; uomVersion: number;
+      mutationId: string; expectedVersion?: number; unitCostCents?: number; lotNumber?: string;
+      expirationDate?: string; quarantined?: boolean }): Promise<any> {
+    return this.request("POST", `/inventory/${operation}`, data);
   }
 
   async getValuationReport(
@@ -854,10 +1110,15 @@ export class PythonRESTAdapter implements InventoryClient {
     const params = new URLSearchParams({ tenantId });
     if (locationId) params.set("locationId", locationId);
     if (method) params.set("method", method);
-    return this.request("GET", `/accounting/valuation-report?${params.toString()}`);
+    return this.request(
+      "GET",
+      `/accounting/valuation-report?${params.toString()}`,
+    );
   }
 
-  async getSlottingSuggestions(tenantId: string): Promise<any[]> {
+  async getSlottingSuggestions(
+    tenantId: string,
+  ): Promise<SlottingSuggestion[]> {
     return this.request(
       "GET",
       `/warehouse-locations/slotting-suggestions?tenantId=${encodeURIComponent(tenantId)}`,
@@ -1043,10 +1304,11 @@ export class PythonRESTAdapter implements InventoryClient {
 
   // Reporting & Analytics
   async getReportDefinitions(tenantId: string): Promise<any[]> {
-    return await this.request(
+    const result = await this.request(
       "GET",
       `/reports?tenantId=${encodeURIComponent(tenantId)}`,
     );
+    return result.reports;
   }
 
   async createReportDefinition(tenantId: string, payload: any): Promise<any> {
@@ -1059,7 +1321,7 @@ export class PythonRESTAdapter implements InventoryClient {
     cronExpression: string,
     deliveryMethod: string,
   ): Promise<any> {
-    return await this.request("POST", `/reports/${reportId}/schedule`, {
+    return await this.request("POST", `/reports/${encodeURIComponent(reportId)}/schedule`, {
       tenantId,
       cronExpression,
       deliveryMethod,
@@ -1071,7 +1333,7 @@ export class PythonRESTAdapter implements InventoryClient {
     reportId: string,
     format: string,
   ): Promise<any> {
-    return await this.request("POST", `/reports/${reportId}/execute`, {
+    return await this.request("POST", `/reports/${encodeURIComponent(reportId)}/execute`, {
       tenantId,
       format,
     });
@@ -1106,13 +1368,17 @@ export class PythonRESTAdapter implements InventoryClient {
     return { ...result, id: result.record_id };
   }
   async submitCycleCount(id: string, countedLines: any): Promise<void> {
-    const lines = Array.isArray(countedLines) ? countedLines : countedLines.items;
+    const lines = Array.isArray(countedLines)
+      ? countedLines
+      : countedLines.items;
     await this.request("POST", "/api/cycle-counts/submit", {
       record_id: id,
       revision: countedLines.revision ?? 0,
       mutation_id: countedLines.mutationId || crypto.randomUUID(),
-      items: lines.map((line: any) => ({ sku: line.sku,
-        counted_quantity: line.counted_quantity ?? line.countedQuantity })),
+      items: lines.map((line: any) => ({
+        sku: line.sku,
+        counted_quantity: line.counted_quantity ?? line.countedQuantity,
+      })),
     });
   }
   async getCycleCounts(tenantId: string): Promise<any[]> {
@@ -1123,15 +1389,31 @@ export class PythonRESTAdapter implements InventoryClient {
     return rows.map((row: any) => ({ ...row, id: row.record_id }));
   }
 
-  async reviewCycleCount(id: string, action: "approve" | "recount", revision: number,
-    reason: string, mutationId: string): Promise<any> {
-    return this.request("POST", `/api/cycle-counts/${encodeURIComponent(id)}/${action}`,
-      { revision, reason, mutation_id: mutationId });
+  async reviewCycleCount(
+    id: string,
+    action: "approve" | "recount",
+    revision: number,
+    reason: string,
+    mutationId: string,
+  ): Promise<any> {
+    return this.request(
+      "POST",
+      `/api/cycle-counts/${encodeURIComponent(id)}/${action}`,
+      { revision, reason, mutation_id: mutationId },
+    );
   }
 
-  async adjustStock(data: { sku: string; location_id?: string; delta: number;
-    expected_version: number; reason_code: "DAMAGE" | "THEFT" | "FOUND" | "CORRECTION" | "EXPIRED";
-    reason: string; mutation_id: string; unit_cost_cents?: number; lot_number?: string }): Promise<any> {
+  async adjustStock(data: {
+    sku: string;
+    location_id?: string;
+    delta: number;
+    expected_version: number;
+    reason_code: "DAMAGE" | "THEFT" | "FOUND" | "CORRECTION" | "EXPIRED";
+    reason: string;
+    mutation_id: string;
+    unit_cost_cents?: number;
+    lot_number?: string;
+  }): Promise<any> {
     return this.request("POST", "/api/cycle-counts/adjust", data);
   }
 
@@ -1164,7 +1446,57 @@ export class PythonRESTAdapter implements InventoryClient {
     );
   }
   async markNotificationRead(id: string): Promise<void> {
-    await this.request("POST", `/notifications/${id}/read`);
+    await this.request("POST", `/notifications/${encodeURIComponent(id)}/read`);
+  }
+
+  async getOwnNotifications(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/notifications?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+  }
+
+  async getOwnUnreadCount(): Promise<{ unread_count: number }> {
+    return this.request('GET', '/notifications/inbox/unread');
+  }
+
+  async snoozeOwnNotification(id: string, hours: number): Promise<any> {
+    return this.request('POST', `/notifications/${encodeURIComponent(id)}/snooze`, { hours });
+  }
+
+  async getNotificationManagers(): Promise<any[]> {
+    return this.request('GET', '/notifications/managers');
+  }
+
+  async escalateOwnNotification(id: string, manager: string): Promise<any> {
+    return this.request('POST', `/notifications/${encodeURIComponent(id)}/escalate`, { target_manager_id: manager });
+  }
+
+  async getReportExecutions(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/reports/executions?tenantId=${encodeURIComponent(tenantId)}&limit=1000`);
+  }
+
+  async getReportSchedules(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/reports/schedules?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async reportCommand(path: string, payload: Record<string, unknown>): Promise<any> {
+    return this.request('POST', path, payload);
+  }
+
+  async processReportExecution(id: string): Promise<any> {
+    return this.request('POST', `/reports/executions/${encodeURIComponent(id)}/process`);
+  }
+
+  async downloadReportExecution(id: string): Promise<Blob> {
+    const response = await fetch(`${PYTHON_BASE_URL}/reports/executions/${encodeURIComponent(id)}/content`, { headers: this.getHeaders() });
+    if (!response.ok) throw Object.assign(new Error(`Report download failed (HTTP ${response.status})`), { status: response.status });
+    return response.blob();
+  }
+
+  async getRetailAlerts(): Promise<any[]> {
+    return this.request('GET', '/alerts');
+  }
+
+  async getRetailAlertConfig(): Promise<any> {
+    return this.request('GET', '/alerts/config');
   }
 
   async generateAgingReport(tenantId: string): Promise<any> {
@@ -1220,5 +1552,34 @@ export class PythonRESTAdapter implements InventoryClient {
       "GET",
       `/usage?tenantId=${encodeURIComponent(tenantId)}`,
     );
+  }
+
+  async getMyWorkforce(tenantId: string): Promise<any> {
+    return this.request('GET', `/workforce/me?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getWorkforceOperators(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/workforce/operators?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getWorkforceShifts(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/workforce/shifts?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getStaffingPlans(tenantId: string): Promise<any[]> {
+    return this.request('GET', `/workforce/plans?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getOperatorMetrics(tenantId: string, id: string): Promise<any> {
+    return this.request('GET', `/workforce/operators/${encodeURIComponent(id)}/metrics?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async getWorkforceSources(tenantId: string, shiftId: string): Promise<any[]> {
+    return this.request('GET', `/workforce/shifts/${encodeURIComponent(shiftId)}/sources?tenantId=${encodeURIComponent(tenantId)}`);
+  }
+
+  async workforceCommand(resource: 'profiles' | 'shifts' | 'plans', data: any, id?: string, action?: 'start' | 'complete' | 'cancel' | 'activities' | 'publish'): Promise<any> {
+    const path = `/workforce/${resource}${id ? '/' + encodeURIComponent(id) : ''}${action ? '/' + action : ''}`;
+    return this.request(resource === 'profiles' ? 'PUT' : 'POST', path, data);
   }
 }

@@ -184,3 +184,7 @@
 ## 2024-10-12 - Prevent intermediate array allocations with reduce
 **Learning:** Using `.filter(...).length` allocates an entire new array containing the matching elements before taking its length, which can cause significant memory and garbage collection overhead for large lists.
 **Action:** Always replace `.filter(...).length` patterns with a single-pass `.reduce((count, item) => count + (condition ? 1 : 0), 0)` to calculate counts without creating throwaway intermediate arrays.
+
+## 2026-09-07 - Bulk Inventory Stock Level Fetch
+**Learning:** Replacing chunked individual N+1 HTTP requests (`GET /api/inventory/${v.sku}/stock`) with bulk query endpoint requests (`GET /api/inventory/stock?skus=...`) eliminates network round-trip overhead while maintaining full fallback compatibility.
+**Action:** Always batch multi-entity queries into bulk HTTP endpoints using query parameters or bulk endpoints when fetching array items.

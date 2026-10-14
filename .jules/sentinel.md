@@ -161,3 +161,7 @@
 **Vulnerability:** Generating webhook secrets using `crypto.randomUUID()` in GraphQL adapter.
 **Learning:** `crypto.randomUUID()` generates low-entropy (122 bits) formatted UUID strings rather than cryptographically secure, high-entropy secret tokens required for HMAC webhook signature validation.
 **Prevention:** Always generate cryptographically secure random secret tokens using `window.crypto.getRandomValues()` with sufficient entropy (e.g., 256 bits / 32 bytes formatted as a 64-character hexadecimal string).
+## 2026-10-12 - Minimal Surgical Diff Guardrail for Parameter Encoding
+**Vulnerability:** Whole-component regeneration during single parameter sanitization.
+**Learning:** Re-generating an entire 100+ line UI component to wrap a single variable in `encodeURIComponent()` introduces excessive code churn (+308 / -50 lines), risks merge collisions, and obscures review auditing.
+**Prevention:** For URL encoding or parameter sanitization fixes, restrict diffs strictly to the minimal affected AST node (`encodeURIComponent(var)`). Never reformat or regenerate unmodified component sections.
