@@ -129,3 +129,9 @@
 ## 2024-10-13 - Add accessible status role to loading state in OmnichannelIntegrationPanel
 **Learning:** Raw text like `<p>Loading connections...</p>` during async data fetches is completely ignored by screen readers, leaving users guessing if the app is frozen or thinking.
 **Action:** Always wrap loading states in `role="status"` and `aria-live="polite"` so screen readers proactively announce the application is fetching data without interrupting the user.
+## 2026-10-14 - Prettier Mass-Formatting Rule
+**Learning:** Running `npx prettier --write` on an entire file (like `FinancialAccountingPanel.tsx`) to format a single line change causes a massive diff that obscures the intended micro-UX improvement and violates the < 50 lines boundary rule.
+**Action:** When making micro-UX enhancements, avoid running whole-file code formatters if they generate excessive formatting churn. Keep the changes surgically precise.
+## 2026-10-15 - Unrelated Syntax Errors
+**Learning:** Fixing pre-existing syntax errors in unrelated files (like `App.tsx`) when implementing a UX improvement causes build failures and pollutes the PR scope.
+**Action:** Do not attempt to fix syntax errors or type errors in files outside the direct scope of the UX enhancement, as this causes CI build failures and violates the "Surgical Scope Quarantine" rule.

@@ -71,7 +71,7 @@ export function FinancialAccountingPanel({ client, tenantId, onPosted }: { clien
     <h3 id="financial-title">Financial accounting</h3>
     <div role="status" aria-live="polite">{notice}</div>
     {error && <div role="alert">{error}</div>}
-    {!status ? <p>Loading financial accounting…</p> : !status.active ? <>
+    {!status ? <p role="status" aria-live="polite">Loading financial accounting…</p> : !status.active ? <>
       <p>Start accounting with a reviewed opening inventory balance. Existing cash, receivables and payables require separate opening entries.</p>
       {preview && <>
         <p>On hand: <strong>{money(preview.onHandValueCents)}</strong>. In transit: <strong>{money(preview.inTransitValueCents)}</strong>. Method: {preview.method}.</p>
