@@ -171,14 +171,26 @@ export class LaravelRESTAdapter implements InventoryClient {
         try {
           const bulkRes = await this.request(
             "GET",
-            `/api/inventory/stock?skus=${skusQuery}`,
+            `/api/inventory/stock?skus=${encodeURIComponent(skusQuery)}`,
           );
           const stockList = Array.isArray(bulkRes?.stocks)
             ? bulkRes.stocks
             : Array.isArray(bulkRes)
               ? bulkRes
-              : bulkRes && typeof bulkRes === "object" && (bulkRes.sku || bulkRes.location_id || bulkRes.available_quantity !== undefined || bulkRes.quantity !== undefined)
-                ? [{ sku: bulkRes.sku || (chunk.length === 1 ? chunk[0].sku : undefined), ...bulkRes }]
+              : bulkRes &&
+                  typeof bulkRes === "object" &&
+                  (bulkRes.sku ||
+                    bulkRes.location_id ||
+                    bulkRes.available_quantity !== undefined ||
+                    bulkRes.quantity !== undefined)
+                ? [
+                    {
+                      sku:
+                        bulkRes.sku ||
+                        (chunk.length === 1 ? chunk[0].sku : undefined),
+                      ...bulkRes,
+                    },
+                  ]
                 : [];
           const stockMap = new Map<string, any>();
           for (const s of stockList) {
@@ -834,7 +846,7 @@ export class LaravelRESTAdapter implements InventoryClient {
         const chunk = ids.slice(i, i + CHUNK_SIZE);
         const response = await this.request(
           "GET",
-          `/api/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&ids=${chunk.join(",")}`,
+          `/api/purchase-orders?tenantId=${encodeURIComponent(tenantId)}&ids=${encodeURIComponent(chunk.join(","))}`,
         );
 
         const bulkData = response?.data || response || [];
