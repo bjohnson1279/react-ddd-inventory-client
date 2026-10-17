@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import type { PythonRESTAdapter } from '../api/python';
 
 function money(value: number | null | undefined) {
@@ -49,6 +49,15 @@ export function FinancialAccountingPanel({ client, tenantId, onPosted }: { clien
     return () => { current = false; };
   }, [client, tenantId]);
 
+  // ⚡ Bolt: Use a single-pass reduce inside useMemo to eliminate redundant O(N) traversals and intermediate array allocations
+  const activeAccounts = useMemo(() => {
+    if (!trial?.accounts) return [];
+    return trial.accounts.reduce((acc: any[], account: any) => {
+      if (account.balanceCents !== 0) acc.push(account);
+      return acc;
+    }, []);
+  }, [trial?.accounts]);
+
   async function command(action: 'activate' | 'close') {
     const intent = JSON.stringify([tenantId, action, action === 'close' ? cutoff : '', action === 'close' ? reason : 'Reviewed opening inventory balances']);
     if (!pending.current || pending.current.intent !== intent) pending.current = { action, intent, payload: {
@@ -85,9 +94,9 @@ export function FinancialAccountingPanel({ client, tenantId, onPosted }: { clien
         <div className="table-wrapper"><table>
           <caption>Account balances in USD</caption>
           <thead><tr><th scope="col">Account</th><th scope="col">Debit balance</th><th scope="col">Credit balance</th></tr></thead>
-          <tbody>{trial.accounts.filter((account: any) => account.balanceCents !== 0).map((account: any) => <tr key={account.accountCode}>
+          <tbody>{activeAccounts.map((account: any) => <tr key={account.accountCode}>
             <th scope="row">{account.accountCode} {account.accountName}</th><td>{money(Math.max(account.balanceCents, 0))}</td><td>{money(Math.max(-account.balanceCents, 0))}</td>
-          </tr>)}{!trial.accounts.some((account: any) => account.balanceCents !== 0) && <tr><td colSpan={3}>No nonzero account balances posted.</td></tr>}</tbody>
+          </tr>)}{activeAccounts.length === 0 && <tr><td colSpan={3}>No nonzero account balances posted.</td></tr>}</tbody>
         </table></div>
       </>}
       {reconciliation && <p>Inventory reconciliation: {reconciliation.isReconciled ? 'Matches stock carrying values.' : 'Needs review.'}
