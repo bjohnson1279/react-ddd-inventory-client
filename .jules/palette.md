@@ -62,6 +62,9 @@
 - **Zero-Diff Task Termination**: If the requested optimization, refactor, or fix is ALREADY natively present in the target branch, DO NOT create an empty pull request or commit an acknowledgment PR. Exit the task cleanly without opening a PR.
 - **No Journal-Only PRs**: Never open a pull request that only contains updates to .jules/*.md files without corresponding functional code changes and tests.
 - **Stale Suggestion Guard**: Always verify the current code on `main`/`master` before planning changes. If no actionable diff is required, cancel task execution immediately.
+- **Mandatory Upstream Base Fetch**: Prior to branching or planning changes, execute `git fetch origin main && git checkout origin/main -b <branch-name>` to prevent building atop stale bases.
+- **Pre-Commit Direct Diff Abort Gate**: Run `git diff origin/main <target_file>` before committing or opening a PR. If the substantive code diff against `origin/main` is zero outside `.jules/`, abort execution immediately.
+
 
 ## Assertiveness, Decisive PR Execution & Comparative Recommendations
 - **Proactive & Decisive PR Submission**: Do NOT repeatedly pause to ask permission to open a pull request (e.g., avoid "Would you like me to open a PR for this?", "Can I submit the PR?", "Should I go ahead and create the PR?"). When an optimization, fix, or feature satisfies requirements, passes local test runners/linters, and preserves architectural invariants, proceed decisively to create and submit the Pull Request with a clear, structured summary and rationale.

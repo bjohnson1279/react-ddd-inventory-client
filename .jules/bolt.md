@@ -84,6 +84,9 @@
 ## Hallucinatory Task & Empty PR Directives
 - **Zero-Diff Task Termination**: If the requested optimization, refactor, or fix is ALREADY natively present in the target branch, DO NOT create an empty pull request or commit an acknowledgment PR. Exit the task cleanly without opening a PR.
 - **Stale Suggestion Guard**: Always verify the current code on `main`/`master` before planning changes. If no actionable diff is required, cancel task execution immediately.
+- **Mandatory Upstream Base Fetch**: Prior to branching or planning changes, execute `git fetch origin main && git checkout origin/main -b <branch-name>` to prevent building atop stale bases.
+- **Pre-Commit Direct Diff Abort Gate**: Run `git diff origin/main <target_file>` before committing or opening a PR. If the substantive code diff against `origin/main` is zero outside `.jules/`, abort execution immediately.
+
 ## 2024-11-20 - Avoid Consecutive Map and Filter Operations Inside Event Handlers
 **Learning:** Found a sequence of array `.map().filter()` inside a component event handler (`handleOptimizePickRoute` in `App.tsx`) to process a comma-separated string input. This causes redundant iterations and unnecessary array memory allocations on the main thread during execution.
 **Action:** Replace consecutive `.map().filter()` chains with a single-pass `.reduce()` loop when processing data or user input, improving performance by avoiding multiple array traversals and intermediate allocations.
