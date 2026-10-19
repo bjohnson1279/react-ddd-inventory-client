@@ -8,7 +8,7 @@ export const LaborDashboard: React.FC = () => {
     setTimeout(() => setLoading(false), 500);
   }, []);
 
-  if (loading) return <div className="p-4">Loading your dashboard...</div>;
+  if (loading) return <div className="p-4" role="status" aria-live="polite">Loading your dashboard...</div>;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
