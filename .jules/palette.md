@@ -132,3 +132,7 @@
 ## 2024-10-13 - Add accessible status role to loading state in OmnichannelIntegrationPanel
 **Learning:** Raw text like `<p>Loading connections...</p>` during async data fetches is completely ignored by screen readers, leaving users guessing if the app is frozen or thinking.
 **Action:** Always wrap loading states in `role="status"` and `aria-live="polite"` so screen readers proactively announce the application is fetching data without interrupting the user.
+
+## 2024-10-23 - Accessible status role for loading text in Financial Accounting
+**Learning:** Raw text like `<p>Loading financial accounting…</p>` during async data fetches is ignored by screen readers, leaving users guessing if the app is frozen or thinking.
+**Action:** Always wrap loading states in `role="status"` and `aria-live="polite"` so screen readers proactively announce the application is fetching data without interrupting the user.
