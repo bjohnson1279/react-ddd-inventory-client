@@ -71,11 +71,13 @@ export class PythonRESTAdapter implements InventoryClient {
         } catch {
           parsedError = { error: errorText };
         }
-        throw new Error(
+        const httpError: any = new Error(
           parsedError.error ||
             parsedError.detail ||
             `HTTP ${response.status} Error`,
         );
+        httpError.status = response.status;
+        throw httpError;
       }
       return await response.json();
     } catch (err: any) {
