@@ -80,12 +80,12 @@ export function FinancialAccountingPanel({ client, tenantId, onPosted }: { clien
     <h3 id="financial-title">Financial accounting</h3>
     <div role="status" aria-live="polite">{notice}</div>
     {error && <div role="alert">{error}</div>}
-    {!status ? <p>Loading financial accounting…</p> : !status.active ? <>
+    {!status ? <p role="status" aria-live="polite">Loading financial accounting…</p> : !status.active ? <>
       <p>Start accounting with a reviewed opening inventory balance. Existing cash, receivables and payables require separate opening entries.</p>
       {preview && <>
         <p>On hand: <strong>{money(preview.onHandValueCents)}</strong>. In transit: <strong>{money(preview.inTransitValueCents)}</strong>. Method: {preview.method}.</p>
         {preview.problems.map((problem: any, index: number) => <p key={index}>{problem.sku}: {problem.reason}</p>)}
-        <button className="btn btn-primary" disabled={busy || !preview.complete} onClick={() => command('activate')}>Start financial accounting</button>
+        <button className="btn btn-primary" disabled={busy || !preview.complete} aria-busy={busy} onClick={() => command('activate')}>Start financial accounting</button>
       </>}
     </> : <>
       <p>Method: {status.method}. Closed through: {status.closedThrough || 'No periods closed'}.</p>
@@ -106,9 +106,9 @@ export function FinancialAccountingPanel({ client, tenantId, onPosted }: { clien
         <input id="financial-cutoff" type="date" value={cutoff} onChange={event => setCutoff(event.target.value)} required />
         <label htmlFor="financial-close-reason">Review reason</label>
         <input id="financial-close-reason" value={reason} onChange={event => setReason(event.target.value)} required maxLength={500} />
-        <button className="btn btn-primary" type="submit" disabled={busy || !reason.trim()}>Close completed period</button>
+        <button className="btn btn-primary" type="submit" disabled={busy || !reason.trim()} aria-busy={busy}>Close completed period</button>
       </form>
     </>}
-    <button className="btn btn-secondary" disabled={busy} onClick={() => { setError(''); refresh().catch(failure => setError(failure.message)); }}>Refresh accounting</button>
+    <button className="btn btn-secondary" disabled={busy} aria-busy={busy} onClick={() => { setError(''); refresh().catch(failure => setError(failure.message)); }}>Refresh accounting</button>
   </section>;
 }

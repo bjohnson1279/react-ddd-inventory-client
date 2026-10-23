@@ -132,3 +132,7 @@
 ## 2024-10-13 - Add accessible status role to loading state in OmnichannelIntegrationPanel
 **Learning:** Raw text like `<p>Loading connections...</p>` during async data fetches is completely ignored by screen readers, leaving users guessing if the app is frozen or thinking.
 **Action:** Always wrap loading states in `role="status"` and `aria-live="polite"` so screen readers proactively announce the application is fetching data without interrupting the user.
+
+## 2024-10-23 - Micro-UX improvements for async loading text
+**Learning:** Adding `role="status"` and `aria-live="polite"` directly to loading paragraph tags (e.g., `<p>Loading...</p>`) ensures that screen readers dynamically announce the start of background fetches, and complementing this by pairing `aria-busy={busy}` with `disabled={busy}` correctly signals active button processing.
+**Action:** Consistently pair `disabled` with `aria-busy` when creating or modifying async action buttons, and explicitly wrap custom raw text loading indicators with `role="status"` to maintain screen reader accessibility without changing visual layouts.
