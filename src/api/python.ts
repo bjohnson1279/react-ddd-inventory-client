@@ -173,9 +173,16 @@ export class PythonRESTAdapter implements InventoryClient {
 
   async getShopifyConnections(tenantId: string): Promise<ShopifyConnection[]> {
     const connections = await this.getConnections(tenantId);
-    return connections.filter((row: any) => row.provider === 'SHOPIFY').map((row: any) => ({
-      id: row.id, tenantId, platform: 'shopify', storeDomain: row.origin, isActive: row.active,
-    }));
+    // ⚡ Bolt: Replace chained .filter().map() with a single-pass O(N) loop to prevent intermediate array allocation
+    const result: ShopifyConnection[] = [];
+    for (const row of connections) {
+      if (row.provider === 'SHOPIFY') {
+        result.push({
+          id: row.id, tenantId, platform: 'shopify', storeDomain: row.origin, isActive: row.active,
+        });
+      }
+    }
+    return result;
   }
 
   async createIntegrationConnection(data: Record<string, unknown>): Promise<any> {
