@@ -263,7 +263,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     trackingMode: string,
     attributes: { name: string; value: string }[],
   ): Promise<void> {
-    await this.request("POST", `/inventory/products/${productId}/variants`, {
+    await this.request("POST", `/inventory/products/${encodeURIComponent(productId)}/variants`, {
       sku,
       trackingMode,
       attributes,
@@ -318,7 +318,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async traceSerialHistory(serialNumber: string): Promise<SerializedItem> {
-    return this.request("GET", `/serials/trace/${serialNumber}`);
+    return this.request("GET", `/serials/trace/${encodeURIComponent(serialNumber)}`);
   }
 
   async connectShopify(
@@ -401,7 +401,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
       const batch = items.slice(i, i + BATCH_SIZE);
       const promises = batch.map((item) =>
-        this.request("POST", `/onboarding/${onboardingId}/items`, {
+        this.request("POST", `/onboarding/${encodeURIComponent(onboardingId)}/items`, {
           variantId: item.variantId,
           quantity: item.quantity,
           unitCostCents: item.unitCostCents,
@@ -412,7 +412,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async submitStockOnboarding(onboardingId: string): Promise<void> {
-    await this.request("POST", `/onboarding/${onboardingId}/submit`);
+    await this.request("POST", `/onboarding/${encodeURIComponent(onboardingId)}/submit`);
   }
 
   async getForecastingReport(
@@ -661,11 +661,11 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async approvePurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/purchase-orders/${id}/approve`, { tenantId });
+    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/approve`, { tenantId });
   }
 
   async sendPurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/purchase-orders/${id}/send`, { tenantId });
+    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/send`, { tenantId });
   }
 
   async receivePurchaseOrder(
@@ -673,7 +673,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     id: string,
     items: { sku: string; quantity: number }[],
   ): Promise<void> {
-    await this.request("POST", `/purchase-orders/${id}/receive`, {
+    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/receive`, {
       tenantId,
       items,
     });
@@ -720,7 +720,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     userId: string,
     role: string,
   ): Promise<void> {
-    await this.request("PATCH", `/users/${userId}/role`, { tenantId, role });
+    await this.request("PATCH", `/users/${encodeURIComponent(userId)}/role`, { tenantId, role });
   }
 
   // RBAC
@@ -753,13 +753,13 @@ export class ExpressRESTAdapter implements InventoryClient {
     roleId: string,
     permissionIds: string[],
   ): Promise<void> {
-    await this.request("PUT", `/roles/${roleId}/permissions`, {
+    await this.request("PUT", `/roles/${encodeURIComponent(roleId)}/permissions`, {
       permissionIds,
     });
   }
 
   async deleteRole(roleId: string): Promise<void> {
-    await this.request("DELETE", `/roles/${roleId}`);
+    await this.request("DELETE", `/roles/${encodeURIComponent(roleId)}`);
   }
 
   async runAudit(tenantId: string): Promise<any> {
@@ -779,7 +779,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     id: string,
     notes: string,
   ): Promise<void> {
-    await this.request("POST", `/audit/discrepancies/${id}/resolve`, {
+    await this.request("POST", `/audit/discrepancies/${encodeURIComponent(id)}/resolve`, {
       tenantId,
       notes,
     });
@@ -819,11 +819,11 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async retryOutboxEvent(id: string): Promise<void> {
-    await this.request("POST", `/outbox/${id}/retry`);
+    await this.request("POST", `/outbox/${encodeURIComponent(id)}/retry`);
   }
 
   async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
-    return this.request("GET", `/accounting/tenant-config/${tenantId}`);
+    return this.request("GET", `/accounting/tenant-config/${encodeURIComponent(tenantId)}`);
   }
 
   async saveTenantConfig(
@@ -897,7 +897,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     id: string,
     resolution: string,
   ): Promise<void> {
-    await this.request("POST", `/returns/quarantine/${id}/resolve`, {
+    await this.request("POST", `/returns/quarantine/${encodeURIComponent(id)}/resolve`, {
       tenantId,
       resolution,
     });
@@ -1148,7 +1148,7 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async toggleApprovalWorkflow(id: string): Promise<any> {
-    return await this.request("POST", `/approvals/workflows/${id}/toggle`);
+    return await this.request("POST", `/approvals/workflows/${encodeURIComponent(id)}/toggle`);
   }
 
   async getPendingApprovals(): Promise<any[]> {
@@ -1160,14 +1160,14 @@ export class ExpressRESTAdapter implements InventoryClient {
     decision: string,
     notes: string,
   ): Promise<any> {
-    return await this.request("POST", `/approvals/${id}/decide`, {
+    return await this.request("POST", `/approvals/${encodeURIComponent(id)}/decide`, {
       decision,
       notes,
     });
   }
 
   async getApprovalHistory(requestId: string): Promise<any[]> {
-    const data = await this.request("GET", `/approvals/${requestId}`);
+    const data = await this.request("GET", `/approvals/${encodeURIComponent(requestId)}`);
     return data.decisions || [];
   }
 
@@ -1189,7 +1189,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     cronExpression: string,
     deliveryMethod: string,
   ): Promise<any> {
-    return await this.request("POST", `/reports/${reportId}/schedule`, {
+    return await this.request("POST", `/reports/${encodeURIComponent(reportId)}/schedule`, {
       tenantId,
       cronExpression,
       deliveryMethod,
@@ -1201,7 +1201,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     reportId: string,
     format: string,
   ): Promise<any> {
-    return await this.request("POST", `/reports/${reportId}/execute`, {
+    return await this.request("POST", `/reports/${encodeURIComponent(reportId)}/execute`, {
       tenantId,
       format,
     });
@@ -1235,7 +1235,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     });
   }
   async submitCycleCount(id: string, countedLines: any): Promise<void> {
-    await this.request("POST", `/cycle-count/${id}/submit`, { countedLines });
+    await this.request("POST", `/cycle-count/${encodeURIComponent(id)}/submit`, { countedLines });
   }
   async getCycleCounts(tenantId: string): Promise<any[]> {
     return await this.request(
@@ -1273,7 +1273,7 @@ export class ExpressRESTAdapter implements InventoryClient {
     );
   }
   async markNotificationRead(id: string): Promise<void> {
-    await this.request("POST", `/notifications/${id}/read`);
+    await this.request("POST", `/notifications/${encodeURIComponent(id)}/read`);
   }
 
   async generateAgingReport(tenantId: string): Promise<any> {

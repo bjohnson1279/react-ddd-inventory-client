@@ -42,11 +42,11 @@ export function PythonNotificationInbox({ client, tenantId, onOpenReports, sessi
     </select></>}
     {rows === null ? <p role="status" aria-live="polite">{error ? 'Inbox unavailable.' : 'Loading inbox…'}</p> : rows.length === 0 ? <p>No current notifications.</p> : <ul>{rows.map(row => <li key={row.id}>
       <p>{row.message}</p><p>{row.status} · {new Date(row.createdAt).toLocaleString()}</p>
-      {row.status === 'UNREAD' && <><button disabled={busy} onClick={() => action(row.id)}>Mark {row.id} read</button>
-        <button disabled={busy} onClick={() => action(row.id, 'snooze')}>Snooze {row.id} for one hour</button>
-        {manager && <button disabled={busy} onClick={() => action(row.id, 'escalate')}>Escalate {row.id}</button>}</>}
+      {row.status === 'UNREAD' && <><button disabled={busy} aria-busy={busy} onClick={() => action(row.id)}>Mark {row.id} read</button>
+        <button disabled={busy} aria-busy={busy} onClick={() => action(row.id, 'snooze')}>Snooze {row.id} for one hour</button>
+        {manager && <button disabled={busy} aria-busy={busy} onClick={() => action(row.id, 'escalate')}>Escalate {row.id}</button>}</>}
       {row.link?.startsWith('/reports/executions/') && onOpenReports && <button onClick={onOpenReports}>View reports</button>}
     </li>)}</ul>}
-    <button disabled={busy} onClick={() => { setError(''); refresh().catch(failure => setError(failure.message)); }}>Refresh inbox</button>
+    <button disabled={busy} aria-busy={busy} onClick={() => { setError(''); refresh().catch(failure => setError(failure.message)); }}>Refresh inbox</button>
   </section>;
 }

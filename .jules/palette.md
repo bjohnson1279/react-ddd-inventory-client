@@ -135,3 +135,7 @@
 ## 2026-10-18 - Add accessible status role to loading states
 **Learning:** Raw text like `<p>Loading...</p>` during async data fetches is completely ignored by screen readers, leaving users guessing if the app is frozen or thinking.
 **Action:** Always wrap loading states in `role="status"` and `aria-live="polite"` so screen readers proactively announce the application is fetching data without interrupting the user.
+
+## 2026-10-24 - Accessible Processing States with aria-busy in Notification Inboxes
+**Learning:** Disabling action buttons during async requests without setting `aria-busy` leaves screen reader users unaware that a background network request is active.
+**Action:** Pair `disabled={busy}` with `aria-busy={busy}` on async workflow buttons (Mark read, Snooze, Escalate, Refresh).

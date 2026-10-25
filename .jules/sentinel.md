@@ -165,3 +165,7 @@
 **Vulnerability:** Whole-component regeneration during single parameter sanitization.
 **Learning:** Re-generating an entire 100+ line UI component to wrap a single variable in `encodeURIComponent()` introduces excessive code churn (+308 / -50 lines), risks merge collisions, and obscures review auditing.
 **Prevention:** For URL encoding or parameter sanitization fixes, restrict diffs strictly to the minimal affected AST node (`encodeURIComponent(var)`). Never reformat or regenerate unmodified component sections.
+
+## 2026-10-24 - Strict URI Encoding for Dynamic Route Parameters
+**Learning:** Interpolating unencoded dynamic variables (like `productId`, `onboardingId`, `roleId`, `serialNumber`, `userId`) directly into API route strings exposes clients to path traversal or parameter injection.
+**Action:** Wrap all dynamic parameters in `encodeURIComponent()` within API adapter request methods.
