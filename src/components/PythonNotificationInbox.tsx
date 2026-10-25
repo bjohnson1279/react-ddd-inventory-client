@@ -40,7 +40,7 @@ export function PythonNotificationInbox({ client, tenantId, onOpenReports, sessi
     {managers.length > 0 && <><label htmlFor="notification-manager">Escalation manager</label><select id="notification-manager" value={manager} onChange={event => setManager(event.target.value)}>
       <option value="">Choose a manager</option>{managers.map(row => <option key={row.id} value={row.id}>{row.name || row.role}</option>)}
     </select></>}
-    {rows === null ? <p>{error ? 'Inbox unavailable.' : 'Loading inbox…'}</p> : rows.length === 0 ? <p>No current notifications.</p> : <ul>{rows.map(row => <li key={row.id}>
+    {rows === null ? <p role="status" aria-live="polite">{error ? 'Inbox unavailable.' : 'Loading inbox…'}</p> : rows.length === 0 ? <p>No current notifications.</p> : <ul>{rows.map(row => <li key={row.id}>
       <p>{row.message}</p><p>{row.status} · {new Date(row.createdAt).toLocaleString()}</p>
       {row.status === 'UNREAD' && <><button disabled={busy} onClick={() => action(row.id)}>Mark {row.id} read</button>
         <button disabled={busy} onClick={() => action(row.id, 'snooze')}>Snooze {row.id} for one hour</button>

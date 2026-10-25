@@ -114,11 +114,16 @@ describe("Inventory Backend API Adapters", () => {
       );
 
       getRandomValuesSpy.mockRestore();
+    });
+
     it("should gracefully handle GetBatchedBarcodes query failure and default barcodes to empty arrays", async () => {
       const mockFetch = vi
         .fn()
         // First call: getProducts products query succeeds
         .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: {
               products: [
                 {
                   id: "prod-1",
@@ -129,17 +134,29 @@ describe("Inventory Backend API Adapters", () => {
                       sku: "SKU-FAIL-1",
                       trackingMode: "quantity",
                       attributes: [],
+                    },
                     {
                       id: "v-2",
                       sku: "SKU-FAIL-2",
                       trackingMode: "quantity",
                       attributes: [],
+                    },
                   ],
+                },
               ],
+            },
+          }),
         })
         // Second call: GetBatchedBarcodes batch query fails
         .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
             errors: [{ message: "GetBatchedBarcodes failed" }],
+          }),
+        });
+      global.fetch = mockFetch;
+
+      const adapter = new GraphQLAdapter();
       const products = await adapter.getProducts();
       expect(products).toHaveLength(1);
       expect(products[0].variants).toEqual([
@@ -149,12 +166,15 @@ describe("Inventory Backend API Adapters", () => {
           trackingMode: "quantity",
           attributes: [],
           barcodes: [],
+        },
         {
           id: "v-2",
           sku: "SKU-FAIL-2",
           trackingMode: "quantity",
           attributes: [],
           barcodes: [],
+        },
+      ]);
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });

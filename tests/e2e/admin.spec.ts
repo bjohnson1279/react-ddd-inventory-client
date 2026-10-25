@@ -298,7 +298,7 @@ test.describe('Admin Portal Sub-Consoles', () => {
 
     // Verify retry triggers successfully
     await page.click('button:has-text("Retry Event")');
-    await expect(page.locator('.alert-box')).toContainText('Outbox event retried successfully');
+    await expect(page.locator('.alert-box')).toContainText('Outbox event requeued for delivery');
   });
 
   test('should verify RBAC role management functionality', async ({ page }) => {

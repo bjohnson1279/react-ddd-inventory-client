@@ -71,11 +71,13 @@ export class PythonRESTAdapter implements InventoryClient {
         } catch {
           parsedError = { error: errorText };
         }
-        throw new Error(
+        const httpError: any = new Error(
           parsedError.error ||
             parsedError.detail ||
             `HTTP ${response.status} Error`,
         );
+        httpError.status = response.status;
+        throw httpError;
       }
       return await response.json();
     } catch (err: any) {
@@ -307,7 +309,7 @@ export class PythonRESTAdapter implements InventoryClient {
     trackingMode: string,
     attributes: { name: string; value: string }[],
   ): Promise<void> {
-    await this.request("POST", `/inventory/products/${productId}/variants`, {
+    await this.request("POST", `/inventory/products/${encodeURIComponent(productId)}/variants`, {
       sku,
       trackingMode,
       attributes,
@@ -499,7 +501,7 @@ export class PythonRESTAdapter implements InventoryClient {
     for (let i = 0; i < items.length; i += 10) {
       const batch = items.slice(i, i + 10);
       const promises = batch.map((item) =>
-        this.request("POST", `/onboarding/${onboardingId}/items`, {
+        this.request("POST", `/onboarding/${encodeURIComponent(onboardingId)}/items`, {
           variantId: item.variantId,
           quantity: item.quantity,
           unitCostCents: item.unitCostCents,
@@ -510,7 +512,7 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async submitStockOnboarding(onboardingId: string): Promise<void> {
-    await this.request("POST", `/onboarding/${onboardingId}/submit`);
+    await this.request("POST", `/onboarding/${encodeURIComponent(onboardingId)}/submit`);
   }
 
   async getForecastingReport(
@@ -874,7 +876,7 @@ export class PythonRESTAdapter implements InventoryClient {
     userId: string,
     role: string,
   ): Promise<void> {
-    await this.request("PATCH", `/users/${userId}/role`, { tenantId, role });
+    await this.request("PATCH", `/users/${encodeURIComponent(userId)}/role`, { tenantId, role });
   }
 
   // RBAC
@@ -907,13 +909,13 @@ export class PythonRESTAdapter implements InventoryClient {
     roleId: string,
     permissionIds: string[],
   ): Promise<void> {
-    await this.request("PUT", `/roles/${roleId}/permissions`, {
+    await this.request("PUT", `/roles/${encodeURIComponent(roleId)}/permissions`, {
       permissionIds,
     });
   }
 
   async deleteRole(roleId: string): Promise<void> {
-    await this.request("DELETE", `/roles/${roleId}`);
+    await this.request("DELETE", `/roles/${encodeURIComponent(roleId)}`);
   }
 
   async runAudit(tenantId: string): Promise<any> {
@@ -933,7 +935,7 @@ export class PythonRESTAdapter implements InventoryClient {
     id: string,
     notes: string,
   ): Promise<void> {
-    await this.request("POST", `/audit/discrepancies/${id}/resolve`, {
+    await this.request("POST", `/audit/discrepancies/${encodeURIComponent(id)}/resolve`, {
       tenantId,
       notes,
     });
@@ -972,7 +974,7 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
-    return this.request("GET", `/accounting/tenant-config/${tenantId}`);
+    return this.request("GET", `/accounting/tenant-config/${encodeURIComponent(tenantId)}`);
   }
 
   async saveTenantConfig(
@@ -1280,7 +1282,7 @@ export class PythonRESTAdapter implements InventoryClient {
   }
 
   async toggleApprovalWorkflow(id: string): Promise<any> {
-    return await this.request("POST", `/approvals/workflows/${id}/toggle`);
+    return await this.request("POST", `/approvals/workflows/${encodeURIComponent(id)}/toggle`);
   }
 
   async getPendingApprovals(): Promise<any[]> {
@@ -1292,14 +1294,14 @@ export class PythonRESTAdapter implements InventoryClient {
     decision: string,
     notes: string,
   ): Promise<any> {
-    return await this.request("POST", `/approvals/${id}/decide`, {
+    return await this.request("POST", `/approvals/${encodeURIComponent(id)}/decide`, {
       decision,
       notes,
     });
   }
 
   async getApprovalHistory(requestId: string): Promise<any[]> {
-    const data = await this.request("GET", `/approvals/${requestId}`);
+    const data = await this.request("GET", `/approvals/${encodeURIComponent(requestId)}`);
     return data.decisions || [];
   }
 
