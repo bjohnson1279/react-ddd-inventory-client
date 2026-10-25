@@ -12,7 +12,7 @@ export function PythonAgingPanel({ client, tenantId, sessionKey }: { client: Pyt
   }, [client, tenantId, sessionKey]);
   return <section className="glass-panel" aria-labelledby="python-aging-title">
     <h3 id="python-aging-title">Stock aging</h3>{error && <p role="alert">{error}</p>}
-    {!report ? <p>{error ? 'Aging data unavailable.' : 'Loading stock aging…'}</p> : <>
+    {!report ? <p role="status" aria-live="polite">{error ? 'Aging data unavailable.' : 'Loading stock aging…'}</p> : <>
       <p>Age uses recorded receipt dates for stock still on hand. Generated: {new Date(report.generatedAt).toLocaleString()}.</p>
       {!report.complete && <p role="status">Some layer quantities need review.</p>}
       <table><caption>Remaining quantities by recorded age</caption><thead><tr><th scope="col">SKU</th><th scope="col">Location/unit</th><th scope="col">0–30 days</th><th scope="col">31–60 days</th><th scope="col">61–90 days</th><th scope="col">Over 90 days</th><th scope="col">Unknown age</th></tr></thead>

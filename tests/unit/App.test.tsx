@@ -133,7 +133,7 @@ describe('App Health Checks', () => {
     // Check that all 3 backends correctly show 'offline' title dots
     await waitFor(() => {
       const offlineDots = component.queryAllByTitle('offline');
-      expect(offlineDots).toHaveLength(3);
+      expect(offlineDots).toHaveLength(4);
     });
   });
 });

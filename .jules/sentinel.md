@@ -165,3 +165,8 @@
 **Vulnerability:** Whole-component regeneration during single parameter sanitization.
 **Learning:** Re-generating an entire 100+ line UI component to wrap a single variable in `encodeURIComponent()` introduces excessive code churn (+308 / -50 lines), risks merge collisions, and obscures review auditing.
 **Prevention:** For URL encoding or parameter sanitization fixes, restrict diffs strictly to the minimal affected AST node (`encodeURIComponent(var)`). Never reformat or regenerate unmodified component sections.
+
+## 2025-05-20 - Prevent URL Injection in Dynamic Path Interpolations
+**Vulnerability:** Found multiple occurrences across `src/api/express.ts`, `src/api/laravel.ts`, and `src/api/python.ts` where dynamic entity IDs (like `userId`, `productId`, `roleId`, `onboardingId`, etc.) were interpolated directly into the API request URL paths without encoding (e.g., `await this.request("DELETE", \`/api/roles/${roleId}\`);`).
+**Learning:** Failing to encode path components allows malicious actors to craft IDs that include directory traversal (`../`) or other control characters, potentially bypassing route matching, manipulating the target resource path, or triggering 400 Bad Request parsing errors in the HTTP client.
+**Prevention:** All dynamic variables injected into URL paths (or query strings) must be wrapped in `encodeURIComponent()` to ensure the characters are interpreted as data rather than URL structure.

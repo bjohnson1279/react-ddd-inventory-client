@@ -381,7 +381,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     trackingMode: string,
     attributes: { name: string; value: string }[],
   ): Promise<void> {
-    await this.request("POST", `/api/catalog/products/${productId}/variants`, {
+    await this.request("POST", `/api/catalog/products/${encodeURIComponent(productId)}/variants`, {
       sku,
       trackingMode,
       attributes,
@@ -468,7 +468,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   async traceSerialHistory(serialNumber: string): Promise<SerializedItem> {
     const data = await this.request(
       "GET",
-      `/api/serials/trace/${serialNumber}`,
+      `/api/serials/trace/${encodeURIComponent(serialNumber)}`,
     );
     return {
       id: data.id,
@@ -563,7 +563,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     for (let i = 0; i < items.length; i += CHUNK_SIZE) {
       const batch = items.slice(i, i + CHUNK_SIZE);
       const promises = batch.map((item) =>
-        this.request("POST", `/api/onboardings/${onboardingId}/items`, {
+        this.request("POST", `/api/onboardings/${encodeURIComponent(onboardingId)}/items`, {
           variant_id: item.variantId,
           quantity: item.quantity,
           unit_cost_cents: item.unitCostCents,
@@ -574,7 +574,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async submitStockOnboarding(onboardingId: string): Promise<void> {
-    await this.request("POST", `/api/onboardings/${onboardingId}/submit`);
+    await this.request("POST", `/api/onboardings/${encodeURIComponent(onboardingId)}/submit`);
   }
 
   async getForecastingReport(
@@ -907,13 +907,13 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async approvePurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/api/purchase-orders/${id}/approve`, {
+    await this.request("POST", `/api/purchase-orders/${encodeURIComponent(id)}/approve`, {
       tenantId,
     });
   }
 
   async sendPurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/api/purchase-orders/${id}/send`, { tenantId });
+    await this.request("POST", `/api/purchase-orders/${encodeURIComponent(id)}/send`, { tenantId });
   }
 
   async receivePurchaseOrder(
@@ -925,7 +925,7 @@ export class LaravelRESTAdapter implements InventoryClient {
       sku: i.sku,
       quantity: i.quantity,
     }));
-    await this.request("POST", `/api/purchase-orders/${id}/receive`, {
+    await this.request("POST", `/api/purchase-orders/${encodeURIComponent(id)}/receive`, {
       tenantId,
       items: formattedItems,
     });
@@ -980,7 +980,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     userId: string,
     role: string,
   ): Promise<void> {
-    await this.request("PATCH", `/api/users/${userId}/role`, {
+    await this.request("PATCH", `/api/users/${encodeURIComponent(userId)}/role`, {
       tenantId,
       role,
     });
@@ -1016,13 +1016,13 @@ export class LaravelRESTAdapter implements InventoryClient {
     roleId: string,
     permissionIds: string[],
   ): Promise<void> {
-    await this.request("PUT", `/api/roles/${roleId}/permissions`, {
+    await this.request("PUT", `/api/roles/${encodeURIComponent(roleId)}/permissions`, {
       permissionIds,
     });
   }
 
   async deleteRole(roleId: string): Promise<void> {
-    await this.request("DELETE", `/api/roles/${roleId}`);
+    await this.request("DELETE", `/api/roles/${encodeURIComponent(roleId)}`);
   }
 
   async runAudit(tenantId: string): Promise<any> {
@@ -1042,7 +1042,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     id: string,
     notes: string,
   ): Promise<void> {
-    await this.request("POST", `/api/audit/discrepancies/${id}/resolve`, {
+    await this.request("POST", `/api/audit/discrepancies/${encodeURIComponent(id)}/resolve`, {
       tenantId,
       notes,
     });
@@ -1082,7 +1082,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async retryOutboxEvent(id: string): Promise<void> {
-    await this.request("POST", `/api/outbox/${id}/retry`);
+    await this.request("POST", `/api/outbox/${encodeURIComponent(id)}/retry`);
   }
 
   async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
@@ -1177,7 +1177,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     id: string,
     resolution: string,
   ): Promise<void> {
-    await this.request("POST", `/api/returns/quarantine/${id}/resolve`, {
+    await this.request("POST", `/api/returns/quarantine/${encodeURIComponent(id)}/resolve`, {
       tenantId,
       resolution,
     });
@@ -1429,7 +1429,7 @@ export class LaravelRESTAdapter implements InventoryClient {
   }
 
   async toggleApprovalWorkflow(id: string): Promise<any> {
-    return await this.request("POST", `/api/approvals/workflows/${id}/toggle`);
+    return await this.request("POST", `/api/approvals/workflows/${encodeURIComponent(id)}/toggle`);
   }
 
   async getPendingApprovals(): Promise<any[]> {
@@ -1441,14 +1441,14 @@ export class LaravelRESTAdapter implements InventoryClient {
     decision: "APPROVED" | "REJECTED" | "REQUEST_MORE_INFO",
     notes?: string,
   ): Promise<any> {
-    return await this.request("POST", `/api/approvals/${id}/decide`, {
+    return await this.request("POST", `/api/approvals/${encodeURIComponent(id)}/decide`, {
       decision,
       notes,
     });
   }
 
   async getApprovalHistory(requestId: string): Promise<any[]> {
-    const data = await this.request("GET", `/api/approvals/${requestId}`);
+    const data = await this.request("GET", `/api/approvals/${encodeURIComponent(requestId)}`);
     return data.decisions || [];
   }
 
@@ -1470,7 +1470,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     cronExpression: string,
     deliveryMethod: string,
   ): Promise<any> {
-    return await this.request("POST", `/api/reports/${reportId}/schedule`, {
+    return await this.request("POST", `/api/reports/${encodeURIComponent(reportId)}/schedule`, {
       tenantId,
       cronExpression,
       deliveryMethod,
@@ -1482,7 +1482,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     reportId: string,
     format: string,
   ): Promise<any> {
-    return await this.request("POST", `/api/reports/${reportId}/execute`, {
+    return await this.request("POST", `/api/reports/${encodeURIComponent(reportId)}/execute`, {
       tenantId,
       format,
     });
@@ -1516,7 +1516,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     });
   }
   async submitCycleCount(id: string, countedLines: any): Promise<void> {
-    await this.request("POST", `/api/cycle-count/${id}/submit`, {
+    await this.request("POST", `/api/cycle-count/${encodeURIComponent(id)}/submit`, {
       countedLines,
     });
   }
@@ -1556,7 +1556,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     );
   }
   async markNotificationRead(id: string): Promise<void> {
-    await this.request("POST", `/api/notifications/${id}/read`);
+    await this.request("POST", `/api/notifications/${encodeURIComponent(id)}/read`);
   }
 
   async generateAgingReport(tenantId: string): Promise<any> {

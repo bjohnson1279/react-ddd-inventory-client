@@ -92,7 +92,7 @@ export function PythonIntegrationsPanel({ client, tenantId }: { client: PythonRE
       </>}
     </div>)}
     <h3>Connections</h3>
-    {connections === null ? <p>{error ? 'Connections unavailable.' : 'Loading connections…'}</p> : connections.length === 0 ? <p>No connections registered. Register a signed store webhook or connector above.</p> : connections.map(row => <div key={row.id}>
+    {connections === null ? <p role="status" aria-live="polite">{error ? 'Connections unavailable.' : 'Loading connections…'}</p> : connections.length === 0 ? <p>No connections registered. Register a signed store webhook or connector above.</p> : connections.map(row => <div key={row.id}>
       <strong>{row.name}</strong> — {row.provider}, {row.active ? 'Enabled' : 'Paused'}
       {row.webhookPath && <p>Webhook path: <code>{row.webhookPath}</code></p>}
       <button disabled={busy} onClick={() => command('toggle', { active: !row.active, expectedVersion: row.version }, row.id)}>{row.active ? 'Pause' : 'Enable'} {row.name}</button>

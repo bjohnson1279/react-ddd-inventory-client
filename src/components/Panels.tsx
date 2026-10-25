@@ -1398,8 +1398,11 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
   // ⚡ Bolt: Memoize derived data count to prevent O(n) filtering on every render
   const urgentActionsCount = React.useMemo(
     () =>
-      forecastingReport.filter((item) => item.currentStock <= item.suggestedROP)
-        .length,
+      forecastingReport.reduce(
+        (count, item) =>
+          count + (item.currentStock <= item.suggestedROP ? 1 : 0),
+        0,
+      ),
     [forecastingReport],
   );
 
