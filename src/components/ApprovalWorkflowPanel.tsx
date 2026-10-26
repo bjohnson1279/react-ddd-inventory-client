@@ -51,7 +51,7 @@ export const ApprovalWorkflowPanel: React.FC<ApprovalWorkflowPanelProps> = ({
       if (api && api.toggleApprovalWorkflow) {
         await api.toggleApprovalWorkflow(id);
       } else {
-        await fetch(`/api/approval/workflows/${id}/toggle`, {
+        await fetch(`/api/approval/workflows/${encodeURIComponent(id)}/toggle`, {
           method: "POST",
           headers: {
             ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
