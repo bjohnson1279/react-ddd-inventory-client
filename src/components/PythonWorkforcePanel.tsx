@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import type { PythonRESTAdapter } from '../api/python';
 
 export function PythonWorkforcePanel({ client, tenantId, role, sessionKey }: { client: PythonRESTAdapter; tenantId: string; role: string; sessionKey?: string | null }) {
@@ -30,7 +30,14 @@ export function PythonWorkforcePanel({ client, tenantId, role, sessionKey }: { c
   const scope = useRef(0);
   const pending = useRef<{ key: string; mutationId: string } | null>(null);
   const selected = operators.find(o => o.userId === operator);
-  const certifications = certs.split(',').map(s => s.trim()).filter(Boolean);
+  // ⚡ Bolt: Replace consecutive .map() and .filter() calls with a single-pass reduce to eliminate redundant iterations and callback overhead
+  const certifications = useMemo(() => {
+    return certs.split(',').reduce((acc, s) => {
+      const trimmed = s.trim();
+      if (trimmed) acc.push(trimmed);
+      return acc;
+    }, [] as string[]);
+  }, [certs]);
   async function load(generation = scope.current) {
     const rows = await Promise.all([client.getMyWorkforce(tenantId), client.getWorkforceShifts(tenantId),
       managing ? client.getWorkforceOperators(tenantId) : Promise.resolve([]), managing ? client.getStaffingPlans(tenantId) : Promise.resolve([])]);
@@ -106,9 +113,21 @@ export function PythonWorkforcePanel({ client, tenantId, role, sessionKey }: { c
     {shifts.some(s => s.status === 'ACTIVE') && <>
       <h4>Record completed activity</h4>
       <p>Use the dispatch movement ID or reviewed count ID. Each source can be recorded once.</p>
-      <label>Activity shift <select value={activityShift} onChange={e => setActivityShift(e.target.value)}><option value="">Choose active shift</option>{shifts.filter(s => s.status === 'ACTIVE').map(s => <option key={s.id} value={s.id}>{s.locationId} · {s.id}</option>)}</select></label>
+      <label>Activity shift <select value={activityShift} onChange={e => setActivityShift(e.target.value)}><option value="">Choose active shift</option>{
+        // ⚡ Bolt: Replace O(N) chained .filter().map() inside render with a single-pass reduce to prevent redundant intermediate array allocations
+        shifts.reduce((acc, s) => {
+          if (s.status === 'ACTIVE') acc.push(<option key={s.id} value={s.id}>{s.locationId} · {s.id}</option>);
+          return acc;
+        }, [] as React.ReactNode[])
+      }</select></label>
       <label>Activity kind <select value={kind} onChange={e => setKind(e.target.value)}><option value="PICK">Dispatch pick task</option><option value="COUNT">Reviewed count</option></select></label>
-      <label>Completed source <select value={source} onChange={e => setSource(e.target.value)}><option value="">Choose recorded source</option>{sources.filter(s => s.kind === kind).map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select></label>
+      <label>Completed source <select value={source} onChange={e => setSource(e.target.value)}><option value="">Choose recorded source</option>{
+        // ⚡ Bolt: Replace O(N) chained .filter().map() inside render with a single-pass reduce to prevent redundant intermediate array allocations
+        sources.reduce((acc, s) => {
+          if (s.kind === kind) acc.push(<option key={s.id} value={s.id}>{s.label}</option>);
+          return acc;
+        }, [] as React.ReactNode[])
+      }</select></label>
       <label>Reported duration (seconds) <input type="number" min="1" max="57600" value={duration} onChange={e => setDuration(e.target.value)} /></label>
       <label>Reported distance (meters, optional) <input type="number" min="0" value={distance} onChange={e => setDistance(e.target.value)} /></label>
       <button disabled={busy || !source || !activityShift} onClick={() => send('shifts', { kind, sourceId: source, durationSeconds: Number(duration), traversalDistanceMeters: distance === '' ? null : Number(distance) }, activityShift, 'activities')}>Record activity</button>
