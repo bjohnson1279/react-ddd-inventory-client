@@ -202,3 +202,7 @@
 ## 2026-10-24 - Prevent intermediate array allocations and O(N*M) Lookups in Client Adapters
 **Learning:** Chained `.filter().map()` calls allocate intermediate arrays and invoke repeated callback closures. Similarly, running `.find()` inside `.map()` creates an O(N*M) lookup penalty.
 **Action:** Use a single-pass `for...of` loop when filtering and mapping integration records, and construct a `Map` lookup table for O(1) attribute/version indexing before mapping over SKU collections.
+
+## 2023-10-27 - Replace chained array methods with reduce
+**Learning:** Chained array methods like `.filter().map()` or `.map().filter()` inside React render loops create intermediate array allocations and cause redundant O(N) traversals on every render, which can degrade performance in high-frequency update scenarios.
+**Action:** Replace the chained methods with a single-pass `.reduce()` to eliminate the intermediate array and combine filtering and transformation into O(N) complexity.
