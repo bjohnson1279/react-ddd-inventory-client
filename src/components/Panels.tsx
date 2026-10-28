@@ -2123,12 +2123,14 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                     const po = sentPurchaseOrders.find((p) => p.id === id);
                     if (po) {
                       setReceivePoLines(
-                        po.items
-                          .map((i: any) => ({
-                            sku: i.sku,
-                            quantity: i.quantity - (i.receivedQuantity || 0),
-                          }))
-                          .filter((line: any) => line.quantity > 0),
+                        po.items.reduce((acc: any[], i: any) => {
+                          const quantity =
+                            i.quantity - (i.receivedQuantity || 0);
+                          if (quantity > 0) {
+                            acc.push({ sku: i.sku, quantity });
+                          }
+                          return acc;
+                        }, []),
                       );
                     }
                   }}
