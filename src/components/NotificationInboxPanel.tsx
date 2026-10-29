@@ -33,12 +33,8 @@ export const NotificationInboxPanel: React.FC<{ tenantId: string }> = ({
       </div>
       <div className="p-0">
         {notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-slate-500 py-12 px-4 text-center">
-            <div className="bg-slate-100 p-3 rounded-full mb-3">
-              <Check size={24} className="text-indigo-400" aria-hidden="true" />
-            </div>
-            <p className="font-medium text-slate-600">You're all caught up!</p>
-            <p className="text-sm mt-1">Check back later for new alerts.</p>
+          <div className="text-center text-slate-500 py-8">
+            You're all caught up!
           </div>
         ) : (
           <ul className="divide-y divide-slate-100">
