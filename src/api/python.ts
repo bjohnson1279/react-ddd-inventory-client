@@ -408,7 +408,15 @@ export class PythonRESTAdapter implements InventoryClient {
         if (page.length < 1000) break;
       }
       const skus = action === "disassemble" ? [kitSku] : [...formula.components.map((c: any) => c.sku), kitSku];
-      const stockVersions = Object.fromEntries(skus.map((sku: string) => [sku, stock.find((s: any) => s.sku === sku && s.locationId === locationId)?.version ?? 0]));
+      // ⚡ Bolt: Replace O(N*M) .find() inside .map() with O(N+M) Map lookup to prevent nested iteration bottleneck during kit operations
+      const stockMap = new Map();
+      for (let i = 0; i < stock.length; i++) {
+        const s = stock[i];
+        if (s.locationId === locationId && !stockMap.has(s.sku)) {
+          stockMap.set(s.sku, s.version);
+        }
+      }
+      const stockVersions = Object.fromEntries(skus.map((sku: string) => [sku, stockMap.get(sku) ?? 0]));
       payload = { tenantId, kitSku, locationId, quantity, expectedVersion: formula.version, stockVersions,
         mutationId: crypto.randomUUID(), reason: `Operator requested ${action}`, referenceId };
       sessionStorage.setItem(cacheKey, JSON.stringify(payload));
