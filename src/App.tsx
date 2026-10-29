@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   useInventory,
   BackendType,
@@ -84,6 +84,7 @@ const Spinner = () => (
 );
 
 function App() {
+  const emailInputId = useId();
   const { client, backendType, setBackendType } = useInventory();
 
   const [activeTab, setActiveTab] = useState<Tab | "forecasting" | "op-depth">(
@@ -5875,8 +5876,9 @@ function App() {
                   <h3 className="form-section-title">Invite New Team Member</h3>
                   <form onSubmit={handleInviteUser}>
                     <div className="form-group">
-                      <label>User Email Address</label>
+                      <label htmlFor={emailInputId}>User Email Address</label>
                       <input
+                        id={emailInputId}
                         type="email"
                         value={newUserEmail}
                         onChange={(e) => setNewUserEmail(e.target.value)}
