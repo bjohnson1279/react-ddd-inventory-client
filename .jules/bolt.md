@@ -191,3 +191,7 @@
 ## 2026-09-07 - Bulk Inventory Stock Level Fetch
 **Learning:** Replacing chunked individual N+1 HTTP requests (`GET /api/inventory/${v.sku}/stock`) with bulk query endpoint requests (`GET /api/inventory/stock?skus=...`) eliminates network round-trip overhead while maintaining full fallback compatibility.
 **Action:** Always batch multi-entity queries into bulk HTTP endpoints using query parameters or bulk endpoints when fetching array items.
+
+## 2024-10-25 - Replace filter().map() with single-pass reduce()
+**Learning:** Using `.filter().map()` inside a component's render function performs multiple O(N) iterations and allocates an intermediate array, putting pressure on garbage collection. Additionally, re-evaluating `.some()` on the same array adds more unnecessary iterations.
+**Action:** Extract list transformations into a `useMemo` using a single-pass `.reduce()` to accumulate matching items. This reduces iteration count and eliminates temporary array allocations.
