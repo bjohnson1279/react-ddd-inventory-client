@@ -413,4 +413,187 @@ describe("Offline Queue DB", () => {
     expect(mockClient.scanBarcode).toHaveBeenCalledTimes(15);
     expect(mockStore.delete).toHaveBeenCalledTimes(15);
   });
+
+  it("should handle sync when offline queue is completely empty", async () => {
+    mockStore.getAll.mockImplementation(() => {
+      const req = { result: [], onsuccess: null as any };
+      setTimeout(() => {
+        if (req.onsuccess) req.onsuccess();
+      }, 0);
+      return req;
+    });
+
+    const mockClient = {
+      scanBarcode: vi.fn(),
+    } as any;
+
+    const summary = await syncOfflineQueue(mockClient);
+    expect(summary.successCount).toBe(0);
+    expect(summary.failedCount).toBe(0);
+    expect(summary.errors).toHaveLength(0);
+    expect(mockClient.scanBarcode).not.toHaveBeenCalled();
+  });
+
+  it("should handle null or falsy result from IndexedDB getAll in getQueuedScans", async () => {
+    mockStore.getAll.mockImplementation(() => {
+      const req = { result: null, onsuccess: null as any };
+      setTimeout(() => {
+        if (req.onsuccess) req.onsuccess();
+      }, 0);
+      return req;
+    });
+
+    const scans = await getQueuedScans();
+    expect(scans).toEqual([]);
+  });
+
+  it("should format errors correctly when scanBarcode rejects with a string or non-Error object", async () => {
+    const mockScans: QueuedScan[] = [
+      {
+        id: 99,
+        value: "STRING_ERR_SCAN",
+        context: "inv",
+        amount: 1,
+        actualQuantity: 1,
+        tenantId: "t-1",
+        locationId: "loc-1",
+        actorId: "act-1",
+        timestamp: "2025-01-01",
+      },
+    ];
+
+    mockStore.getAll.mockImplementation(() => {
+      const req = { result: mockScans, onsuccess: null as any };
+      setTimeout(() => {
+        if (req.onsuccess) req.onsuccess();
+      }, 0);
+      return req;
+    });
+
+    const mockClient = {
+      scanBarcode: vi.fn().mockRejectedValue("Raw string error reason"),
+    } as any;
+
+    const summary = await syncOfflineQueue(mockClient);
+    expect(summary.successCount).toBe(0);
+    expect(summary.failedCount).toBe(1);
+    expect(summary.errors).toContain("Scan STRING_ERR_SCAN failed: undefined");
+  });
+
+  it("should queue scans with zero or negative amounts/quantities without throwing", async () => {
+    mockStore.add.mockImplementation((data: any) => {
+      const req = { result: 101, onsuccess: null as any };
+      setTimeout(() => {
+        if (req.onsuccess) req.onsuccess();
+      }, 0);
+      return req;
+    });
+
+    const id = await addScanToQueue({
+      value: "ZERO_QTY_SCAN",
+      context: "adjustment",
+      amount: 0,
+      actualQuantity: -5,
+      tenantId: "t-1",
+      locationId: "loc-1",
+      actorId: "act-1",
+    });
+
+    expect(id).toBe(101);
+    expect(mockStore.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        value: "ZERO_QTY_SCAN",
+        amount: 0,
+        actualQuantity: -5,
+      }),
+    );
+  });
+
+  it("should handle error when deleteScans fails during sync processing", async () => {
+    const mockScans: QueuedScan[] = [
+      {
+        id: 77,
+        value: "FAIL_DELETE_SCAN",
+        context: "inv",
+        amount: 1,
+        actualQuantity: 1,
+        tenantId: "t-1",
+        locationId: "loc-1",
+        actorId: "act-1",
+        timestamp: "2025-01-01",
+      },
+    ];
+
+    mockStore.getAll.mockImplementation(() => {
+      const req = { result: mockScans, onsuccess: null as any };
+      setTimeout(() => {
+        if (req.onsuccess) req.onsuccess();
+      }, 0);
+      return req;
+    });
+
+    mockDB.transaction = vi
+      .fn()
+      .mockImplementation((storeName: string, mode: string) => {
+        if (mode === "readwrite") {
+          setTimeout(() => {
+            if (mockTransaction.onerror) {
+              mockTransaction.error = new Error(
+                "Delete transaction DB failure",
+              );
+              mockTransaction.onerror();
+            }
+          }, 0);
+        }
+        return mockTransaction;
+      });
+
+    const mockClient = {
+      scanBarcode: vi.fn().mockResolvedValue({ success: true }),
+    } as any;
+
+    await expect(syncOfflineQueue(mockClient)).rejects.toThrow(
+      "Delete transaction DB failure",
+    );
+  });
+
+  it("should handle multi-batch sync across 25+ items", async () => {
+    const mockScans: QueuedScan[] = Array.from({ length: 25 }, (_, i) => ({
+      id: i + 1,
+      value: `BATCH_SCAN_${i + 1}`,
+      context: "inv",
+      amount: 1,
+      actualQuantity: 1,
+      tenantId: "t-1",
+      locationId: "loc-1",
+      actorId: "act-1",
+      timestamp: "2025-01-01",
+    }));
+
+    mockStore.getAll.mockImplementation(() => {
+      const req = { result: mockScans, onsuccess: null as any };
+      setTimeout(() => {
+        if (req.onsuccess) req.onsuccess();
+      }, 0);
+      return req;
+    });
+
+    mockStore.delete.mockImplementation(() => {
+      const req = { onsuccess: null as any };
+      setTimeout(() => {
+        if (req.onsuccess) req.onsuccess();
+      }, 0);
+      return req;
+    });
+
+    const mockClient = {
+      scanBarcode: vi.fn().mockResolvedValue({ success: true }),
+    } as any;
+
+    const summary = await syncOfflineQueue(mockClient);
+    expect(summary.successCount).toBe(25);
+    expect(summary.failedCount).toBe(0);
+    expect(mockClient.scanBarcode).toHaveBeenCalledTimes(25);
+    expect(mockStore.delete).toHaveBeenCalledTimes(25);
+  });
 });
