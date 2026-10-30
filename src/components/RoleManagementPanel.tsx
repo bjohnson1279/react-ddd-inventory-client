@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useInventory, Role, Permission } from '../api/client';
+import { X } from 'lucide-react';
 
 export const RoleManagementPanel: React.FC = () => {
   const { client } = useInventory();
@@ -138,7 +139,9 @@ export const RoleManagementPanel: React.FC = () => {
       {error && (
         <div role="alert" aria-live="assertive" style={{ background: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid #ef4444', color: '#fca5a5', padding: '16px', borderRadius: '6px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>{error}</span>
-          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" title="Dismiss error" style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: '1.2rem', cursor: 'pointer', padding: '0 4px' }}>×</button>
+          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" title="Dismiss error" style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: '1.2rem', cursor: 'pointer', padding: '0 4px', display: 'flex', alignItems: 'center' }}>
+            <X size={18} />
+          </button>
         </div>
       )}
 
