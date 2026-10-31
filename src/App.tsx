@@ -361,12 +361,6 @@ function App() {
     [wmsLocations, wmsSelectedZone],
   );
 
-  // ⚡ Bolt: Memoize selected webhook events into a Set for O(1) lookups inside the render loop, replacing O(N) Array.includes()
-  const webhookEventsSet = useMemo(
-    () => new Set(webhookEvents),
-    [webhookEvents],
-  );
-
   // --- Admin Portal States ---
   const [adminActiveSubTab, setAdminActiveSubTab] = useState<
     | "users"
@@ -5233,7 +5227,7 @@ function App() {
                       >
                         <input
                           type="checkbox"
-                          checked={webhookEventsSet.has(evt)}
+                          checked={webhookEvents.includes(evt)}
                           onChange={(e) => {
                             if (e.target.checked) {
                               setWebhookEvents([...webhookEvents, evt]);
