@@ -263,11 +263,16 @@ export class ExpressRESTAdapter implements InventoryClient {
     trackingMode: string,
     attributes: { name: string; value: string }[],
   ): Promise<void> {
-    await this.request("POST", `/inventory/products/${productId}/variants`, {
-      sku,
-      trackingMode,
-      attributes,
-    });
+    await this.request(
+      "POST",
+      // SECURITY: Encode path segment to prevent URL injection
+      `/inventory/products/${encodeURIComponent(productId)}/variants`,
+      {
+        sku,
+        trackingMode,
+        attributes,
+      },
+    );
   }
 
   async assignBarcode(
@@ -401,11 +406,16 @@ export class ExpressRESTAdapter implements InventoryClient {
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
       const batch = items.slice(i, i + BATCH_SIZE);
       const promises = batch.map((item) =>
-        this.request("POST", `/onboarding/${onboardingId}/items`, {
-          variantId: item.variantId,
-          quantity: item.quantity,
-          unitCostCents: item.unitCostCents,
-        }),
+        this.request(
+          "POST",
+          // SECURITY: Encode path segment to prevent URL injection
+          `/onboarding/${encodeURIComponent(onboardingId)}/items`,
+          {
+            variantId: item.variantId,
+            quantity: item.quantity,
+            unitCostCents: item.unitCostCents,
+          },
+        ),
       );
       await Promise.all(promises);
     }
