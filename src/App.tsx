@@ -702,10 +702,14 @@ function App() {
   // --- Data Loading Functions ---
   const loadLedgerData = async () => {
     setLoading(true);
-    setMessage(previous => previous?.type === 'error' ? null : previous);
-    try { setJournals(await client.getJournalEntries(tenantId)); }
-    catch (err: any) { setMessage({ type: 'error', text: err.message }); }
-    finally { setLoading(false); }
+    setMessage((previous) => (previous?.type === "error" ? null : previous));
+    try {
+      setJournals(await client.getJournalEntries(tenantId));
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadDashboardData = async () => {
@@ -715,10 +719,14 @@ function App() {
       const [invData, prodData, connData, glData] = await Promise.all([
         client.getInventoryItems(),
         client.getProducts(),
-        backendType !== 'python' || ['admin', 'manager'].includes(role.toLowerCase())
-          ? client.getShopifyConnections(tenantId) : Promise.resolve([]),
-        backendType !== 'python' || ['admin', 'manager', 'accountant'].includes(role.toLowerCase())
-          ? client.getJournalEntries(tenantId) : Promise.resolve([]),
+        backendType !== "python" ||
+        ["admin", "manager"].includes(role.toLowerCase())
+          ? client.getShopifyConnections(tenantId)
+          : Promise.resolve([]),
+        backendType !== "python" ||
+        ["admin", "manager", "accountant"].includes(role.toLowerCase())
+          ? client.getJournalEntries(tenantId)
+          : Promise.resolve([]),
       ]);
       setInventoryItems(invData || []);
       setProducts(prodData || []);
@@ -1001,7 +1009,7 @@ function App() {
     } else if (activeTab === "ledger") {
       loadLedgerData();
     } else if (activeTab === "shopify") {
-      if (backendType !== 'python') loadDashboardData();
+      if (backendType !== "python") loadDashboardData();
     } else if (activeTab === "forecasting") {
       loadForecastingReport();
       loadReorderPolicies();
@@ -1562,11 +1570,7 @@ function App() {
 
   const handlePostJournal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !window.confirm(
-        "Post this balanced journal to the general ledger?",
-      )
-    ) {
+    if (!window.confirm("Post this balanced journal to the general ledger?")) {
       return;
     }
     setLoading(true);
@@ -2318,7 +2322,8 @@ function App() {
             >
               📊 Operational Depth
             </div>
-            {(role === "admin" || (backendType === 'python' && role === 'manager')) && (
+            {(role === "admin" ||
+              (backendType === "python" && role === "manager")) && (
               <div
                 className={`nav-link ${activeTab === "shopify" ? "active" : ""}`}
                 onClick={() => setActiveTab("shopify")}
@@ -2352,7 +2357,9 @@ function App() {
                 📥 Stock Onboarding
               </div>
             )}
-            {(role === "admin" || role === "accountant" || (backendType === 'python' && role === 'manager')) && (
+            {(role === "admin" ||
+              role === "accountant" ||
+              (backendType === "python" && role === "manager")) && (
               <div
                 className={`nav-link ${activeTab === "ledger" ? "active" : ""}`}
                 onClick={() => setActiveTab("ledger")}
@@ -2573,34 +2580,34 @@ function App() {
 
           <div className="header-controls">
             <div className="backend-switcher">
-              {(["graphql", "express", "laravel", "python"] as BackendType[]).map(
-                (type) => (
+              {(
+                ["graphql", "express", "laravel", "python"] as BackendType[]
+              ).map((type) => (
+                <div
+                  key={type}
+                  className={`backend-option ${backendType === type ? "active" : ""}`}
+                  onClick={() => setBackendType(type)}
+                >
                   <div
-                    key={type}
-                    className={`backend-option ${backendType === type ? "active" : ""}`}
-                    onClick={() => setBackendType(type)}
-                  >
-                    <div
-                      className={`health-dot ${backendHealth[type]?.status || "checking"}`}
-                      title={backendHealth[type]?.status}
-                    />
-                    <span>
-                      {type === "graphql"
-                        ? "GraphQL"
-                        : type === "express"
-                          ? "Express"
-                          : type === "laravel"
-                            ? "Laravel"
-                            : "Python"}
+                    className={`health-dot ${backendHealth[type]?.status || "checking"}`}
+                    title={backendHealth[type]?.status}
+                  />
+                  <span>
+                    {type === "graphql"
+                      ? "GraphQL"
+                      : type === "express"
+                        ? "Express"
+                        : type === "laravel"
+                          ? "Laravel"
+                          : "Python"}
+                  </span>
+                  {backendHealth[type]?.status === "online" && (
+                    <span className="backend-latency">
+                      {backendHealth[type].latencyMs}ms
                     </span>
-                    {backendHealth[type]?.status === "online" && (
-                      <span className="backend-latency">
-                        {backendHealth[type].latencyMs}ms
-                      </span>
-                    )}
-                  </div>
-                ),
-              )}
+                  )}
+                </div>
+              ))}
               <div className="conformance-badge passed">
                 ✓ Conformance Passed
               </div>
@@ -2662,7 +2669,14 @@ function App() {
               </div>
               <div className="stat-card accent">
                 <span className="stat-title">Double-Entry Ledger</span>
-                <span className="stat-value">{backendType === 'python' && !['admin', 'manager', 'accountant'].includes(role.toLowerCase()) ? 'Restricted' : journals.length}</span>
+                <span className="stat-value">
+                  {backendType === "python" &&
+                  !["admin", "manager", "accountant"].includes(
+                    role.toLowerCase(),
+                  )
+                    ? "Restricted"
+                    : journals.length}
+                </span>
                 <span className="stat-desc">Recorded Journal Entries</span>
               </div>
             </div>
@@ -2750,21 +2764,53 @@ function App() {
 
         {activeTab === "op-depth" && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
-            {backendType === 'python' && <div className="xl:col-span-2"><PythonWorkforcePanel client={client as PythonRESTAdapter} tenantId={tenantId} role={role} sessionKey={token} /></div>}
+            {backendType === "python" && (
+              <div className="xl:col-span-2">
+                <PythonWorkforcePanel
+                  client={client as PythonRESTAdapter}
+                  tenantId={tenantId}
+                  role={role}
+                  sessionKey={token}
+                />
+              </div>
+            )}
             <CycleCountDashboardPanel tenantId={tenantId} />
             <SupplierCollaborationPortal tenantId={tenantId} />
             <div className="xl:col-span-2 mt-6">
-              {backendType === 'python' ? <PythonAgingPanel client={client as PythonRESTAdapter} tenantId={tenantId} sessionKey={token} /> : <InventoryAgingPanel tenantId={tenantId} />}
+              {backendType === "python" ? (
+                <PythonAgingPanel
+                  client={client as PythonRESTAdapter}
+                  tenantId={tenantId}
+                  sessionKey={token}
+                />
+              ) : (
+                <InventoryAgingPanel tenantId={tenantId} />
+              )}
             </div>
             <div className="xl:col-span-2 mt-6">
-              {backendType === 'python' ? <PythonNotificationInbox client={client as PythonRESTAdapter} tenantId={tenantId} sessionKey={token} onOpenReports={() => setActiveTab('reporting' as any)} /> : <NotificationInboxPanel tenantId={tenantId} />}
+              {backendType === "python" ? (
+                <PythonNotificationInbox
+                  client={client as PythonRESTAdapter}
+                  tenantId={tenantId}
+                  sessionKey={token}
+                  onOpenReports={() => setActiveTab("reporting" as any)}
+                />
+              ) : (
+                <NotificationInboxPanel tenantId={tenantId} />
+              )}
             </div>
           </div>
         )}
 
-        {activeTab === "shopify" && (
-          backendType === 'python' ? <PythonIntegrationsPanel client={client as PythonRESTAdapter} tenantId={tenantId} /> : <OmnichannelIntegrationPanel tenantId={tenantId} />
-        )}
+        {activeTab === "shopify" &&
+          (backendType === "python" ? (
+            <PythonIntegrationsPanel
+              client={client as PythonRESTAdapter}
+              tenantId={tenantId}
+            />
+          ) : (
+            <OmnichannelIntegrationPanel tenantId={tenantId} />
+          ))}
 
         {activeTab === "products" && (
           <div className="grid-cols-2">
@@ -3459,8 +3505,16 @@ function App() {
 
         {activeTab === "ledger" && (
           <div className="grid-cols-2">
-            {backendType === 'python' && ['admin', 'manager', 'accountant'].includes(role.toLowerCase()) &&
-              <FinancialAccountingPanel client={client as PythonRESTAdapter} tenantId={tenantId} onPosted={loadLedgerData} />}
+            {backendType === "python" &&
+              ["admin", "manager", "accountant"].includes(
+                role.toLowerCase(),
+              ) && (
+                <FinancialAccountingPanel
+                  client={client as PythonRESTAdapter}
+                  tenantId={tenantId}
+                  onPosted={loadLedgerData}
+                />
+              )}
             <div className="glass-panel">
               <h3 className="form-section-title">
                 Record General Ledger Journal
@@ -3606,7 +3660,11 @@ function App() {
                       journals.map((entry) => (
                         <tr key={entry.id}>
                           <td>
-                            {entry.date ? /^\d{4}-\d{2}-\d{2}$/.test(entry.date) ? entry.date : new Date(entry.date).toLocaleDateString() : "Unknown"}
+                            {entry.date
+                              ? /^\d{4}-\d{2}-\d{2}$/.test(entry.date)
+                                ? entry.date
+                                : new Date(entry.date).toLocaleDateString()
+                              : "Unknown"}
                           </td>
                           <td>
                             <strong>{entry.description}</strong>
@@ -6301,7 +6359,9 @@ function App() {
                                 {e.error || "Message retry execution failure."}
                               </td>
                               <td>
-                                {e.occurredAt ? new Date(e.occurredAt).toLocaleTimeString() : "Unknown"}
+                                {e.occurredAt
+                                  ? new Date(e.occurredAt).toLocaleTimeString()
+                                  : "Unknown"}
                               </td>
                               <td>
                                 <button
@@ -6927,9 +6987,17 @@ function App() {
           <DigitalTwinCopilotPanel api={client} />
         )}
         {(activeTab as string) === "esg" && <EsgEmissionsPanel api={client} />}
-        {(activeTab as string) === "reporting" && (
-          backendType === 'python' ? <PythonReportingPanel client={client as PythonRESTAdapter} tenantId={tenantId} role={role} sessionKey={token} /> : <ReportingDashboardPanel client={client} tenantId={tenantId} />
-        )}
+        {(activeTab as string) === "reporting" &&
+          (backendType === "python" ? (
+            <PythonReportingPanel
+              client={client as PythonRESTAdapter}
+              tenantId={tenantId}
+              role={role}
+              sessionKey={token}
+            />
+          ) : (
+            <ReportingDashboardPanel client={client} tenantId={tenantId} />
+          ))}
         {(activeTab as string) === "intercompany" && (
           <IntercompanyPanel tenantId={tenantId} />
         )}
