@@ -1589,8 +1589,6 @@ function App() {
     } catch (err: unknown) {
       setMessage({ type: "error", text: (err as Error).message });
       loadLedgerData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
