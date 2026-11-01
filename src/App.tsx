@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   useInventory,
   BackendType,
@@ -84,6 +84,7 @@ const Spinner = () => (
 );
 
 function App() {
+  const emailInputId = useId();
   const { client, backendType, setBackendType } = useInventory();
 
   const [activeTab, setActiveTab] = useState<Tab | "forecasting" | "op-depth">(
@@ -1586,11 +1587,9 @@ function App() {
         { accountCode: "2000", amountCents: 0, type: "credit", memo: "" },
       ]);
       loadDashboardData();
+      loadLedgerData();
     } catch (err: unknown) {
       setMessage({ type: "error", text: (err as Error).message });
-      loadLedgerData();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
@@ -2217,6 +2216,7 @@ function App() {
               <option value="graphql">GraphQL API (Port 4000)</option>
               <option value="express">Express REST API (Port 5000)</option>
               <option value="laravel">Laravel REST API (Port 8000)</option>
+              <option value="python">Python REST API (Port 8001)</option>
             </select>
           </div>
 
@@ -2573,7 +2573,7 @@ function App() {
 
           <div className="header-controls">
             <div className="backend-switcher">
-              {(["graphql", "express", "laravel"] as BackendType[]).map(
+              {(["graphql", "express", "laravel", "python"] as BackendType[]).map(
                 (type) => (
                   <div
                     key={type}
@@ -2589,7 +2589,9 @@ function App() {
                         ? "GraphQL"
                         : type === "express"
                           ? "Express"
-                          : "Laravel"}
+                          : type === "laravel"
+                            ? "Laravel"
+                            : "Python"}
                     </span>
                     {backendHealth[type]?.status === "online" && (
                       <span className="backend-latency">
@@ -5874,8 +5876,9 @@ function App() {
                   <h3 className="form-section-title">Invite New Team Member</h3>
                   <form onSubmit={handleInviteUser}>
                     <div className="form-group">
-                      <label>User Email Address</label>
+                      <label htmlFor={emailInputId}>User Email Address</label>
                       <input
+                        id={emailInputId}
                         type="email"
                         value={newUserEmail}
                         onChange={(e) => setNewUserEmail(e.target.value)}

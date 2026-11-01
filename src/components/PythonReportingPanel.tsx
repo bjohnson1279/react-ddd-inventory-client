@@ -80,7 +80,7 @@ export function PythonReportingPanel({ client, tenantId, role, sessionKey }: { c
     <section className="glass-panel" aria-labelledby="python-report-title">
       <h2 id="python-report-title">Reports and retail alerts</h2>
       <div role="status" aria-live="polite">{notice}</div>{error && <p role="alert">{error}</p>}
-      {!config && <p>{error ? 'Reporting data unavailable.' : 'Loading reporting data…'}</p>}
+      {!config && <p role="status" aria-live="polite">{error ? 'Reporting data unavailable.' : 'Loading reporting data…'}</p>}
       {manageReports && <form onSubmit={event => { event.preventDefault(); command('/reports', {
         name, type, filters: { ...(!financial ? { ...(sku ? { sku } : {}), ...(location ? { locationId: location } : {}) } : {}),
           ...(['MOVEMENTS', 'INCOME_STATEMENT'].includes(type) ? { ...(fromDate ? { fromDate } : {}), ...(toDate ? { toDate } : {}) } : {}),

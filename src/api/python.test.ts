@@ -34,6 +34,9 @@ describe("Python procurement transport", () => {
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).mutationId).toBe(
       JSON.parse(fetchMock.mock.calls[3][1].body).mutationId,
     );
+  });
+});
+
 it('preserves workforce versions and encodes operator/shift identity', async () => {
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
   vi.stubGlobal('fetch', fetchMock);

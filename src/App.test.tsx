@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import App from './App';
 import { useInventory } from './api/client';
 import '@testing-library/jest-dom';
@@ -73,9 +73,20 @@ describe('App - Error Path Tests', () => {
     await waitFor(() => {
       // Find elements with title="offline"
       const offlineDots = document.querySelectorAll('.health-dot.offline');
-      expect(offlineDots.length).toBe(3);
+      expect(offlineDots.length).toBe(4);
     });
 
     mockFetch.mockRestore();
+  });
+
+  it('allows selecting the Python API node', () => {
+    localStorage.removeItem('auth_token');
+    const setBackendType = vi.fn();
+    vi.mocked(useInventory).mockReturnValue({ client: {} as any, backendType: 'express', setBackendType });
+    render(<App />);
+    const selector = screen.getByLabelText('Backend API Node:');
+    expect(screen.getByRole('option', { name: 'Python REST API (Port 8001)' })).toHaveValue('python');
+    fireEvent.change(selector, { target: { value: 'python' } });
+    expect(setBackendType).toHaveBeenCalledWith('python');
   });
 });

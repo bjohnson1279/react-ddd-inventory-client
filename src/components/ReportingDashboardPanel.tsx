@@ -136,7 +136,9 @@ export const ReportingDashboardPanel: React.FC<Props> = ({
             Saved Reports
           </h3>
           {loading ? (
-            <div className="text-gray-500">Loading reports...</div>
+            <div className="text-gray-500" role="status" aria-live="polite">
+              Loading reports...
+            </div>
           ) : reports.length === 0 ? (
             <div className="text-gray-500">No reports defined.</div>
           ) : (
