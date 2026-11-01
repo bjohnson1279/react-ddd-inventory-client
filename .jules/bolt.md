@@ -84,9 +84,6 @@
 ## Hallucinatory Task & Empty PR Directives
 - **Zero-Diff Task Termination**: If the requested optimization, refactor, or fix is ALREADY natively present in the target branch, DO NOT create an empty pull request or commit an acknowledgment PR. Exit the task cleanly without opening a PR.
 - **Stale Suggestion Guard**: Always verify the current code on `main`/`master` before planning changes. If no actionable diff is required, cancel task execution immediately.
-- **Mandatory Upstream Base Fetch**: Prior to branching or planning changes, execute `git fetch origin main && git checkout origin/main -b <branch-name>` to prevent building atop stale bases.
-- **Pre-Commit Direct Diff Abort Gate**: Run `git diff origin/main <target_file>` before committing or opening a PR. If the substantive code diff against `origin/main` is zero outside `.jules/`, abort execution immediately.
-
 ## 2024-11-20 - Avoid Consecutive Map and Filter Operations Inside Event Handlers
 **Learning:** Found a sequence of array `.map().filter()` inside a component event handler (`handleOptimizePickRoute` in `App.tsx`) to process a comma-separated string input. This causes redundant iterations and unnecessary array memory allocations on the main thread during execution.
 **Action:** Replace consecutive `.map().filter()` chains with a single-pass `.reduce()` loop when processing data or user input, improving performance by avoiding multiple array traversals and intermediate allocations.
@@ -194,19 +191,3 @@
 ## 2026-09-07 - Bulk Inventory Stock Level Fetch
 **Learning:** Replacing chunked individual N+1 HTTP requests (`GET /api/inventory/${v.sku}/stock`) with bulk query endpoint requests (`GET /api/inventory/stock?skus=...`) eliminates network round-trip overhead while maintaining full fallback compatibility.
 **Action:** Always batch multi-entity queries into bulk HTTP endpoints using query parameters or bulk endpoints when fetching array items.
-
-## 2024-10-25 - Replace filter().map() with single-pass reduce()
-**Learning:** Using `.filter().map()` inside a component's render function performs multiple O(N) iterations and allocates an intermediate array, putting pressure on garbage collection. Additionally, re-evaluating `.some()` on the same array adds more unnecessary iterations.
-**Action:** Extract list transformations into a `useMemo` using a single-pass `.reduce()` to accumulate matching items. This reduces iteration count and eliminates temporary array allocations.
-
-## 2026-10-24 - Prevent intermediate array allocations and O(N*M) Lookups in Client Adapters
-**Learning:** Chained `.filter().map()` calls allocate intermediate arrays and invoke repeated callback closures. Similarly, running `.find()` inside `.map()` creates an O(N*M) lookup penalty.
-**Action:** Use a single-pass `for...of` loop when filtering and mapping integration records, and construct a `Map` lookup table for O(1) attribute/version indexing before mapping over SKU collections.
-
-## 2026-10-27 - Replace chained map and filter with single-pass reduce
-**Learning:** Using chained `.map().filter()` calls inside a component's render function performs multiple O(N) iterations and allocates an intermediate array, putting pressure on garbage collection.
-**Action:** Replace `.map().filter()` with a single-pass `.reduce()` to accumulate matching items. This reduces iteration count and eliminates temporary array allocations.
-
-## 2024-05-30 - Optimize Array Chaining in Render Loops
-**Learning:** Consecutive array methods (`.split().map().filter()`) inside a component render loop trigger unnecessary intermediate array allocations, blocking the main thread and impacting performance in heavily re-rendered components like `PythonWorkforcePanel`.
-**Action:** Always replace chained array methods with a single-pass `.reduce()` and memoize the result with `useMemo` when calculating derived values from primitive inputs during renders.

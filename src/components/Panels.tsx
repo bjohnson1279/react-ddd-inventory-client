@@ -133,9 +133,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
                       <code>{item.locationId}</code>
                     </td>
                     <td>
-                      <strong>
-                        {item.quantity} {item.baseUnit ?? "units"}
-                      </strong>
+                      <strong>{item.quantity} {item.baseUnit ?? 'units'}</strong>
                     </td>
                     <td>
                       <code>v{item.version}</code>
@@ -1398,11 +1396,8 @@ export const ForecastingPanel: React.FC<ForecastingPanelProps> = ({
   // ⚡ Bolt: Memoize derived data count to prevent O(n) filtering on every render
   const urgentActionsCount = React.useMemo(
     () =>
-      forecastingReport.reduce(
-        (count, item) =>
-          count + (item.currentStock <= item.suggestedROP ? 1 : 0),
-        0,
-      ),
+      forecastingReport.filter((item) => item.currentStock <= item.suggestedROP)
+        .length,
     [forecastingReport],
   );
 
@@ -2123,14 +2118,12 @@ export const ProcurementPanel: React.FC<ProcurementPanelProps> = ({
                     const po = sentPurchaseOrders.find((p) => p.id === id);
                     if (po) {
                       setReceivePoLines(
-                        po.items.reduce((acc: any[], i: any) => {
-                          const quantity =
-                            i.quantity - (i.receivedQuantity || 0);
-                          if (quantity > 0) {
-                            acc.push({ sku: i.sku, quantity });
-                          }
-                          return acc;
-                        }, []),
+                        po.items
+                          .map((i: any) => ({
+                            sku: i.sku,
+                            quantity: i.quantity - (i.receivedQuantity || 0),
+                          }))
+                          .filter((line: any) => line.quantity > 0),
                       );
                     }
                   }}
@@ -3337,7 +3330,7 @@ export const LotManagementPanel = () => {
       if (action === "trace") {
         const activeToken = localStorage.getItem("auth_token") || "";
         const res = await fetch(
-          `/api/lots/${encodeURIComponent(lotNumber)}/traceability?variantId=${encodeURIComponent(variantId)}`,
+          `/api/lots/${encodeURIComponent(lotNumber)}/traceability?variantId=${variantId}`,
           {
             headers: activeToken
               ? { Authorization: `Bearer ${activeToken}` }
