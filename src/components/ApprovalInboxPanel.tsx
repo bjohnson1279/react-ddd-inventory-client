@@ -60,14 +60,20 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
       if (api && api.submitApprovalDecision) {
         await api.submitApprovalDecision(id, decision, "Reviewed via UI");
       } else {
-        await fetch(`/api/approval/requests/${id}/decision`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
+        // SECURITY: Encode path segment to prevent URL injection
+        await fetch(
+          `/api/approval/requests/${encodeURIComponent(id)}/decision`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(activeToken
+                ? { Authorization: `Bearer ${activeToken}` }
+                : {}),
+            },
+            body: JSON.stringify({ decision, notes: "Reviewed via UI" }),
           },
-          body: JSON.stringify({ decision, notes: "Reviewed via UI" }),
-        });
+        );
       }
       fetchRequests();
     } catch (err: any) {
