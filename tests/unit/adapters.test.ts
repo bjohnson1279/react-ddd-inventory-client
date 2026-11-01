@@ -129,15 +129,12 @@ describe("Inventory Backend API Adapters", () => {
                       sku: "SKU-FAIL-1",
                       trackingMode: "quantity",
                       attributes: [],
-                    },
                     {
                       id: "v-2",
                       sku: "SKU-FAIL-2",
                       trackingMode: "quantity",
                       attributes: [],
-                    }
                   ],
-                }
               ],
         })
         // Second call: GetBatchedBarcodes batch query fails
