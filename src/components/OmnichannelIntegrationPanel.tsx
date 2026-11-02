@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useInventory } from "../api/client";
+import { X } from "lucide-react";
 
 export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
   tenantId,
@@ -117,9 +118,9 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
             onClick={() => setError("")}
             aria-label="Dismiss error"
             title="Dismiss error"
-            className="text-red-700 hover:text-red-900 font-bold ml-2"
+            className="text-red-700 hover:text-red-900 font-bold ml-2 flex items-center justify-center"
           >
-            ×
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
       )}
@@ -135,9 +136,9 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
             onClick={() => setSuccess("")}
             aria-label="Dismiss success message"
             title="Dismiss success message"
-            className="text-green-700 hover:text-green-900 font-bold ml-2"
+            className="text-green-700 hover:text-green-900 font-bold ml-2 flex items-center justify-center"
           >
-            ×
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
       )}
