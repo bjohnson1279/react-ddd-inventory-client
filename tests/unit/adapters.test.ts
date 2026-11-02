@@ -317,6 +317,316 @@ describe("Inventory Backend API Adapters", () => {
         "HTTP 500 Error",
       );
     });
+
+    it("should throw when login password parameter is omitted", async () => {
+      const adapter = new ExpressRESTAdapter();
+      await expect(adapter.login("tenant-test", "user-test")).rejects.toThrow(
+        "Authentication failed: Missing required password parameter.",
+      );
+    });
+
+    it("should throw an error when both login and setup auto-recovery fail", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          text: async () => JSON.stringify({ error: "Invalid credentials" }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          text: async () => JSON.stringify({ error: "Database offline" }),
+        });
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      await expect(
+        adapter.login("tenant-test", "admin-user", "admin", "password"),
+      ).rejects.toThrow(
+        "Login failed, and setup auto-recovery also failed: Database offline",
+      );
+    });
+
+    it("should return empty list when getProducts fails with a network error", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockRejectedValue(new Error("Network connection dropped"));
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      const products = await adapter.getProducts();
+      expect(products).toEqual([]);
+    });
+
+    it("should group barcodes by variantId and merge with inventory SKUs in getProducts", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [
+            {
+              id: "b-1",
+              variantId: "SKU-1",
+              barcodeValue: "111111",
+              symbology: "CODE128",
+              source: "internal",
+              isPrimary: true,
+              assignedAt: "2026-01-01",
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [
+            {
+              id: "inv-1",
+              sku: "SKU-1",
+              locationId: "loc-1",
+              quantity: 10,
+              version: 1,
+            },
+            {
+              id: "inv-2",
+              sku: "SKU-2",
+              locationId: "loc-2",
+              quantity: 5,
+              version: 1,
+            },
+          ],
+        });
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      const products = await adapter.getProducts();
+      expect(products).toHaveLength(2);
+      expect(
+        products.find((p) => p.id === "prod-SKU-1")?.variants[0].barcodes,
+      ).toHaveLength(1);
+      expect(
+        products.find((p) => p.id === "prod-SKU-2")?.variants[0].barcodes,
+      ).toHaveLength(0);
+    });
+
+    it("should return empty array when getPurchaseOrders has no stored IDs", async () => {
+      const mockFetch = vi.fn();
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      const pos = await adapter.getPurchaseOrders("tenant-empty");
+      expect(pos).toEqual([]);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("should fetch purchase orders in bulk and match stored IDs", async () => {
+      localStorage.setItem(
+        "po_ids_tenant-po",
+        JSON.stringify(["po-1", "po-2"]),
+      );
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            { id: "po-1", supplier: "Supplier A" },
+            { id: "po-3", supplier: "Supplier C" },
+          ],
+        }),
+      });
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      const pos = await adapter.getPurchaseOrders("tenant-po");
+      expect(pos).toHaveLength(1);
+      expect(pos[0].id).toBe("po-1");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/purchase-orders?tenantId=tenant-po&ids=po-1%2Cpo-2",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+
+    it("should create purchase order and append its id to localStorage without duplication", async () => {
+      localStorage.setItem("po_ids_tenant-po", JSON.stringify(["po-existing"]));
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: "po-new" }),
+      });
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      await adapter.createPurchaseOrder("tenant-po", "Supplier X", [
+        { sku: "SKU-X", quantity: 10, unitCostCents: 50 },
+      ]);
+
+      expect(
+        JSON.parse(localStorage.getItem("po_ids_tenant-po") || "[]"),
+      ).toEqual(["po-existing", "po-new"]);
+    });
+
+    it("should calculate total debit amount and submit stock-received journal entry", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      await adapter.createJournalEntry(
+        "tenant-1",
+        "Received goods",
+        "ACCRUAL",
+        [
+          {
+            accountCode: "1000",
+            amountCents: 300,
+            type: "debit",
+            memo: "SKU-TEST",
+          },
+          {
+            accountCode: "2000",
+            amountCents: 200,
+            type: "debit",
+            memo: "SKU-TEST",
+          },
+          {
+            accountCode: "3000",
+            amountCents: 500,
+            type: "credit",
+            memo: "SKU-TEST",
+          },
+        ],
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/accounting/stock-received",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-1",
+            sku: "SKU-TEST",
+            quantity: 1,
+            unitCostCents: 500,
+            method: "accrual",
+          }),
+        }),
+      );
+    });
+
+    it("should compile forecasting report and map default values for missing fields", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          { sku: "SKU-RAW" },
+          {
+            sku: "SKU-FULL",
+            name: "Product Full",
+            currentStock: 100,
+            salesVelocity7d: 5,
+            salesVelocity30d: 15,
+            salesVelocity90d: 45,
+            forecastedDemand: 50,
+            suggestedROP: 20,
+            safetyStock: 10,
+          },
+        ],
+      });
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      const report = await adapter.getForecastingReport("loc-1");
+
+      expect(report).toHaveLength(2);
+      expect(report[0]).toEqual({
+        sku: "SKU-RAW",
+        name: "SKU: SKU-RAW",
+        currentStock: 0,
+        salesVelocity7d: 0,
+        salesVelocity30d: 0,
+        salesVelocity90d: 0,
+        forecastedDemand: 0,
+        suggestedROP: 0,
+        safetyStock: 0,
+      });
+      expect(report[1].name).toBe("Product Full");
+      expect(report[1].currentStock).toBe(100);
+    });
+
+    it("should return zero fallback statistics when getOutboxStats fails", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockRejectedValue(new Error("Failed to fetch outbox stats"));
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      const stats = await adapter.getOutboxStats();
+      expect(stats).toEqual({
+        pendingCount: 0,
+        publishedCount: 0,
+        failedCount: 0,
+      });
+    });
+
+    it("should fetch dead letter events and correctly parse string and object payloads", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          {
+            id: "dl-1",
+            eventType: "OrderFailed",
+            payload: { orderId: 101 },
+            error: "Timeout",
+          },
+          {
+            id: "dl-2",
+            type: "StockSyncFailed",
+            payload: "raw-string-payload",
+          },
+        ],
+      });
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      const events = await adapter.getDeadLetterEvents(5);
+
+      expect(events).toHaveLength(2);
+      expect(events[0].payload).toBe('{"orderId":101}');
+      expect(events[1].eventType).toBe("StockSyncFailed");
+      expect(events[1].payload).toBe("raw-string-payload");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/outbox/dead-letter?limit=5",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+
+    it("should format and flatten pick route suggestions in getOptimizedPickRoute", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          {
+            items: [
+              {
+                sku: "SKU-1",
+                locationId: "BIN-A",
+                aisle: "1",
+                rack: "2",
+                shelf: "3",
+              },
+              { sku: "SKU-2", locationId: "BIN-B" },
+            ],
+          },
+        ],
+      });
+      global.fetch = mockFetch;
+
+      const adapter = new ExpressRESTAdapter();
+      const route = await adapter.getOptimizedPickRoute("tenant-1", [
+        "SKU-1",
+        "SKU-2",
+      ]);
+      expect(route).toEqual([
+        "SKU-1 from bin BIN-A (Aisle 1, Rack 2, Shelf 3)",
+        "SKU-2 from bin BIN-B (Aisle N/A, Rack N/A, Shelf N/A)",
+      ]);
+    });
   });
 
   describe("LaravelRESTAdapter", () => {
