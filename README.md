@@ -137,6 +137,14 @@ The containerized web app will run on port `3005` (`http://localhost:3005`).
 
 ---
 
+## 📚 Documentation
+
+For complete endpoint references and specifications across backend adapters, refer to:
+
+- [REST API Specifications](docs/api/endpoints.md): Detailed parameter breakdowns, request/response schemas, status codes, and workflow context for core endpoints.
+
+---
+
 ## 📄 License
 
 Private repository - All Rights Reserved.
