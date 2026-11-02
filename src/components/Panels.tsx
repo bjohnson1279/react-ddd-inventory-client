@@ -3349,7 +3349,8 @@ export const LotManagementPanel = () => {
         setStatusMsg("Traceability report generated.");
       } else {
         const activeToken = localStorage.getItem("auth_token") || "";
-        const res = await fetch(`/api/lots/${action}`, {
+        // SECURITY: Encode path segment to prevent URL injection
+        const res = await fetch(`/api/lots/${encodeURIComponent(action)}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

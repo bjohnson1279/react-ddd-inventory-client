@@ -169,3 +169,7 @@
 ## 2026-10-24 - Strict URI Encoding for Dynamic Route Parameters
 **Learning:** Interpolating unencoded dynamic variables (like `productId`, `onboardingId`, `roleId`, `serialNumber`, `userId`) directly into API route strings exposes clients to path traversal or parameter injection.
 **Action:** Wrap all dynamic parameters in `encodeURIComponent()` within API adapter request methods.
+## 2026-11-01 - Prevent URL Injection in Fetch calls
+**Vulnerability:** Unencoded variables dynamically interpolated into URLs are present, e.g. `/api/approval/requests/${id}/decision` and `/api/lots/${action}`.
+**Learning:** This can lead to URL Injection, Path Traversal, and related issues when URL parameters are not encoded.
+**Prevention:** Always use `encodeURIComponent` when dynamically inserting variables into fetch paths or query parameters.
