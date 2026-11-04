@@ -337,3 +337,213 @@ Retrieves audit and retry logs for recent outbound webhook deliveries.
   - `401 Unauthorized`: Missing or invalid authentication token.
 - **Workflow Context**:
   Powers the Webhook Delivery Retry Logs table in the Webhooks Panel for inspecting delivery health and HTTP response statuses.
+
+---
+
+## 🏭 Warehouse Management (WMS) Endpoints
+
+### 11. `GET /api/warehouse-locations`
+
+Lists physical warehouse bin locations and storage capacities for a tenant.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/warehouse-locations`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of warehouse location objects.
+    ```json
+    [
+      {
+        "id": "loc_bay_01",
+        "warehouseId": "wh_main",
+        "zone": "A",
+        "maxWeightGrams": 500000,
+        "maxVolumeCubicMeters": 2.5
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `tenantId` query parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Used by the Warehouse Management panel and 2D bin capacity heat maps to visualize storage layouts, zone utilization, and spatial constraints.
+
+---
+
+### 12. `POST /api/warehouse-locations`
+
+Creates or updates a warehouse storage bin configuration.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/warehouse-locations`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "id": "string (Required)",
+    "warehouseId": "string (Required)",
+    "zone": "string (Required)",
+    "maxWeightGrams": "number (Required)",
+    "maxVolumeCubicMeters": "number (Required)"
+  }
+  ```
+- **Responses**:
+  - `201 Created` or `200 OK`:
+    ```json
+    {
+      "id": "loc_bay_01",
+      "warehouseId": "wh_main",
+      "zone": "A",
+      "maxWeightGrams": 500000,
+      "maxVolumeCubicMeters": 2.5
+    }
+    ```
+  - `400 Bad Request`: Missing required parameters or negative capacity limits.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Used by warehouse administrators to register new bins, aisles, and storage zones or update physical capacity thresholds.
+
+---
+
+### 13. `DELETE /api/warehouse-locations/{id}`
+
+Removes a warehouse bin location from the facility layout.
+
+- **HTTP Method**: `DELETE`
+- **Route Path**: `/api/warehouse-locations/{id}`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the warehouse location to delete.
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK` or `204 No Content`:
+    ```json
+    {
+      "success": true,
+      "deletedId": "loc_bay_01"
+    }
+    ```
+  - `400 Bad Request`: Missing `tenantId` parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Location ID not found.
+  - `409 Conflict`: Location contains active inventory stock and cannot be removed.
+- **Workflow Context**:
+  Invoked in the Warehouse Panel when decommissioning or re-architecting physical warehouse zones.
+
+---
+
+### 14. `POST /api/warehouse-locations/putaway-suggestions`
+
+Generates rule-based bin putaway recommendations for inbound stock based on weight, volume, and affinity.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/warehouse-locations/putaway-suggestions`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "sku": "string (Required)",
+    "quantity": "number (Required)"
+  }
+  ```
+- **Responses**:
+  - `200 OK`: Array of putaway suggestions.
+    ```json
+    [
+      {
+        "locationId": "loc_bay_01",
+        "sku": "WIDGET-BLK-M",
+        "suggestedQuantity": 50
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `sku`, `tenantId`, or invalid `quantity`.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Assists warehouse receiving operators during inbound shipments to direct goods into bins with adequate volume and weight capacity.
+
+---
+
+### 15. `POST /api/warehouse-locations/optimize-pick-route`
+
+Calculates a sequenced pick route across warehouse aisles to minimize travel distance.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/warehouse-locations/optimize-pick-route`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "skus": "string[] (Required)"
+  }
+  ```
+- **Responses**:
+  - `200 OK`: Array of sequenced location pick steps.
+    ```json
+    [
+      {
+        "locationId": "loc_bay_01",
+        "aisle": "A1",
+        "rack": "R2",
+        "shelf": "S3",
+        "items": [
+          {
+            "sku": "WIDGET-BLK-M",
+            "locationId": "loc_bay_01",
+            "aisle": "A1",
+            "rack": "R2",
+            "shelf": "S3"
+          }
+        ]
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `skus` array or `tenantId`.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Used by pick-pack-ship workflows and handheld picking devices to guide operators along the shortest path through the warehouse.
+
+---
+
+### 16. `GET /api/warehouse-locations/slotting-suggestions`
+
+Generates AI-driven slotting optimization recommendations to move high-velocity items closer to dispatch areas.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/warehouse-locations/slotting-suggestions`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of slotting suggestions with velocity and distance metrics.
+    ```json
+    [
+      {
+        "sku": "WIDGET-BLK-M",
+        "currentLocationId": "loc_back_99",
+        "currentDistance": 85.5,
+        "currentVelocity": 42.0,
+        "recommendedLocationId": "loc_front_02",
+        "recommendedDistance": 12.0,
+        "potentialSwapSku": "SLOW-BOLT-X",
+        "estimatedSavings": 73.5
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `tenantId` parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Powers the Warehouse Slotting Optimization view, identifying ergonomic improvements and travel-time reductions by reallocating fast-moving items to front-row bins.
