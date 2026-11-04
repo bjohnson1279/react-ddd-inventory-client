@@ -209,3 +209,131 @@ Creates a new purchase order draft for replenishing stock from suppliers.
   - `401 Unauthorized`: Unauthenticated request.
 - **Workflow Context**:
   Initiates the procurement replenishment cycle (Draft → Approve → Send → Receive) triggered either manually in the Procurement Panel or automatically via ROP safety stock evaluation.
+
+---
+
+## 🪝 Webhook Endpoints
+
+### 7. `GET /api/webhooks`
+
+Lists active outbound webhook subscriptions configured for a tenant.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/webhooks`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of webhook subscriptions.
+    ```json
+    [
+      {
+        "id": "wh_01h9x",
+        "tenantId": "tenant_default",
+        "url": "https://api.thirdparty.com/webhook",
+        "eventTypes": [
+          "StockReceived",
+          "LowStockDetected"
+        ]
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `tenantId` parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Used by the Webhooks Panel to display all registered outbound event subscription URLs and their subscribed event topics.
+
+---
+
+### 8. `POST /api/webhooks`
+
+Registers a new outbound webhook subscription for inventory events.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/webhooks`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "url": "string (Required)",
+    "eventTypes": "string[] (Required)"
+  }
+  ```
+- **Responses**:
+  - `201 Created` or `200 OK`:
+    ```json
+    {
+      "id": "wh_01h9x",
+      "tenantId": "tenant_default",
+      "url": "https://api.thirdparty.com/webhook",
+      "eventTypes": [
+        "StockReceived",
+        "LowStockDetected"
+      ]
+    }
+    ```
+  - `400 Bad Request`: Missing or invalid `url`, `tenantId`, or `eventTypes` array.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Invoked when an administrator registers an external endpoint in the Webhooks Panel to receive real-time inventory notifications.
+
+---
+
+### 9. `DELETE /api/webhooks/{id}`
+
+Removes an existing outbound webhook subscription.
+
+- **HTTP Method**: `DELETE`
+- **Route Path**: `/api/webhooks/{id}`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the webhook subscription to remove.
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK` or `204 No Content`:
+    ```json
+    {
+      "success": true,
+      "deletedId": "wh_01h9x"
+    }
+    ```
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Webhook subscription with specified ID does not exist.
+- **Workflow Context**:
+  Used in the Webhooks Panel when revoking or unsubscribing an external webhook endpoint.
+
+---
+
+### 10. `GET /api/webhooks/deliveries`
+
+Retrieves audit and retry logs for recent outbound webhook deliveries.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/webhooks/deliveries`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of webhook delivery log entries.
+    ```json
+    [
+      {
+        "id": "del_01h9y",
+        "subscriptionId": "wh_01h9x",
+        "eventName": "StockReceived",
+        "status": "Success",
+        "statusCode": 200,
+        "occurredOn": "2026-11-02T14:00:00Z"
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `tenantId` parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Powers the Webhook Delivery Retry Logs table in the Webhooks Panel for inspecting delivery health and HTTP response statuses.
