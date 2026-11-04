@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { X } from "lucide-react";
 
 interface ApprovalRequest {
   id: string;
@@ -159,7 +160,7 @@ export const ApprovalInboxPanel: React.FC<ApprovalInboxPanelProps> = ({
               padding: "0 4px",
             }}
           >
-            ×
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
       )}
