@@ -93,25 +93,25 @@ export function PythonReportingPanel({ client, tenantId, role, sessionKey }: { c
         {['MOVEMENTS', 'INCOME_STATEMENT'].includes(type) && <><label htmlFor="report-from">From UTC date (optional)</label><input id="report-from" type="date" value={fromDate} onChange={event => setFromDate(event.target.value)} />
           <label htmlFor="report-through">Through UTC date (optional)</label><input id="report-through" type="date" value={toDate} onChange={event => setToDate(event.target.value)} /></>}
         {['TRIAL_BALANCE', 'BALANCE_SHEET'].includes(type) && <><label htmlFor="report-asof">As of UTC date (optional)</label><input id="report-asof" type="date" value={asOf} onChange={event => setAsOf(event.target.value)} /></>}
-        <button disabled={busy}>Create report</button>
+        <button disabled={busy} aria-busy={busy}>Create report</button>
       </form>}
       {reportsAllowed && <>
         <label htmlFor="report-format">Export format</label><select id="report-format" value={format} onChange={event => setFormat(event.target.value)}><option value="json">JSON</option><option value="csv">CSV</option></select>
         <label htmlFor="report-cron">Schedule in UTC (minute hour * * weekday, or * for daily)</label><input id="report-cron" value={cron} onChange={event => setCron(event.target.value)} />
         {reports.length === 0 && config && <p>No report definitions. Create a stock or financial report above.</p>}
         {reports.map(row => <div key={row.id}><strong>{row.name}</strong> — {typeLabels[row.type] || row.type}
-          <button disabled={busy} onClick={() => command(`/reports/${encodeURIComponent(row.id)}/execute`, { format })}>Queue {row.name}</button>
-          {manageReports && <button disabled={busy} onClick={() => command(`/reports/${encodeURIComponent(row.id)}/schedule`, { cronExpression: cron, format, deliveryMethod: 'INTERNAL' })}>Schedule {row.name}</button>}
+          <button disabled={busy} aria-busy={busy} onClick={() => command(`/reports/${encodeURIComponent(row.id)}/execute`, { format })}>Queue {row.name}</button>
+          {manageReports && <button disabled={busy} aria-busy={busy} onClick={() => command(`/reports/${encodeURIComponent(row.id)}/schedule`, { cronExpression: cron, format, deliveryMethod: 'INTERNAL' })}>Schedule {row.name}</button>}
         </div>)}
         <table><caption>Report execution history</caption><thead><tr><th scope="col">Execution</th><th scope="col">Status</th><th scope="col">Error</th><th scope="col">Actions</th></tr></thead><tbody>
           {jobs.map(job => <tr key={job.id}><th scope="row">{job.name || job.id}</th><td>{job.status}{job.complete === false && ' — Data needs review'}</td><td>{job.error || ''}</td><td>
-            {manageReports && job.status === 'QUEUED' && <button disabled={busy} onClick={() => process(job.id)}>Generate {job.id}</button>}
-            {manageReports && job.status === 'FAILED' && <button disabled={busy} onClick={() => command(`/reports/executions/${encodeURIComponent(job.id)}/retry`, { expectedVersion: job.version })}>Retry {job.id}</button>}
-            {job.status === 'COMPLETED' && <button disabled={busy} onClick={() => download(job)}>Download {job.id}</button>}
+            {manageReports && job.status === 'QUEUED' && <button disabled={busy} aria-busy={busy} onClick={() => process(job.id)}>Generate {job.id}</button>}
+            {manageReports && job.status === 'FAILED' && <button disabled={busy} aria-busy={busy} onClick={() => command(`/reports/executions/${encodeURIComponent(job.id)}/retry`, { expectedVersion: job.version })}>Retry {job.id}</button>}
+            {job.status === 'COMPLETED' && <button disabled={busy} aria-busy={busy} onClick={() => download(job)}>Download {job.id}</button>}
           </td></tr>)}{jobs.length === 0 && <tr><td colSpan={4}>{config ? 'No executions recorded.' : 'Execution history unavailable.'}</td></tr>}
         </tbody></table>
         {schedules.map(row => <div key={row.id}>{row.cronExpression} UTC — {row.active ? `Next run: ${row.nextRunAt}` : 'Paused'} {row.error}
-          {manageReports && <button disabled={busy} onClick={() => command(`/reports/schedules/${encodeURIComponent(row.id)}/active`, { active: !row.active, expectedVersion: row.version })}>{row.active ? 'Pause' : 'Enable'} schedule {row.id}</button>}
+          {manageReports && <button disabled={busy} aria-busy={busy} onClick={() => command(`/reports/schedules/${encodeURIComponent(row.id)}/active`, { active: !row.active, expectedVersion: row.version })}>{row.active ? 'Pause' : 'Enable'} schedule {row.id}</button>}
         </div>)}
       </>}
       {config && <><h3>Retail alert monitoring</h3><p>Low stock: {config.lowStock ? 'Enabled' : 'Disabled'}. Expiry: {config.expiry ? `Enabled (${config.expiryDays} days)` : 'Disabled'}.</p>
@@ -119,11 +119,11 @@ export function PythonReportingPanel({ client, tenantId, role, sessionKey }: { c
           <label><input type="checkbox" checked={draftRules.lowStock} onChange={event => setDraftRules({ ...draftRules, lowStock: event.target.checked })} /> Monitor low stock</label>
           <label><input type="checkbox" checked={draftRules.expiry} onChange={event => setDraftRules({ ...draftRules, expiry: event.target.checked })} /> Monitor expiring lots</label>
           <label htmlFor="alert-expiry-days">Days before expiry</label><input id="alert-expiry-days" type="number" min={0} max={90} step={1} required value={draftRules.expiryDays} onChange={event => setDraftRules({ ...draftRules, expiryDays: Number(event.target.value) })} />
-          <button disabled={busy}>Save alert monitoring</button>
+          <button disabled={busy} aria-busy={busy}>Save alert monitoring</button>
         </form>}
         {alerts.length === 0 ? <p>No active retail alert conditions.</p> : <ul>{alerts.map(row => <li key={row.id}>{row.kind}: {row.facts.sku} at {row.facts.locationId}, episode {row.episode}</li>)}</ul>}
       </>}
-      <button disabled={busy} onClick={() => { setError(''); refresh().catch(failure => setError(failure.message)); }}>Refresh reports and alerts</button>
+      <button disabled={busy} aria-busy={busy} onClick={() => { setError(''); refresh().catch(failure => setError(failure.message)); }}>Refresh reports and alerts</button>
     </section>
     <PythonNotificationInbox client={client} tenantId={tenantId} sessionKey={sessionKey} />
   </div>;
