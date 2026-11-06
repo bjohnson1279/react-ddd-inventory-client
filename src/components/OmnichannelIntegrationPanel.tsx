@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useInventory } from "../api/client";
 
@@ -119,7 +120,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
             title="Dismiss error"
             className="text-red-700 hover:text-red-900 font-bold ml-2"
           >
-            ×
+            <X size={18} />
           </button>
         </div>
       )}
@@ -137,7 +138,7 @@ export const OmnichannelIntegrationPanel: React.FC<{ tenantId: string }> = ({
             title="Dismiss success message"
             className="text-green-700 hover:text-green-900 font-bold ml-2"
           >
-            ×
+            <X size={18} />
           </button>
         </div>
       )}
