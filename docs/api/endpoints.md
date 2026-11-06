@@ -547,3 +547,158 @@ Generates AI-driven slotting optimization recommendations to move high-velocity 
   - `401 Unauthorized`: Missing or invalid authentication token.
 - **Workflow Context**:
   Powers the Warehouse Slotting Optimization view, identifying ergonomic improvements and travel-time reductions by reallocating fast-moving items to front-row bins.
+
+---
+
+## 🌐 Intercompany & Multi-Entity Endpoints
+
+### 17. `GET /api/intercompany/entities`
+
+Lists legal business entities configured for multi-entity tenant accounting and intercompany transactions.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/intercompany/entities`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of legal entities.
+    ```json
+    [
+      {
+        "id": "entity-1",
+        "tenantId": "tenant_default",
+        "name": "US Subsidiary Corp",
+        "baseCurrency": "USD",
+        "taxIdentifier": "US-EIN-123456789",
+        "createdAt": "2026-11-02T10:00:00Z"
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `tenantId` parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Populates the Legal Entities table and source/destination dropdown selectors in the Intercompany Panel.
+
+---
+
+### 18. `POST /api/intercompany/entities`
+
+Registers a new legal business entity or operational subsidiary for a tenant.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/intercompany/entities`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "name": "string (Required)",
+    "baseCurrency": "string (Required)",
+    "taxIdentifier": "string (Optional)"
+  }
+  ```
+- **Responses**:
+  - `201 Created` or `200 OK`:
+    ```json
+    {
+      "id": "entity-2",
+      "tenantId": "tenant_default",
+      "name": "UK Operations Ltd",
+      "baseCurrency": "GBP",
+      "taxIdentifier": "GB-VAT-987654321",
+      "createdAt": "2026-11-02T10:30:00Z"
+    }
+    ```
+  - `400 Bad Request`: Missing required entity parameters (`tenantId`, `name`, `baseCurrency`).
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Used by enterprise administrators in the Intercompany Panel to establish subsidiaries and distinct legal entities.
+
+---
+
+### 19. `GET /api/intercompany/transfers`
+
+Lists intercompany transfer records and settlement statuses across legal entities for a tenant.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/intercompany/transfers`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of intercompany transfer records.
+    ```json
+    [
+      {
+        "id": "transfer-101",
+        "tenantId": "tenant_default",
+        "fromEntityId": "entity-1",
+        "toEntityId": "entity-2",
+        "sku": "WIDGET-BLK-M",
+        "quantity": 100,
+        "unitCostCents": 1250,
+        "markupPercentage": 8.5,
+        "dutyCents": 500,
+        "totalAmountCents": 140625,
+        "status": "COMPLETED",
+        "createdAt": "2026-11-02T11:15:00Z"
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `tenantId` parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Powers the Transfer History table in the Intercompany Panel to audit cross-entity movements, transfer pricing, and fulfillment status.
+
+---
+
+### 20. `POST /api/intercompany/transfers`
+
+Executes an intercompany stock transfer between two legal entities, applying transfer pricing markups and customs duties.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/intercompany/transfers`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "fromEntityId": "string (Required)",
+    "toEntityId": "string (Required)",
+    "sku": "string (Required)",
+    "quantity": "number (Required)",
+    "unitCostCents": "number (Required)",
+    "markupPercentage": "number (Required)",
+    "dutyCents": "number (Optional)"
+  }
+  ```
+- **Responses**:
+  - `201 Created` or `200 OK`:
+    ```json
+    {
+      "id": "transfer-101",
+      "tenantId": "tenant_default",
+      "fromEntityId": "entity-1",
+      "toEntityId": "entity-2",
+      "sku": "WIDGET-BLK-M",
+      "quantity": 100,
+      "unitCostCents": 1250,
+      "markupPercentage": 8.5,
+      "dutyCents": 500,
+      "totalAmountCents": 140625,
+      "status": "COMPLETED",
+      "createdAt": "2026-11-02T11:15:00Z"
+    }
+    ```
+  - `400 Bad Request`: Validation failure (e.g. source and destination entities identical, invalid quantity, or missing required attributes).
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Source entity, target entity, or SKU does not exist.
+- **Workflow Context**:
+  Invoked when submitting the Execute Transfer form in the Intercompany Panel to initiate inventory rebalancing and general ledger transfer postings between entities.
