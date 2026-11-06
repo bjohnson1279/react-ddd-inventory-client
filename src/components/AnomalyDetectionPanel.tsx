@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { X } from "lucide-react";
 import { InventoryClient } from "../api/client";
 import { Spinner } from "./Panels";
 
@@ -81,9 +82,11 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({
                 cursor: "pointer",
                 fontSize: "1.2rem",
                 padding: "0 4px",
+                display: "flex",
+                alignItems: "center",
               }}
             >
-              ×
+              <X size={18} aria-hidden="true" />
             </button>
           </div>
         </div>
