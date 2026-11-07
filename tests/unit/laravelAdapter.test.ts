@@ -849,4 +849,614 @@ describe("LaravelRESTAdapter Comprehensive Suite", () => {
       errorSpy.mockRestore();
     });
   });
+
+  describe("Valuation Report & Costing Methods", () => {
+    it("should calculate valuation report with attribute formatting and costing method normalization", async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes("/api/reports/valuation")) {
+          return {
+            ok: true,
+            json: async () => ({ totalValue: 5000 }),
+          };
+        }
+        if (url.includes("/api/catalog/products")) {
+          return {
+            ok: true,
+            json: async () => ({
+              products: [
+                {
+                  id: "prod-1",
+                  name: "Industrial Widget",
+                  variants: [
+                    {
+                      id: "v-1",
+                      sku: "SKU-WIDGET-BLK",
+                      attributes: [
+                        { name: "Color", value: "Black" },
+                        { name: "Size", value: "Large" },
+                      ],
+                    },
+                    {
+                      id: "v-2",
+                      sku: "SKU-WIDGET-RED",
+                      attributes: [],
+                    },
+                    {
+                      id: "v-3",
+                      sku: "SKU-WIDGET-ZERO",
+                      attributes: [{ name: "Color", value: "Clear" }],
+                    },
+                  ],
+                },
+              ],
+            }),
+          };
+        }
+        if (url.includes("/api/inventory/stock")) {
+          return {
+            ok: true,
+            json: async () => [
+              { sku: "SKU-WIDGET-BLK", available_quantity: 10 },
+              { sku: "SKU-WIDGET-RED", available_quantity: 2 },
+              { sku: "SKU-WIDGET-ZERO", available_quantity: 0 },
+            ],
+          };
+        }
+        return { ok: true, json: async () => ({}) };
+      });
+      global.fetch = mockFetch;
+
+      const report = await adapter.getValuationReport(
+        "tenant-val",
+        "loc-1",
+        "lifo",
+      );
+      expect(report).toHaveLength(3);
+
+      const stockedVariantWithAttrs = report.find(
+        (r) => r.sku === "SKU-WIDGET-BLK",
+      );
+      expect(stockedVariantWithAttrs).toBeDefined();
+      expect(stockedVariantWithAttrs?.name).toBe(
+        "Industrial Widget (Black, Large)",
+      );
+      expect(stockedVariantWithAttrs?.costingMethod).toBe("LIFO");
+      expect(stockedVariantWithAttrs?.totalQuantity).toBe(10);
+      expect(stockedVariantWithAttrs?.unitCostCents).toBe(1000);
+      expect(stockedVariantWithAttrs?.totalValueCents).toBe(10000);
+
+      const stockedVariantNoAttrs = report.find(
+        (r) => r.sku === "SKU-WIDGET-RED",
+      );
+      expect(stockedVariantNoAttrs).toBeDefined();
+      expect(stockedVariantNoAttrs?.name).toBe("Industrial Widget");
+      expect(stockedVariantNoAttrs?.totalQuantity).toBe(2);
+      expect(stockedVariantNoAttrs?.totalValueCents).toBe(2000);
+
+      const zeroStockVariant = report.find((r) => r.sku === "SKU-WIDGET-ZERO");
+      expect(zeroStockVariant).toBeDefined();
+      expect(zeroStockVariant?.name).toBe("Industrial Widget");
+      expect(zeroStockVariant?.totalQuantity).toBe(0);
+      expect(zeroStockVariant?.totalValueCents).toBe(0);
+      expect(zeroStockVariant?.unitCostCents).toBe(0);
+    });
+
+    it("should default costing method to FIFO when method is not supplied", async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes("/api/reports/valuation")) {
+          return { ok: true, json: async () => ({}) };
+        }
+        if (url.includes("/api/catalog/products")) {
+          return {
+            ok: true,
+            json: async () => ({
+              products: [
+                {
+                  id: "prod-2",
+                  name: "Simple Item",
+                  variants: [{ id: "v-single", sku: "SKU-SINGLE" }],
+                },
+              ],
+            }),
+          };
+        }
+        if (url.includes("/api/inventory/items")) {
+          return {
+            ok: true,
+            json: async () => [{ sku: "SKU-SINGLE", quantity: 1 }],
+          };
+        }
+        return { ok: true, json: async () => ({}) };
+      });
+      global.fetch = mockFetch;
+
+      const report = await adapter.getValuationReport("tenant-fifo");
+      expect(report).toHaveLength(1);
+      expect(report[0].costingMethod).toBe("FIFO");
+    });
+
+    it("should return empty array if getValuationReport encounters any network failure", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockFetch = vi
+        .fn()
+        .mockRejectedValue(new Error("Valuation service unavailable"));
+      global.fetch = mockFetch;
+
+      const report = await adapter.getValuationReport("tenant-fail");
+      expect(report).toEqual([]);
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe("Kit Assembly & Disassembly", () => {
+    it("should assemble kit with required parameters", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+      global.fetch = mockFetch;
+
+      await adapter.assembleKit(
+        "tenant-kit",
+        "loc-assembly",
+        "KIT-BUNDLE-01",
+        15,
+        "operator-12",
+        "ref-asm-999",
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/kits/assemble",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-kit",
+            locationId: "loc-assembly",
+            kitSku: "KIT-BUNDLE-01",
+            quantity: 15,
+            actorId: "operator-12",
+            referenceId: "ref-asm-999",
+          }),
+        }),
+      );
+    });
+
+    it("should disassemble kit with required parameters", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+      global.fetch = mockFetch;
+
+      await adapter.disassembleKit(
+        "tenant-kit",
+        "loc-teardown",
+        "KIT-BUNDLE-02",
+        5,
+        "operator-34",
+        "ref-dis-888",
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/kits/disassemble",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-kit",
+            locationId: "loc-teardown",
+            kitSku: "KIT-BUNDLE-02",
+            quantity: 5,
+            actorId: "operator-34",
+            referenceId: "ref-dis-888",
+          }),
+        }),
+      );
+    });
+  });
+
+  describe("Role & Permission Management", () => {
+    it("should create role with permissions and return created role", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: "role-101",
+          name: "Inventory Manager",
+          description: "Full stock control",
+          permissions: ["PERM_READ", "PERM_WRITE"],
+        }),
+      });
+      global.fetch = mockFetch;
+
+      const role = await adapter.createRole(
+        "tenant-roles",
+        "Inventory Manager",
+        "Full stock control",
+        ["PERM_READ", "PERM_WRITE"],
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/roles",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-roles",
+            name: "Inventory Manager",
+            description: "Full stock control",
+            permissionIds: ["PERM_READ", "PERM_WRITE"],
+          }),
+        }),
+      );
+      expect(role.id).toBe("role-101");
+      expect(role.name).toBe("Inventory Manager");
+    });
+
+    it("should update role permissions with properly encoded roleId", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+      global.fetch = mockFetch;
+
+      await adapter.updateRolePermissions("role:warehouse/supervisor", [
+        "PERM_SCAN",
+        "PERM_TRANSFER",
+      ]);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/roles/role%3Awarehouse%2Fsupervisor/permissions",
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({
+            permissionIds: ["PERM_SCAN", "PERM_TRANSFER"],
+          }),
+        }),
+      );
+    });
+
+    it("should delete role with properly encoded roleId", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+      global.fetch = mockFetch;
+
+      await adapter.deleteRole("role#qa-temp");
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/roles/role%23qa-temp",
+        expect.objectContaining({ method: "DELETE" }),
+      );
+    });
+  });
+
+  describe("Auditing & Discrepancies", () => {
+    it("should run audit for tenant", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ auditId: "aud-77", status: "IN_PROGRESS" }),
+      });
+      global.fetch = mockFetch;
+
+      const res = await adapter.runAudit("tenant-audit-run");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/audit/run",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-audit-run" }),
+        }),
+      );
+      expect(res.auditId).toBe("aud-77");
+    });
+
+    it("should get discrepancies and handle fallback to empty array if response is falsy", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [
+            { id: "disc-1", sku: "SKU-MISMATCH", discrepancy: -2 },
+          ],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => null,
+        });
+      global.fetch = mockFetch;
+
+      const discrepancies = await adapter.getDiscrepancies("tenant-audit-disc");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/audit/discrepancies?tenantId=tenant-audit-disc",
+        expect.objectContaining({ method: "GET" }),
+      );
+      expect(discrepancies).toHaveLength(1);
+
+      const empty = await adapter.getDiscrepancies("tenant-audit-disc");
+      expect(empty).toEqual([]);
+    });
+
+    it("should resolve discrepancy with encoded id and notes", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+      global.fetch = mockFetch;
+
+      await adapter.resolveDiscrepancy(
+        "tenant-disc",
+        "disc/zone-A/01",
+        "Reconciled after physical recount",
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/audit/discrepancies/disc%2Fzone-A%2F01/resolve",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-disc",
+            notes: "Reconciled after physical recount",
+          }),
+        }),
+      );
+    });
+  });
+
+  describe("Outbox Events & Dead Letter Queue", () => {
+    it("should retrieve outbox stats with default zero fallback values on error", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ pending: 4, published: 12, failed: 1 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({}),
+        })
+        .mockRejectedValueOnce(new Error("Stats endpoint down"));
+      global.fetch = mockFetch;
+
+      const stats1 = await adapter.getOutboxStats();
+      expect(stats1).toEqual({
+        pendingCount: 4,
+        publishedCount: 12,
+        failedCount: 1,
+      });
+
+      const statsEmpty = await adapter.getOutboxStats();
+      expect(statsEmpty).toEqual({
+        pendingCount: 0,
+        publishedCount: 0,
+        failedCount: 0,
+      });
+
+      const statsErr = await adapter.getOutboxStats();
+      expect(statsErr).toEqual({
+        pendingCount: 0,
+        publishedCount: 0,
+        failedCount: 0,
+      });
+      errorSpy.mockRestore();
+    });
+
+    it("should fetch dead letter events and map normalized fields with limit query param", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [
+            {
+              id: "dl-1",
+              eventType: "OrderCancelled",
+              payload: { orderId: "ord-99" },
+              error: "Consumer timeout",
+              status: "DeadLetter",
+              occurredAt: "2026-03-01T08:00:00Z",
+            },
+            {
+              id: "dl-2",
+              type: "PaymentFailed",
+              payload: '{"raw":true}',
+              errorMessage: "Card declined",
+              createdAt: "2026-03-01T09:00:00Z",
+            },
+            {
+              id: "dl-3",
+              // tests all default fallbacks
+            },
+          ],
+        })
+        .mockRejectedValueOnce(new Error("DLQ unavailable"));
+      global.fetch = mockFetch;
+
+      const eventsWithLimit = await adapter.getDeadLetterEvents(50);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/outbox/dead-letter?limit=50",
+        expect.objectContaining({ method: "GET" }),
+      );
+      expect(eventsWithLimit).toHaveLength(3);
+
+      expect(eventsWithLimit[0]).toEqual({
+        id: "dl-1",
+        eventType: "OrderCancelled",
+        payload: JSON.stringify({ orderId: "ord-99" }),
+        error: "Consumer timeout",
+        status: "DeadLetter",
+        occurredAt: "2026-03-01T08:00:00Z",
+      });
+
+      expect(eventsWithLimit[1]).toEqual({
+        id: "dl-2",
+        eventType: "PaymentFailed",
+        payload: '{"raw":true}',
+        error: "Card declined",
+        status: "Failed",
+        occurredAt: "2026-03-01T09:00:00Z",
+      });
+
+      expect(eventsWithLimit[2].eventType).toBe("UnknownEvent");
+      expect(eventsWithLimit[2].error).toBe("");
+      expect(eventsWithLimit[2].status).toBe("Failed");
+      expect(typeof eventsWithLimit[2].occurredAt).toBe("string");
+
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const eventsOnError = await adapter.getDeadLetterEvents();
+      expect(eventsOnError).toEqual([]);
+      errorSpy.mockRestore();
+    });
+
+    it("should retry outbox event with encoded event id", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+      global.fetch = mockFetch;
+
+      await adapter.retryOutboxEvent("event/uuid-999");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/outbox/event%2Fuuid-999/retry",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
+
+  describe("Tenant Configuration & LocalStorage Persistence", () => {
+    it("should return default tenant config when none exists in localStorage", async () => {
+      const config = await adapter.getTenantConfig("tenant-default-cfg");
+      expect(config).toEqual({
+        tenantId: "tenant-default-cfg",
+        accountingMethod: "ACCRUAL",
+        costingMethod: "FIFO",
+        currencyCode: "USD",
+        fiscalYearStart: "01-01",
+      });
+    });
+
+    it("should save and retrieve tenant config from localStorage", async () => {
+      await adapter.saveTenantConfig("tenant-custom-cfg", {
+        accountingMethod: "CASH",
+        costingMethod: "AVERAGE",
+      });
+
+      const saved = await adapter.getTenantConfig("tenant-custom-cfg");
+      expect(saved).toEqual({
+        tenantId: "tenant-custom-cfg",
+        accountingMethod: "CASH",
+        costingMethod: "AVERAGE",
+        currencyCode: "USD",
+        fiscalYearStart: "01-01",
+      });
+    });
+  });
+
+  describe("Server-Sent Events: subscribeRfidScans", () => {
+    it("should parse SSE stream events, handle string and object messages, and support unsubscribe", async () => {
+      const ssePayload1 = {
+        type: "rfid_scan_processed",
+        message: JSON.stringify({
+          id: "scan-evt-1",
+          tenantId: "tenant-sse",
+          locationId: "LOC-DOCK",
+          totalCount: 10,
+          matchedCount: 8,
+          unmatchedCount: 2,
+          unmatchedEpcs: ["EPC-UNMATCHED-1", "EPC-UNMATCHED-2"],
+        }),
+      };
+
+      const ssePayload2 = {
+        type: "rfid_scan_processed",
+        id: "scan-evt-2",
+        tenantId: "tenant-sse",
+        locationId: "LOC-AISLE",
+        totalCount: 5,
+        matchedCount: 5,
+        unmatchedCount: 0,
+        unmatchedEpcs: [],
+      };
+
+      const streamChunks = [
+        `data: ${JSON.stringify(ssePayload1)}\n\n`,
+        `data: ${JSON.stringify(ssePayload2)}\n\n`,
+      ];
+
+      let chunkIdx = 0;
+      const mockReader = {
+        read: vi.fn().mockImplementation(async () => {
+          if (chunkIdx < streamChunks.length) {
+            const encoder = new TextEncoder();
+            const chunk = encoder.encode(streamChunks[chunkIdx++]);
+            return { done: false, value: chunk };
+          }
+          return { done: true, value: undefined };
+        }),
+      };
+
+      localStorage.setItem("auth_token", "test-sse-jwt-token");
+      const mockFetch = vi.fn().mockResolvedValue({
+        body: {
+          getReader: () => mockReader,
+        },
+      });
+      global.fetch = mockFetch;
+
+      const receivedEvents: any[] = [];
+      const unsubscribe = adapter.subscribeRfidScans("tenant-sse", (evt) => {
+        receivedEvents.push(evt);
+      });
+
+      expect(typeof unsubscribe).toBe("function");
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/notifications/subscribe",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Accept: "text/event-stream",
+            Authorization: "Bearer test-sse-jwt-token",
+          }),
+        }),
+      );
+
+      expect(receivedEvents).toHaveLength(2);
+      expect(receivedEvents[0].id).toBe("scan-evt-1");
+      expect(receivedEvents[0].matchedCount).toBe(8);
+      expect(receivedEvents[1].id).toBe("scan-evt-2");
+      expect(receivedEvents[1].matchedCount).toBe(5);
+
+      unsubscribe();
+    });
+
+    it("should handle SSE stream parse errors and missing reader without throwing", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const streamChunks = ["data: invalid-json-line\n\n"];
+      let chunkIdx = 0;
+      const mockReader = {
+        read: vi.fn().mockImplementation(async () => {
+          if (chunkIdx < streamChunks.length) {
+            const encoder = new TextEncoder();
+            const chunk = encoder.encode(streamChunks[chunkIdx++]);
+            return { done: false, value: chunk };
+          }
+          return { done: true, value: undefined };
+        }),
+      };
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        body: {
+          getReader: () => mockReader,
+        },
+      });
+      global.fetch = mockFetch;
+
+      const callback = vi.fn();
+      adapter.subscribeRfidScans("tenant-err", callback);
+
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      expect(callback).not.toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+  });
 });
