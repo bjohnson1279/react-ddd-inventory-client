@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { InventoryClient } from "../api/client";
 import { Spinner } from "./Panels";
@@ -60,7 +61,7 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({
             <button type="button"
               onClick={() => setError(null)}
               aria-label="Dismiss error" title="Dismiss error"
-              className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"
+              className="text-red-400 hover:text-red-200 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded flex items-center justify-center"
               style={{
                 background: "transparent",
                 border: "none",
@@ -69,7 +70,7 @@ export const RebalancingMatrixPanel: React.FC<RebalancingMatrixPanelProps> = ({
                 padding: "0 4px",
               }}
             >
-              ×
+              <X size={18} aria-hidden="true" />
             </button>
           </div>
         </div>

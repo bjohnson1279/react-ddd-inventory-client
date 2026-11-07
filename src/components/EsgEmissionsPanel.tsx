@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
 interface EsgEmissionsPanelProps {
@@ -125,10 +126,10 @@ export const EsgEmissionsPanel: React.FC<EsgEmissionsPanelProps> = ({
               fontSize: "1.2rem",
               cursor: "pointer",
               padding: "0 4px",
-              marginLeft: "8px",
+              marginLeft: "8px", display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
-            ×
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
       )}

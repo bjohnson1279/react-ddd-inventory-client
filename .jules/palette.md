@@ -142,3 +142,6 @@
 ## 2024-10-31 - Add accessible status role to loading states in ReportingDashboardPanel
 **Learning:** Raw text like <div className="text-gray-500">Loading reports...</div> during async data fetches is completely ignored by screen readers, leaving users guessing if the app is frozen or thinking.
 **Action:** Always wrap loading states in role="status" and aria-live="polite" so screen readers proactively announce the application is fetching data without interrupting the user.
+## 2024-05-18 - Replacing Generic Characters with SVG Icons for Consistency and Accessibility
+**Learning:** Replaced the generic `×` close icon with standard `<X>` icon from `lucide-react`. Ensure appropriate styles applied for SVGs like `display: flex; align-items: center; justify-content: center` to fix alignment issues when transitioning from text characters.
+**Action:** Always prefer consistent icon library elements (like `lucide-react`) over textual characters like `×`, `✓`, or `!» for interactive buttons, and always apply flex alignment correctly to maintain a smooth UX and proper visuals.
