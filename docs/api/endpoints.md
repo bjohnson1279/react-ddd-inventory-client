@@ -702,3 +702,35 @@ Executes an intercompany stock transfer between two legal entities, applying tra
   - `404 Not Found`: Source entity, target entity, or SKU does not exist.
 - **Workflow Context**:
   Invoked when submitting the Execute Transfer form in the Intercompany Panel to initiate inventory rebalancing and general ledger transfer postings between entities.
+
+---
+
+## 📈 API Usage & Metering Endpoints
+
+### 21. `GET /api/usage`
+
+Retrieves aggregated daily API usage metrics, call volumes, error counts, and average latency benchmarks for a tenant.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/usage`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of API usage metric breakdown items.
+    ```json
+    [
+      {
+        "date": "2026-11-02",
+        "endpoint": "/api/inventory",
+        "calls": 1250,
+        "errors": 3,
+        "averageLatencyMs": 42.5
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `tenantId` query parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Powers the API Usage Dashboard panel (`ApiUsageDashboardPanel`), enabling operations and engineering teams to monitor endpoint throughput, identify high-latency requests, track error rates, and meter tenant utilization.
