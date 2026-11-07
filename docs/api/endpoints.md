@@ -734,3 +734,169 @@ Retrieves aggregated daily API usage metrics, call volumes, error counts, and av
   - `401 Unauthorized`: Missing or invalid authentication token.
 - **Workflow Context**:
   Powers the API Usage Dashboard panel (`ApiUsageDashboardPanel`), enabling operations and engineering teams to monitor endpoint throughput, identify high-latency requests, track error rates, and meter tenant utilization.
+
+---
+
+## 🤝 Approval Workflow Endpoints
+
+### 22. `GET /api/approvals/workflows`
+
+Lists all configured multi-tier approval workflow rules and required steps.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/approvals/workflows`
+- **Parameters**:
+  - `tenantId` (*Query, Optional*): Filter workflows by specific tenant ID.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of approval workflow definitions.
+    ```json
+    [
+      {
+        "id": "wf-1",
+        "triggerEvent": "HIGH_VALUE_TRANSFER",
+        "isActive": true,
+        "steps": [
+          {
+            "roleId": "role_warehouse_manager",
+            "minApprovals": 1,
+            "timeoutHours": 24
+          }
+        ]
+      }
+    ]
+    ```
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Used by the Approval Workflow Configuration panel (`ApprovalWorkflowPanel`) to display active and inactive operational approval triggers (e.g., purchase orders exceeding limits, intercompany stock transfers).
+
+---
+
+### 23. `POST /api/approvals/workflows/{id}/toggle`
+
+Toggles the active/inactive state of a configured approval workflow.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/approvals/workflows/{id}/toggle`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the approval workflow to toggle.
+  - `tenantId` (*Query, Optional*): Specific tenant ID.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Updated workflow definition.
+    ```json
+    {
+      "id": "wf-1",
+      "isActive": false
+    }
+    ```
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Workflow with the specified ID does not exist.
+- **Workflow Context**:
+  Triggered when an administrator toggles an approval workflow rule switch in the Approval Workflow panel to activate or bypass step verification.
+
+---
+
+### 24. `GET /api/approvals/pending`
+
+Retrieves pending approval requests awaiting operational or managerial decision.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/approvals/pending`
+- **Parameters**:
+  - `tenantId` (*Query, Optional*): Filter pending requests by specific tenant ID.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of pending approval requests.
+    ```json
+    [
+      {
+        "id": "req-1",
+        "triggerEvent": "HIGH_VALUE_TRANSFER",
+        "status": "PENDING",
+        "requesterId": "usr_99",
+        "createdAt": "2026-11-02T14:30:00Z",
+        "payload": {
+          "sku": "WIDGET-BLK-M",
+          "quantity": 500,
+          "estimatedValueCents": 1500000
+        }
+      }
+    ]
+    ```
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Powers the Approval Inbox (`ApprovalInboxPanel`), allowing managers and supervisors to view queued actions requiring sign-off.
+
+---
+
+### 25. `POST /api/approvals/{id}/decide`
+
+Submits an approval decision (e.g., `APPROVED` or `REJECTED`) with optional reviewer notes.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/approvals/{id}/decide`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the approval request.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "decision": "string (Required, e.g. APPROVED or REJECTED)",
+    "notes": "string (Optional)"
+  }
+  ```
+- **Responses**:
+  - `200 OK`: Resulting state of the decision.
+    ```json
+    {
+      "id": "req-1",
+      "status": "APPROVED",
+      "decision": "APPROVED",
+      "notes": "Approved for transfer",
+      "decidedAt": "2026-11-02T15:00:00Z"
+    }
+    ```
+  - `400 Bad Request`: Invalid decision state or payload structure.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Approval request with the specified ID does not exist.
+- **Workflow Context**:
+  Invoked from the Approval Inbox panel when an authorized user clicks "Approve" or "Reject" on a pending inventory operation.
+
+---
+
+### 26. `GET /api/approvals/{requestId}`
+
+Retrieves the complete audit trail and decision history for a specific approval request.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/approvals/{requestId}`
+- **Parameters**:
+  - `requestId` (*Path, Required*): Unique identifier of the approval request.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Decision history details.
+    ```json
+    {
+      "requestId": "req-1",
+      "decisions": [
+        {
+          "id": "dec-1",
+          "stepIndex": 0,
+          "deciderId": "usr_mgr_42",
+          "decision": "APPROVED",
+          "notes": "All clear",
+          "decidedAt": "2026-11-02T15:00:00Z"
+        }
+      ]
+    }
+    ```
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Request ID not found.
+- **Workflow Context**:
+  Used by the Approval History Timeline component (`ApprovalHistoryTimeline`) to display a visual audit log of multi-step sign-offs, timestamps, and reviewer notes.
