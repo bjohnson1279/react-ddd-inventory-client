@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
 interface Workflow {
@@ -113,7 +114,7 @@ export const ApprovalWorkflowPanel: React.FC<ApprovalWorkflowPanelProps> = ({
           }}
         >
           <span>{error}</span>
-          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" title="Dismiss error" style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: '1.2rem', cursor: 'pointer', padding: '0 4px' }}>×</button>
+          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" title="Dismiss error" style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: '1.2rem', cursor: 'pointer', padding: '0 4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} aria-hidden="true" /></button>
         </div>
       )}
 

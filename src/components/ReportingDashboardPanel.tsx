@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import {
   InventoryClient,
@@ -91,9 +92,9 @@ export const ReportingDashboardPanel: React.FC<Props> = ({
             onClick={() => setError("")}
             aria-label="Dismiss error"
             title="Dismiss error"
-            className="text-red-700 hover:text-red-900 font-bold ml-2"
+            className="text-red-700 hover:text-red-900 font-bold ml-2 flex items-center justify-center"
           >
-            ×
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
       )}
