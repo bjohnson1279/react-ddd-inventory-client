@@ -173,3 +173,7 @@
 **Vulnerability:** Unencoded variables dynamically interpolated into URLs are present, e.g. `/api/approval/requests/${id}/decision` and `/api/lots/${action}`.
 **Learning:** This can lead to URL Injection, Path Traversal, and related issues when URL parameters are not encoded.
 **Prevention:** Always use `encodeURIComponent` when dynamically inserting variables into fetch paths or query parameters.
+## 2024-11-07 - [Mask Sensitive Integration Secret]
+**Vulnerability:** A sensitive integration secret (`secretRef` for Python Integrations) was being exposed in a plain text input field due to a missing `type="password"` attribute.
+**Learning:** This could lead to an accidental visual leak of the sensitive configuration keys/secrets to bystanders or shoulder-surfers.
+**Prevention:** Always initialize and display sensitive inputs using `<input type="password">` to mask the input, preventing visual exposure.
