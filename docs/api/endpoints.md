@@ -900,3 +900,285 @@ Retrieves the complete audit trail and decision history for a specific approval 
   - `404 Not Found`: Request ID not found.
 - **Workflow Context**:
   Used by the Approval History Timeline component (`ApprovalHistoryTimeline`) to display a visual audit log of multi-step sign-offs, timestamps, and reviewer notes.
+
+---
+
+## 🔐 Role-Based Access Control (RBAC) & User Management Endpoints
+
+### 27. `GET /api/roles`
+
+Lists all user roles configured for a tenant, including custom and system roles with their assigned permission sets.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/roles`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of role definitions.
+    ```json
+    [
+      {
+        "id": "role_warehouse_manager",
+        "name": "Warehouse Manager",
+        "description": "Full access to inventory, locations, and cycle counts",
+        "isCustom": false,
+        "tenantId": "tenant_default",
+        "permissions": [
+          {
+            "id": "perm_inv_read",
+            "resource": "inventory",
+            "action": "read",
+            "description": "View inventory stock levels"
+          },
+          {
+            "id": "perm_inv_write",
+            "resource": "inventory",
+            "action": "write",
+            "description": "Adjust inventory stock levels"
+          }
+        ]
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `tenantId` query parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Used by the Role Management panel (`RoleManagementPanel`) to render the role inventory and display assigned access controls.
+
+---
+
+### 28. `GET /api/roles/permissions`
+
+Retrieves all available system permission definitions that can be granted to roles.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/roles/permissions`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of system permissions.
+    ```json
+    [
+      {
+        "id": "perm_inv_read",
+        "resource": "inventory",
+        "action": "read",
+        "description": "View inventory stock levels"
+      },
+      {
+        "id": "perm_inv_write",
+        "resource": "inventory",
+        "action": "write",
+        "description": "Adjust inventory stock levels"
+      }
+    ]
+    ```
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Populates the permission selection checklist in the Role Management panel when administrators create or modify roles.
+
+---
+
+### 29. `POST /api/roles`
+
+Creates a new custom role with a set of assigned permission IDs.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/roles`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "name": "string (Required)",
+    "description": "string (Optional)",
+    "permissionIds": "string[] (Required)"
+  }
+  ```
+- **Responses**:
+  - `201 Created` or `200 OK`: Created role object.
+    ```json
+    {
+      "id": "role_custom_auditor",
+      "name": "Inventory Auditor",
+      "description": "Read-only access to inventory and ledger entries",
+      "isCustom": true,
+      "tenantId": "tenant_default",
+      "permissions": [
+        {
+          "id": "perm_inv_read",
+          "resource": "inventory",
+          "action": "read"
+        }
+      ]
+    }
+    ```
+  - `400 Bad Request`: Missing mandatory fields (`tenantId`, `name`, or `permissionIds`).
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `409 Conflict`: Role name already exists for the tenant.
+- **Workflow Context**:
+  Invoked from the Create Role form in `RoleManagementPanel` to define custom operational access profiles.
+
+---
+
+### 30. `PUT /api/roles/{id}/permissions`
+
+Updates the permission set assigned to an existing custom role.
+
+- **HTTP Method**: `PUT`
+- **Route Path**: `/api/roles/{id}/permissions`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the role to update.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "permissionIds": "string[] (Required)"
+  }
+  ```
+- **Responses**:
+  - `200 OK`: Updated role permissions confirmation.
+    ```json
+    {
+      "success": true,
+      "roleId": "role_custom_auditor",
+      "permissionIds": ["perm_inv_read", "perm_ledger_read"]
+    }
+    ```
+  - `400 Bad Request`: Missing or invalid `permissionIds` array.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `403 Forbidden`: Cannot modify permissions of built-in system roles.
+  - `404 Not Found`: Role ID not found.
+- **Workflow Context**:
+  Triggered when saving updated permission checkboxes for a role in the Role Management panel.
+
+---
+
+### 31. `DELETE /api/roles/{id}`
+
+Deletes a custom role from the tenant.
+
+- **HTTP Method**: `DELETE`
+- **Route Path**: `/api/roles/{id}`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the role to delete.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK` or `204 No Content`:
+    ```json
+    {
+      "success": true,
+      "deletedRoleId": "role_custom_auditor"
+    }
+    ```
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `403 Forbidden`: Built-in system roles cannot be deleted.
+  - `404 Not Found`: Role ID not found.
+  - `409 Conflict`: Role is currently assigned to active users.
+- **Workflow Context**:
+  Used in `RoleManagementPanel` to purge obsolete custom roles that are no longer assigned to personnel.
+
+---
+
+### 32. `GET /api/users`
+
+Lists all user accounts registered for a tenant along with their assigned roles.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/users`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`:
+    ```json
+    {
+      "users": [
+        {
+          "id": "usr_101",
+          "email": "operator@warehouse.example.com",
+          "name": "Jane Operator",
+          "role": "role_warehouse_manager"
+        }
+      ]
+    }
+    ```
+  - `400 Bad Request`: Missing `tenantId` query parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Populates the User Management table in the Admin Portal to inspect active personnel accounts and security roles.
+
+---
+
+### 33. `POST /api/users`
+
+Invites and provisions a new user account with an assigned initial role.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/users`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "email": "string (Required)",
+    "role": "string (Required)"
+  }
+  ```
+- **Responses**:
+  - `201 Created` or `200 OK`:
+    ```json
+    {
+      "userId": "usr_102",
+      "temporaryPassword": "temp_secret_password_123"
+    }
+    ```
+  - `400 Bad Request`: Missing mandatory parameters (`tenantId`, `email`, or `role`).
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `409 Conflict`: User email already registered for this tenant.
+- **Workflow Context**:
+  Used in the Admin Portal when adding new staff members and issuing initial credentials.
+
+---
+
+### 34. `PATCH /api/users/{id}/role`
+
+Updates the assigned operational security role of an existing user account.
+
+- **HTTP Method**: `PATCH`
+- **Route Path**: `/api/users/{id}/role`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the user to update.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "role": "string (Required)"
+  }
+  ```
+- **Responses**:
+  - `200 OK`:
+    ```json
+    {
+      "success": true,
+      "userId": "usr_101",
+      "role": "role_warehouse_supervisor"
+    }
+    ```
+  - `400 Bad Request`: Missing `tenantId` or `role` in payload.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: User ID not found.
+- **Workflow Context**:
+  Invoked from the User Management interface when elevating or reassigning staff responsibilities.
