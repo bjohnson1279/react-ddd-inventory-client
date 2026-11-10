@@ -71,4 +71,14 @@ describe('Python reporting and alerts', () => {
     expect(screen.getByText('default / g')).toBeInTheDocument();
     expect(screen.queryByText(/turning over healthily/)).not.toBeInTheDocument();
   });
+  it('handles and displays error state when report execution download fails', async () => {
+    const client = { ...api(),
+      getReportExecutions: vi.fn().mockResolvedValue([{ id: 'job-1', name: 'Stock Execution', status: 'COMPLETED', format: 'json' }]),
+      downloadReportExecution: vi.fn().mockRejectedValue(new Error('Download failed')) };
+    render(<PythonReportingPanel client={client as any} tenantId="store" role="admin" />);
+    const downloadBtn = await screen.findByRole('button', { name: 'Download job-1' });
+    fireEvent.click(downloadBtn);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Download failed');
+    expect(downloadBtn).not.toBeDisabled();
+  });
 });
