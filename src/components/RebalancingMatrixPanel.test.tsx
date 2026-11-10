@@ -131,6 +131,23 @@ describe('RebalancingMatrixPanel', () => {
     });
   });
 
+  it('displays default fallback error message when API rejection has no message property', async () => {
+    mockApi.getRebalanceMatrix.mockRejectedValueOnce({});
+
+    render(<RebalancingMatrixPanel api={mockApi} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to calculate matrix')).toBeInTheDocument();
+    });
+
+    const dismissButton = screen.getByLabelText('Dismiss error');
+    fireEvent.click(dismissButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Failed to calculate matrix')).not.toBeInTheDocument();
+    });
+  });
+
   it('triggers an alert when executing a transfer', async () => {
     render(<RebalancingMatrixPanel api={mockApi} />);
 
