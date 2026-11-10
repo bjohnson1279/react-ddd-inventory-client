@@ -210,3 +210,7 @@
 ## 2024-05-30 - Optimize Array Chaining in Render Loops
 **Learning:** Consecutive array methods (`.split().map().filter()`) inside a component render loop trigger unnecessary intermediate array allocations, blocking the main thread and impacting performance in heavily re-rendered components like `PythonWorkforcePanel`.
 **Action:** Always replace chained array methods with a single-pass `.reduce()` and memoize the result with `useMemo` when calculating derived values from primitive inputs during renders.
+
+## 2026-10-28 - In-Memory Cache for Serialized WMS Locations
+**Learning:** Re-fetching and deserializing an entire collection of warehouse locations from `localStorage` on every individual `saveWarehouseLocation` and `deleteWarehouseLocation` call incurs repetitive JSON parsing and serialization overhead that degrades performance significantly as the location catalog grows.
+**Action:** Maintain an in-memory cache per tenant for loaded warehouse locations in `GraphQLAdapter`, updating the in-memory array directly before persisting to `localStorage`, and invalidating/clearing the cache during `clearCache()`.
