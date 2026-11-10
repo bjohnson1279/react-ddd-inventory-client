@@ -1621,4 +1621,246 @@ describe("ExpressRESTAdapter Comprehensive Suite", () => {
       await expect(adapter.getApiUsageMetrics("tenant-err")).rejects.toThrow("Bad Gateway: upstream down");
     });
   });
+
+  describe("Authentication and Onboarding Workflows", () => {
+    it("should reject login when password is missing or empty", async () => {
+      await expect(adapter.login("tenant-auth", "admin")).rejects.toThrow(
+        "Authentication failed: Missing required password parameter.",
+      );
+      await expect(adapter.login("tenant-auth", "admin", "admin", "")).rejects.toThrow(
+        "Authentication failed: Missing required password parameter.",
+      );
+    });
+
+    it("should log in directly and format actor email if domain is omitted", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ token: "jwt-token-123" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ token: "jwt-token-456" }),
+        });
+      global.fetch = mockFetch;
+
+      const token1 = await adapter.login("tenant-auth", "adminUser", "ADMIN", "secretPass");
+      expect(token1).toBe("jwt-token-123");
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        1,
+        "http://localhost:5000/api/auth/login",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-auth",
+            email: "adminUser@example.com",
+            password: "secretPass",
+          }),
+        }),
+      );
+
+      const token2 = await adapter.login("tenant-auth", "user@customdomain.io", "USER", "secretPass");
+      expect(token2).toBe("jwt-token-456");
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        "http://localhost:5000/api/auth/login",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-auth",
+            email: "user@customdomain.io",
+            password: "secretPass",
+          }),
+        }),
+      );
+    });
+
+    it("should auto-recover via /auth/setup when direct login fails with credentials error", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockFetch = vi
+        .fn()
+        // First login attempt fails with 401 invalid credentials
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          text: async () => JSON.stringify({ error: "Invalid credentials" }),
+        })
+        // Setup call succeeds
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true }),
+        })
+        // Subsequent login call succeeds
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ token: "recovered-token-789" }),
+        });
+      global.fetch = mockFetch;
+
+      const token = await adapter.login("tenant-recovery", "leadAdmin", "ADMIN", "recoveryPassword");
+      expect(token).toBe("recovered-token-789");
+
+      // Verify setup call payload
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        "http://localhost:5000/api/auth/setup",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            orgName: "Organization tenant-recovery",
+            tenantId: "tenant-recovery",
+            adminName: "leadAdmin",
+            adminEmail: "leadAdmin@example.com",
+            adminPassword: "recoveryPassword",
+          }),
+        }),
+      );
+
+      // Verify subsequent login call
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        3,
+        "http://localhost:5000/api/auth/login",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-recovery",
+            email: "leadAdmin@example.com",
+            password: "recoveryPassword",
+          }),
+        }),
+      );
+
+      errorSpy.mockRestore();
+    });
+
+    it("should throw descriptive error when setup auto-recovery also fails", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockFetch = vi
+        .fn()
+        // First login attempt fails
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          text: async () => JSON.stringify({ error: "Invalid credentials" }),
+        })
+        // Setup call fails
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          text: async () => JSON.stringify({ error: "Database setup timeout" }),
+        });
+      global.fetch = mockFetch;
+
+      await expect(
+        adapter.login("tenant-recovery", "admin", "ADMIN", "secret"),
+      ).rejects.toThrow(
+        "Login failed, and setup auto-recovery also failed: Database setup timeout",
+      );
+
+      errorSpy.mockRestore();
+    });
+
+    it("should get stock onboardings and handle fetch failures gracefully", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [
+            {
+              id: "ob-1",
+              tenantId: "tenant-ob",
+              locationId: "loc-main",
+              asOfDate: "2026-03-01",
+              status: "DRAFT",
+              items: [],
+            },
+          ],
+        })
+        .mockRejectedValueOnce(new Error("Network disconnect"));
+      global.fetch = mockFetch;
+
+      const onboardings = await adapter.getStockOnboardings("tenant-ob");
+      expect(onboardings).toHaveLength(1);
+      expect(onboardings[0].id).toBe("ob-1");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/onboarding?tenantId=tenant-ob",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      const fallback = await adapter.getStockOnboardings("tenant-ob");
+      expect(fallback).toEqual([]);
+
+      errorSpy.mockRestore();
+    });
+
+    it("should create stock onboarding in batches and submit onboarding session", async () => {
+      const mockFetch = vi
+        .fn()
+        // Create onboarding session
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: "ob-session-123" }),
+        })
+        // Add items batch 1 (items 0..9)
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        // Add items batch 2 (item 10)
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        // Submit onboarding
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+      global.fetch = mockFetch;
+
+      // 11 items triggers 2 batches with BATCH_SIZE = 10
+      const items = Array.from({ length: 11 }, (_, i) => ({
+        variantId: `SKU-${i + 1}`,
+        quantity: i + 1,
+        unitCostCents: (i + 1) * 100,
+      }));
+
+      await adapter.createStockOnboarding("tenant-ob", "loc-1", "2026-03-01", items);
+
+      // Verify onboarding initialization
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        1,
+        "http://localhost:5000/api/onboarding",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-ob",
+            locationId: "loc-1",
+            asOfDate: "2026-03-01",
+          }),
+        }),
+      );
+
+      // Verify batch item creation
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/onboarding/ob-session-123/items",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            variantId: "SKU-1",
+            quantity: 1,
+            unitCostCents: 100,
+          }),
+        }),
+      );
+
+      await adapter.submitStockOnboarding("ob/session/123");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/onboarding/ob%2Fsession%2F123/submit",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
 });
