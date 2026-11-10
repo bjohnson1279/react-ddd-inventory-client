@@ -71,7 +71,12 @@ export function PythonReportingPanel({ client, tenantId, role, sessionKey }: { c
     try {
       const blob = await client.downloadReportExecution(job.id);
       const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a'); anchor.href = url; anchor.download = `report.${job.format}`; anchor.click();
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `report.${job.format}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
       URL.revokeObjectURL(url);
     } catch (failure: any) { setError(failure.message); }
     finally { setBusy(false); }

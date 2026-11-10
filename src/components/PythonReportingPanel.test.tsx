@@ -71,4 +71,27 @@ describe('Python reporting and alerts', () => {
     expect(screen.getByText('default / g')).toBeInTheDocument();
     expect(screen.queryByText(/turning over healthily/)).not.toBeInTheDocument();
   });
+  it('downloads a completed report by creating and clicking a temporary anchor', async () => {
+    const client = api();
+    client.getReportExecutions.mockResolvedValue([{ id: 'job-123', name: 'Stock execution', status: 'COMPLETED', format: 'csv' }]);
+    const fakeBlob = new Blob(['data'], { type: 'text/csv' });
+    client.downloadReportExecution = vi.fn().mockResolvedValue(fakeBlob);
+
+    const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:http://localhost/job-123');
+    const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    render(<PythonReportingPanel client={client as any} tenantId="store" role="admin" />);
+    const downloadButton = await screen.findByRole('button', { name: 'Download job-123' });
+    fireEvent.click(downloadButton);
+
+    await waitFor(() => expect(client.downloadReportExecution).toHaveBeenCalledWith('job-123'));
+    expect(createObjectURLSpy).toHaveBeenCalledWith(fakeBlob);
+    expect(clickSpy).toHaveBeenCalled();
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:http://localhost/job-123');
+
+    createObjectURLSpy.mockRestore();
+    revokeObjectURLSpy.mockRestore();
+    clickSpy.mockRestore();
+  });
 });
