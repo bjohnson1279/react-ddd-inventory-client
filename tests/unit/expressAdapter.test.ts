@@ -838,4 +838,1029 @@ describe("ExpressRESTAdapter Comprehensive Suite", () => {
       expect(history).toEqual([{ id: "dec-1", decision: "APPROVED" }]);
     });
   });
+
+  describe("Storefront and Channel Integrations", () => {
+    it("should fetch connections and shopify connections", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ id: "conn-1", platform: "SHOPIFY" }]),
+          json: async () => [{ id: "conn-1", platform: "SHOPIFY" }],
+        });
+      global.fetch = mockFetch;
+
+      const conns = await adapter.getConnections("tenant-conn");
+      expect(conns).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/integrations/connections?tenantId=tenant-conn",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      const shopifyConns = await adapter.getShopifyConnections("tenant-conn");
+      expect(shopifyConns).toHaveLength(1);
+      expect(shopifyConns[0].storeDomain).toBe("mock-store.myshopify.com");
+    });
+
+    it("should connect shopify, amazon, and woocommerce", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        });
+      global.fetch = mockFetch;
+
+      await adapter.connectShopify("tenant-conn", "test.myshopify.com", "shpat_123");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/shopify/connect",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-conn", storeDomain: "test.myshopify.com", accessToken: "shpat_123" }),
+        }),
+      );
+
+      await adapter.connectAmazon("tenant-conn", "seller_123", "mws_auth_456", "ATVPDKIKX0DER");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/integrations/amazon/connect",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-conn",
+            sellerId: "seller_123",
+            mwsAuthToken: "mws_auth_456",
+            marketplaceId: "ATVPDKIKX0DER",
+          }),
+        }),
+      );
+
+      await adapter.connectWooCommerce("tenant-conn", "https://woo.store", "ck_abc", "cs_xyz");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/integrations/woocommerce/connect",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-conn",
+            storeUrl: "https://woo.store",
+            consumerKey: "ck_abc",
+            consumerSecret: "cs_xyz",
+          }),
+        }),
+      );
+    });
+  });
+
+  describe("General Ledger & Stock Onboarding", () => {
+    it("should fetch journal entries and stock onboardings", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ id: "je-1", description: "Initial stock" }]),
+          json: async () => [{ id: "je-1", description: "Initial stock" }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ id: "onb-1", status: "PENDING" }]),
+          json: async () => [{ id: "onb-1", status: "PENDING" }],
+        });
+      global.fetch = mockFetch;
+
+      const entries = await adapter.getJournalEntries("tenant-gl");
+      expect(entries).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/accounting/ledger?tenantId=tenant-gl",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      const onboardings = await adapter.getStockOnboardings("tenant-gl");
+      expect(onboardings).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/onboarding?tenantId=tenant-gl",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+
+    it("should submit stock onboarding", async () => {
+      const mockFetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify({ success: true }),
+        json: async () => ({ success: true }),
+      });
+      global.fetch = mockFetch;
+
+      await adapter.submitStockOnboarding("onb-1");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/onboarding/onb-1/submit",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
+
+  describe("Reorder Policies and Order Routing", () => {
+    it("should route order to fulfillment nodes", async () => {
+      const mockFetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify({ routeId: "route-1", assignedNode: "node-east" }),
+        json: async () => ({ routeId: "route-1", assignedNode: "node-east" }),
+      });
+      global.fetch = mockFetch;
+
+      const res = await adapter.routeOrder("SKU-1", 2, "123 Main St", "LEAST_COST");
+      expect(res.assignedNode).toBe("node-east");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/shipping/route",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            sku: "SKU-1",
+            quantity: 2,
+            destinationAddress: "123 Main St",
+            strategyName: "LEAST_COST",
+          }),
+        }),
+      );
+    });
+
+    it("should get, save, and evaluate reorder policies", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ sku: "SKU-A", minStock: 10, maxStock: 50 }]),
+          json: async () => [{ sku: "SKU-A", minStock: 10, maxStock: 50 }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        });
+      global.fetch = mockFetch;
+
+      const policies = await adapter.getReorderPolicies("tenant-pol");
+      expect(policies).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/reorder-policies?tenantId=tenant-pol",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      const policyPayload = { sku: "SKU-A", minQuantity: 15, reorderQuantity: 60 } as any;
+      await adapter.saveReorderPolicy("tenant-pol", policyPayload);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/reorder-policies",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-pol", ...policyPayload }),
+        }),
+      );
+
+      await adapter.evaluateReorderPolicies("tenant-pol");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/reorder-policies/evaluate",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-pol" }),
+        }),
+      );
+    });
+  });
+
+  describe("Webhooks and Warehouse Locations", () => {
+    it("should manage webhooks and webhook deliveries", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ id: "wh-1", url: "https://hook.site" }]),
+          json: async () => [{ id: "wh-1", url: "https://hook.site" }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ deliveryId: "del-1", status: "SUCCESS" }]),
+          json: async () => [{ deliveryId: "del-1", status: "SUCCESS" }],
+        });
+      global.fetch = mockFetch;
+
+      const webhooks = await adapter.getWebhooks("tenant-wh");
+      expect(webhooks).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/webhooks?tenantId=tenant-wh",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      await adapter.deleteWebhook("tenant-wh", "wh-1");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/webhooks/wh-1?tenantId=tenant-wh",
+        expect.objectContaining({ method: "DELETE" }),
+      );
+
+      const deliveries = await adapter.getWebhookDeliveries("tenant-wh");
+      expect(deliveries).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/webhooks/deliveries?tenantId=tenant-wh",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+
+    it("should manage warehouse locations and putaway suggestions", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ id: "loc-1", name: "Aisle 1" }]),
+          json: async () => [{ id: "loc-1", name: "Aisle 1" }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ sku: "SKU-1", suggestedBin: "A-01-01" }]),
+          json: async () => [{ sku: "SKU-1", suggestedBin: "A-01-01" }],
+        });
+      global.fetch = mockFetch;
+
+      const locations = await adapter.getWarehouseLocations("tenant-wh");
+      expect(locations).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/warehouse-locations?tenantId=tenant-wh",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      await adapter.saveWarehouseLocation("tenant-wh", { id: "loc-2", zone: "A", aisle: "1", rack: "1", shelf: "1", bin: "1" } as any);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/warehouse-locations",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-wh", id: "loc-2", zone: "A", aisle: "1", rack: "1", shelf: "1", bin: "1" }),
+        }),
+      );
+
+      await adapter.deleteWarehouseLocation("tenant-wh", "loc-1");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/warehouse-locations/loc-1?tenantId=tenant-wh",
+        expect.objectContaining({ method: "DELETE" }),
+      );
+
+      const putaway = await adapter.getPutawaySuggestions("tenant-wh", "SKU-1", 5);
+      expect(putaway).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/warehouse-locations/putaway-suggestions",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-wh", sku: "SKU-1", quantity: 5 }),
+        }),
+      );
+    });
+  });
+
+  describe("RBAC, Auditing and Discrepancies", () => {
+    it("should manage roles and permissions", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ id: "role-1", name: "Editor" }]),
+          json: async () => [{ id: "role-1", name: "Editor" }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify(["read:products", "write:products"]),
+          json: async () => ["read:products", "write:products"],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ id: "role-2", name: "Manager" }),
+          json: async () => ({ id: "role-2", name: "Manager" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        });
+      global.fetch = mockFetch;
+
+      const roles = await adapter.getRoles("tenant-rbac");
+      expect(roles).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/roles?tenantId=tenant-rbac",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      const permissions = await adapter.getPermissions();
+      expect(permissions).toHaveLength(2);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/roles/permissions",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      await adapter.createRole("tenant-rbac", "Manager", "Manager role", ["read:products"]);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/roles",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-rbac", name: "Manager", description: "Manager role", permissionIds: ["read:products"] }),
+        }),
+      );
+
+      await adapter.updateRolePermissions("role-2", ["admin:all"]);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/roles/role-2/permissions",
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({ permissionIds: ["admin:all"] }),
+        }),
+      );
+
+      await adapter.deleteRole("role-2");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/roles/role-2",
+        expect.objectContaining({ method: "DELETE" }),
+      );
+    });
+
+    it("should run audit, fetch discrepancies and resolve discrepancy", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ auditId: "aud-1", status: "COMPLETED" }),
+          json: async () => ({ auditId: "aud-1", status: "COMPLETED" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ id: "disc-1", sku: "SKU-X", difference: -2 }]),
+          json: async () => [{ id: "disc-1", sku: "SKU-X", difference: -2 }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({ success: true }),
+          json: async () => ({ success: true }),
+        });
+      global.fetch = mockFetch;
+
+      const audit = await adapter.runAudit("tenant-audit");
+      expect(audit.auditId).toBe("aud-1");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/audit/run",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-audit" }),
+        }),
+      );
+
+      const discrepancies = await adapter.getDiscrepancies("tenant-audit");
+      expect(discrepancies).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/audit/discrepancies?tenantId=tenant-audit",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      await adapter.resolveDiscrepancy("tenant-audit", "disc-1", "Adjusted count via cycle count");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/audit/discrepancies/disc-1/resolve",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-audit", notes: "Adjusted count via cycle count" }),
+        }),
+      );
+    });
+
+    it("should retrieve compliance ledger entries", async () => {
+      const mockFetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify([{ id: "comp-1", action: "TRANSFER", timestamp: "2026-01-01" }]),
+        json: async () => [{ id: "comp-1", action: "TRANSFER", timestamp: "2026-01-01" }],
+      });
+      global.fetch = mockFetch;
+
+      const ledger = await adapter.getComplianceLedger("tenant-ledger");
+      expect(ledger).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/compliance/ledger?tenantId=tenant-ledger",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+  });
+
+  describe("Analytics, Anomaly Detection & Reporting", () => {
+    it("should analyze inventory anomalies with and without date boundaries", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ anomalyId: "anom-1", severity: "HIGH" }]),
+          json: async () => [{ anomalyId: "anom-1", severity: "HIGH" }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify([{ anomalyId: "anom-2", severity: "LOW" }]),
+          json: async () => [{ anomalyId: "anom-2", severity: "LOW" }],
+        });
+      global.fetch = mockFetch;
+
+      const allAnomalies = await adapter.analyzeInventoryAnomalies("tenant-anom");
+      expect(allAnomalies).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/anomaly-detection/analyze?tenantId=tenant-anom",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      const filteredAnomalies = await adapter.analyzeInventoryAnomalies(
+        "tenant-anom",
+        "2026-01-01T00:00:00Z",
+        "2026-01-31T23:59:59Z",
+      );
+      expect(filteredAnomalies).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/anomaly-detection/analyze?tenantId=tenant-anom&startDate=2026-01-01T00%3A00%3A00Z&endDate=2026-01-31T23%3A59%3A59Z",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+
+    it("should fetch inventory rebalance matrix", async () => {
+      const mockFetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ nodes: ["node-A", "node-B"], rebalanceSuggestions: [] }),
+      });
+      global.fetch = mockFetch;
+
+      const matrix = await adapter.getRebalanceMatrix("tenant-reb");
+      expect(matrix.nodes).toHaveLength(2);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/rebalance/matrix?tenantId=tenant-reb",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+
+    it("should handle report definitions, scheduling, and execution", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ id: "rep-1", name: "Daily Valuation" }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: "rep-2", name: "Weekly Shrinkage" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ scheduled: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ reportUrl: "https://reports/1.pdf" }),
+        });
+      global.fetch = mockFetch;
+
+      const definitions = await adapter.getReportDefinitions("tenant-rep");
+      expect(definitions).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/reports?tenantId=tenant-rep",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      await adapter.createReportDefinition("tenant-rep", { name: "Weekly Shrinkage", query: {} });
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/reports",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ name: "Weekly Shrinkage", query: {}, tenantId: "tenant-rep" }),
+        }),
+      );
+
+      await adapter.scheduleReport("tenant-rep", "rep-1", "0 0 * * *", "EMAIL");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/reports/rep-1/schedule",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-rep", cronExpression: "0 0 * * *", deliveryMethod: "EMAIL" }),
+        }),
+      );
+
+      const executed = await adapter.executeReport("tenant-rep", "rep-1", "PDF");
+      expect(executed.reportUrl).toBe("https://reports/1.pdf");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/reports/rep-1/execute",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "tenant-rep", format: "PDF" }),
+        }),
+      );
+    });
+
+    it("should get and save dashboard widgets", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ id: "wid-1", type: "CHART" }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: "wid-2", type: "GAUGE" }),
+        });
+      global.fetch = mockFetch;
+
+      const widgets = await adapter.getDashboardWidgets("tenant-wid");
+      expect(widgets).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/widgets?tenantId=tenant-wid",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      await adapter.saveDashboardWidget("tenant-wid", { id: "wid-2", type: "GAUGE" });
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/widgets",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ id: "wid-2", type: "GAUGE", tenantId: "tenant-wid" }),
+        }),
+      );
+    });
+  });
+
+  describe("Operational Depth: Cycle Counts, ASNs, Notifications & Aging", () => {
+    it("should start cycle count with required and optional parameters", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: "cc-1", status: "STARTED" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: "cc-2", status: "STARTED" }),
+        });
+      global.fetch = mockFetch;
+
+      await adapter.startCycleCount("tenant-cc", "Count A", false);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/cycle-count/start",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-cc",
+            name: "Count A",
+            isBlindCount: false,
+            abcClass: undefined,
+            zone: undefined,
+          }),
+        }),
+      );
+
+      await adapter.startCycleCount("tenant-cc", "Count B", true, "CLASS_A", "ZONE_1");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/cycle-count/start",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-cc",
+            name: "Count B",
+            isBlindCount: true,
+            abcClass: "CLASS_A",
+            zone: "ZONE_1",
+          }),
+        }),
+      );
+    });
+
+    it("should submit cycle count lines and fetch cycle counts", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ id: "cc-1", status: "SUBMITTED" }],
+        });
+      global.fetch = mockFetch;
+
+      await adapter.submitCycleCount("cc-1", [{ sku: "SKU-1", countedQuantity: 42 }]);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/cycle-count/cc-1/submit",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ countedLines: [{ sku: "SKU-1", countedQuantity: 42 }] }),
+        }),
+      );
+
+      const counts = await adapter.getCycleCounts("tenant-cc");
+      expect(counts).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/cycle-count?tenantId=tenant-cc",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+
+    it("should submit ASN and get ASNs for supplier", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: "asn-1", status: "EXPECTED" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ id: "asn-1", status: "EXPECTED" }],
+        });
+      global.fetch = mockFetch;
+
+      const lines = [{ sku: "SKU-1", quantity: 100 }];
+      await adapter.submitASN("tenant-asn", "po-1", "sup-1", "2026-06-01", lines);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/supplier/asn",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-asn",
+            poId: "po-1",
+            supplierId: "sup-1",
+            expectedArrivalDate: "2026-06-01",
+            lines,
+          }),
+        }),
+      );
+
+      const asns = await adapter.getASNs("tenant-asn", "sup-1");
+      expect(asns).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/supplier/asn?tenantId=tenant-asn&supplierId=sup-1",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+
+    it("should get notifications, mark read, and generate aging report", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ id: "notif-1", message: "Low stock alert", read: false }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ buckets: [{ range: "0-30", valueCents: 10000 }] }),
+        });
+      global.fetch = mockFetch;
+
+      const notifs = await adapter.getNotifications("tenant-notif", "user-1");
+      expect(notifs).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/notifications?tenantId=tenant-notif&userId=user-1",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      await adapter.markNotificationRead("notif-1");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/notifications/notif-1/read",
+        expect.objectContaining({ method: "POST" }),
+      );
+
+      const agingReport = await adapter.generateAgingReport("tenant-aging");
+      expect(agingReport.buckets).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/aging/report?tenantId=tenant-aging",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+
+    it("should get API usage metrics", async () => {
+      const mockFetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ endpoint: "/api/products", count: 120, errorCount: 0 }],
+      });
+      global.fetch = mockFetch;
+
+      const metrics = await adapter.getApiUsageMetrics("tenant-usage");
+      expect(metrics).toHaveLength(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/usage?tenantId=tenant-usage",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+  });
+
+  describe("Serial Tracking & Error Handling", () => {
+    it("should trace serial history", async () => {
+      const mockFetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify({ serialNumber: "SN-9999", history: [{ event: "MANUFACTURED", timestamp: "2026-01-01" }] }),
+        json: async () => ({ serialNumber: "SN-9999", history: [{ event: "MANUFACTURED", timestamp: "2026-01-01" }] }),
+      });
+      global.fetch = mockFetch;
+
+      const serialData = await adapter.traceSerialHistory("SN-9999");
+      expect(serialData.serialNumber).toBe("SN-9999");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/serials/trace/SN-9999",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+
+    it("should throw formatted error when request fails with JSON payload", async () => {
+      const mockFetch = vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        headers: new Headers({ "content-type": "application/json" }),
+        text: async () => JSON.stringify({ error: "Validation failed for SKU" }),
+      });
+      global.fetch = mockFetch;
+
+      await expect(adapter.getApiUsageMetrics("tenant-err")).rejects.toThrow("Validation failed for SKU");
+    });
+
+    it("should throw raw text error when request fails with non-JSON payload", async () => {
+      const mockFetch = vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        headers: new Headers({ "content-type": "text/html" }),
+        text: async () => "Bad Gateway: upstream down",
+      });
+      global.fetch = mockFetch;
+
+      await expect(adapter.getApiUsageMetrics("tenant-err")).rejects.toThrow("Bad Gateway: upstream down");
+    });
+  });
+
+  describe("Authentication and Onboarding Workflows", () => {
+    it("should reject login when password is missing or empty", async () => {
+      await expect(adapter.login("tenant-auth", "admin")).rejects.toThrow(
+        "Authentication failed: Missing required password parameter.",
+      );
+      await expect(adapter.login("tenant-auth", "admin", "admin", "")).rejects.toThrow(
+        "Authentication failed: Missing required password parameter.",
+      );
+    });
+
+    it("should log in directly and format actor email if domain is omitted", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ token: "jwt-token-123" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ token: "jwt-token-456" }),
+        });
+      global.fetch = mockFetch;
+
+      const token1 = await adapter.login("tenant-auth", "adminUser", "ADMIN", "secretPass");
+      expect(token1).toBe("jwt-token-123");
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        1,
+        "http://localhost:5000/api/auth/login",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-auth",
+            email: "adminUser@example.com",
+            password: "secretPass",
+          }),
+        }),
+      );
+
+      const token2 = await adapter.login("tenant-auth", "user@customdomain.io", "USER", "secretPass");
+      expect(token2).toBe("jwt-token-456");
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        "http://localhost:5000/api/auth/login",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-auth",
+            email: "user@customdomain.io",
+            password: "secretPass",
+          }),
+        }),
+      );
+    });
+
+    it("should auto-recover via /auth/setup when direct login fails with credentials error", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockFetch = vi
+        .fn()
+        // First login attempt fails with 401 invalid credentials
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          text: async () => JSON.stringify({ error: "Invalid credentials" }),
+        })
+        // Setup call succeeds
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true }),
+        })
+        // Subsequent login call succeeds
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ token: "recovered-token-789" }),
+        });
+      global.fetch = mockFetch;
+
+      const token = await adapter.login("tenant-recovery", "leadAdmin", "ADMIN", "recoveryPassword");
+      expect(token).toBe("recovered-token-789");
+
+      // Verify setup call payload
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        "http://localhost:5000/api/auth/setup",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            orgName: "Organization tenant-recovery",
+            tenantId: "tenant-recovery",
+            adminName: "leadAdmin",
+            adminEmail: "leadAdmin@example.com",
+            adminPassword: "recoveryPassword",
+          }),
+        }),
+      );
+
+      // Verify subsequent login call
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        3,
+        "http://localhost:5000/api/auth/login",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-recovery",
+            email: "leadAdmin@example.com",
+            password: "recoveryPassword",
+          }),
+        }),
+      );
+
+      errorSpy.mockRestore();
+    });
+
+    it("should throw descriptive error when setup auto-recovery also fails", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockFetch = vi
+        .fn()
+        // First login attempt fails
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          text: async () => JSON.stringify({ error: "Invalid credentials" }),
+        })
+        // Setup call fails
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          text: async () => JSON.stringify({ error: "Database setup timeout" }),
+        });
+      global.fetch = mockFetch;
+
+      await expect(
+        adapter.login("tenant-recovery", "admin", "ADMIN", "secret"),
+      ).rejects.toThrow(
+        "Login failed, and setup auto-recovery also failed: Database setup timeout",
+      );
+
+      errorSpy.mockRestore();
+    });
+
+    it("should get stock onboardings and handle fetch failures gracefully", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [
+            {
+              id: "ob-1",
+              tenantId: "tenant-ob",
+              locationId: "loc-main",
+              asOfDate: "2026-03-01",
+              status: "DRAFT",
+              items: [],
+            },
+          ],
+        })
+        .mockRejectedValueOnce(new Error("Network disconnect"));
+      global.fetch = mockFetch;
+
+      const onboardings = await adapter.getStockOnboardings("tenant-ob");
+      expect(onboardings).toHaveLength(1);
+      expect(onboardings[0].id).toBe("ob-1");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/onboarding?tenantId=tenant-ob",
+        expect.objectContaining({ method: "GET" }),
+      );
+
+      const fallback = await adapter.getStockOnboardings("tenant-ob");
+      expect(fallback).toEqual([]);
+
+      errorSpy.mockRestore();
+    });
+
+    it("should create stock onboarding in batches and submit onboarding session", async () => {
+      const mockFetch = vi
+        .fn()
+        // Create onboarding session
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: "ob-session-123" }),
+        })
+        // Add items batch 1 (items 0..9)
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        // Add items batch 2 (item 10)
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+        // Submit onboarding
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+      global.fetch = mockFetch;
+
+      // 11 items triggers 2 batches with BATCH_SIZE = 10
+      const items = Array.from({ length: 11 }, (_, i) => ({
+        variantId: `SKU-${i + 1}`,
+        quantity: i + 1,
+        unitCostCents: (i + 1) * 100,
+      }));
+
+      await adapter.createStockOnboarding("tenant-ob", "loc-1", "2026-03-01", items);
+
+      // Verify onboarding initialization
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        1,
+        "http://localhost:5000/api/onboarding",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: "tenant-ob",
+            locationId: "loc-1",
+            asOfDate: "2026-03-01",
+          }),
+        }),
+      );
+
+      // Verify batch item creation
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/onboarding/ob-session-123/items",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            variantId: "SKU-1",
+            quantity: 1,
+            unitCostCents: 100,
+          }),
+        }),
+      );
+
+      await adapter.submitStockOnboarding("ob/session/123");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:5000/api/onboarding/ob%2Fsession%2F123/submit",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
 });
