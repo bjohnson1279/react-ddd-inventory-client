@@ -101,4 +101,56 @@ describe('ThermalPrintingArPanel', () => {
       expect(screen.getByText('^XA^FO50,50^ADN,36,20^FDFETCH^FS^XZ')).toBeInTheDocument();
     });
   });
+
+  it('displays error alert when api.printZplThermalLabel rejects with an error message and allows dismissing', async () => {
+    const mockApi = {
+      printZplThermalLabel: vi.fn().mockRejectedValue(new Error('Printer paper jam'))
+    };
+
+    render(<ThermalPrintingArPanel api={mockApi} />);
+
+    const printButton = screen.getByRole('button', { name: 'Send ZPL Print Command' });
+    fireEvent.click(printButton);
+
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert).toBeInTheDocument();
+    expect(screen.getByText('Printer paper jam')).toBeInTheDocument();
+    expect(printButton).not.toBeDisabled();
+    expect(printButton).toHaveTextContent('Send ZPL Print Command');
+
+    const dismissButton = screen.getByRole('button', { name: 'Dismiss error' });
+    fireEvent.click(dismissButton);
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('displays default error message when api.printZplThermalLabel rejects without a message', async () => {
+    const mockApi = {
+      printZplThermalLabel: vi.fn().mockRejectedValue({})
+    };
+
+    render(<ThermalPrintingArPanel api={mockApi} />);
+
+    const printButton = screen.getByRole('button', { name: 'Send ZPL Print Command' });
+    fireEvent.click(printButton);
+
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert).toBeInTheDocument();
+    expect(screen.getByText('Error spooling ZPL thermal label job')).toBeInTheDocument();
+  });
+
+  it('displays error alert when fetch fails in fallback mode', async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error('Network connection timeout'));
+    globalThis.fetch = mockFetch;
+
+    render(<ThermalPrintingArPanel />);
+
+    const printButton = screen.getByRole('button', { name: 'Send ZPL Print Command' });
+    fireEvent.click(printButton);
+
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert).toBeInTheDocument();
+    expect(screen.getByText('Network connection timeout')).toBeInTheDocument();
+    expect(printButton).not.toBeDisabled();
+  });
 });
