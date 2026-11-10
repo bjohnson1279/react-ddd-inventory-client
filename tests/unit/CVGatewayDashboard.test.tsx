@@ -144,4 +144,147 @@ describe("CVGatewayDashboard", () => {
       );
     });
   });
+
+  it("handles rejection when approving scan fails due to network error", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    let callCount = 0;
+    const mockFetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              data: {
+                analyzeInboundImage: {
+                  id: "SCAN_ERR_01",
+                  status: "PENDING",
+                  dimensions: { length: 12, width: 22, height: 32 },
+                  ocrText: "PKG-ERR-01",
+                  anomalyScore: 0.02,
+                  hasDamage: false,
+                },
+              },
+            }),
+        });
+      } else {
+        return Promise.reject(new Error("Network connection failed"));
+      }
+    });
+    globalThis.fetch = mockFetch;
+
+    render(<CVGatewayDashboard />);
+
+    const fileInput = screen.getByLabelText("Upload Package Image");
+    const dummyFile = new File(["dummy content"], "test-err1.png", {
+      type: "image/png",
+    });
+    fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+    const analyzeBtn = await screen.findByRole("button", {
+      name: "Run CV Analysis",
+    });
+    fireEvent.click(analyzeBtn);
+
+    const approveBtn = await screen.findByRole("button", {
+      name: "Approve Received Stock",
+    });
+    fireEvent.click(approveBtn);
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith("Error: Network connection failed");
+    });
+
+    expect(approveBtn).not.toBeDisabled();
+    expect(approveBtn).toHaveTextContent("Approve Received Stock");
+  });
+
+  it("handles GraphQL error response when approving scan", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    let callCount = 0;
+    const mockFetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              data: {
+                analyzeInboundImage: {
+                  id: "SCAN_ERR_02",
+                  status: "PENDING",
+                  dimensions: { length: 14, width: 24, height: 34 },
+                  ocrText: "PKG-ERR-02",
+                  anomalyScore: 0.03,
+                  hasDamage: false,
+                },
+              },
+            }),
+        });
+      } else {
+        return Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              errors: [{ message: "Approval mutation failed" }],
+            }),
+        });
+      }
+    });
+    globalThis.fetch = mockFetch;
+
+    render(<CVGatewayDashboard />);
+
+    const fileInput = screen.getByLabelText("Upload Package Image");
+    const dummyFile = new File(["dummy content"], "test-err2.png", {
+      type: "image/png",
+    });
+    fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+    const analyzeBtn = await screen.findByRole("button", {
+      name: "Run CV Analysis",
+    });
+    fireEvent.click(analyzeBtn);
+
+    const approveBtn = await screen.findByRole("button", {
+      name: "Approve Received Stock",
+    });
+    fireEvent.click(approveBtn);
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith("Error: Approval mutation failed");
+    });
+
+    expect(approveBtn).not.toBeDisabled();
+    expect(approveBtn).toHaveTextContent("Approve Received Stock");
+  });
+
+  it("handles network error when running CV analysis", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const mockFetch = vi
+      .fn()
+      .mockRejectedValue(new Error("Analysis service unreachable"));
+    globalThis.fetch = mockFetch;
+
+    render(<CVGatewayDashboard />);
+
+    const fileInput = screen.getByLabelText("Upload Package Image");
+    const dummyFile = new File(["dummy content"], "test-err3.png", {
+      type: "image/png",
+    });
+    fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+    const analyzeBtn = await screen.findByRole("button", {
+      name: "Run CV Analysis",
+    });
+    fireEvent.click(analyzeBtn);
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        "Error: Analysis service unreachable",
+      );
+    });
+
+    expect(analyzeBtn).not.toBeDisabled();
+    expect(analyzeBtn).toHaveTextContent("Run CV Analysis");
+  });
 });
