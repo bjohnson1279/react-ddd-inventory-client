@@ -1182,3 +1182,116 @@ Updates the assigned operational security role of an existing user account.
   - `404 Not Found`: User ID not found.
 - **Workflow Context**:
   Invoked from the User Management interface when elevating or reassigning staff responsibilities.
+
+---
+
+## 🔄 Cycle Counting & Inventory Verification Endpoints
+
+### 35. `POST /api/cycle-count/start`
+
+Initiates a new inventory physical cycle count audit for a warehouse zone or ABC inventory classification.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/cycle-count/start`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "name": "string (Required)",
+    "isBlindCount": "boolean (Required)",
+    "abcClass": "string (Optional, e.g. A, B, or C)",
+    "zone": "string (Optional)"
+  }
+  ```
+- **Responses**:
+  - `201 Created` or `200 OK`:
+    ```json
+    {
+      "id": "cc-100",
+      "tenantId": "tenant_default",
+      "name": "Q1 Zone A Audit",
+      "status": "STARTED",
+      "isBlindCount": true,
+      "abcClass": "A",
+      "zone": "ZONE-NORTH",
+      "createdAt": "2026-11-02T16:00:00Z"
+    }
+    ```
+  - `400 Bad Request`: Missing mandatory parameters (`tenantId`, `name`, or `isBlindCount`).
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Triggered when warehouse managers click "Start Count" in the Cycle Counting Dashboard (`CycleCountDashboardPanel`) to initiate physical bin audits.
+
+---
+
+### 36. `POST /api/cycle-count/{id}/submit`
+
+Submits physical count line item quantities for reconciliation against recorded book quantities.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/cycle-count/{id}/submit`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the cycle count.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "countedLines": [
+      {
+        "sku": "string (Required)",
+        "count": "number (Required)",
+        "locationId": "string (Optional)"
+      }
+    ]
+  }
+  ```
+- **Responses**:
+  - `200 OK`: Confirmation of submitted count lines and resulting completion status.
+    ```json
+    {
+      "id": "cc-100",
+      "status": "COMPLETED",
+      "discrepanciesCount": 0,
+      "submittedAt": "2026-11-02T16:30:00Z"
+    }
+    ```
+  - `400 Bad Request`: Missing or malformed `countedLines` array.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Cycle count ID not found.
+- **Workflow Context**:
+  Invoked when an inventory auditor finishes physical stock counting in the Cycle Counting Dashboard (`CycleCountDashboardPanel`) and submits counts for discrepancy detection.
+
+---
+
+### 37. `GET /api/cycle-count`
+
+Lists active and past inventory cycle count audits for a tenant.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/cycle-count`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of cycle count audit records.
+    ```json
+    [
+      {
+        "id": "cc-100",
+        "tenantId": "tenant_default",
+        "name": "Q1 Zone A Audit",
+        "status": "PENDING",
+        "isBlindCount": true,
+        "createdAt": "2026-11-02T16:00:00Z"
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `tenantId` query parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Used by the Cycle Counting Dashboard (`CycleCountDashboardPanel`) to fetch and display ongoing counts and their reconciliation statuses.
