@@ -145,3 +145,6 @@
 ## 2024-05-18 - Replacing Generic Characters with SVG Icons for Consistency and Accessibility
 **Learning:** Replaced the generic `×` close icon with standard `<X>` icon from `lucide-react`. Ensure appropriate styles applied for SVGs like `display: flex; align-items: center; justify-content: center` to fix alignment issues when transitioning from text characters.
 **Action:** Always prefer consistent icon library elements (like `lucide-react`) over textual characters like `×`, `✓`, or `!» for interactive buttons, and always apply flex alignment correctly to maintain a smooth UX and proper visuals.
+## 2025-02-12 - Added aria-hidden to decorative dismiss icons
+**Learning:** Adding `aria-hidden="true"` to purely decorative SVGs such as 'X' within a dismiss button that already has an `aria-label` prevents screen readers from redundantly announcing the graphic and confusing users.
+**Action:** Always inspect icon-only interactive elements like 'X' buttons for missing `aria-hidden="true"` when the button uses an `aria-label`.
