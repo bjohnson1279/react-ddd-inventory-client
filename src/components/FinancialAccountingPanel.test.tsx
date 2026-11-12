@@ -200,4 +200,19 @@ describe('Python financial accounting panel', () => {
     expect(screen.getByText(/Inventory balance: \$20\.00\. In transit: \$5\.00\./)).toBeInTheDocument();
     expect(screen.getByText(/Closed through: No periods closed\./)).toBeInTheDocument();
   });
+
+  it('displays error when getFinancialOpeningPreview fails on inactive ledger', async () => {
+    const client = { getFinancialStatus: vi.fn().mockResolvedValue({ active: false, version: 0 }),
+      getFinancialOpeningPreview: vi.fn().mockRejectedValue(new Error('Failed to load opening preview')) };
+    render(<FinancialAccountingPanel client={client as unknown as PythonRESTAdapter} tenantId="store" onPosted={vi.fn()} />);
+    expect((await screen.findByRole('alert')).textContent).toContain('Failed to load opening preview');
+  });
+
+  it('displays error when getFinancialTrialBalance fails on active ledger', async () => {
+    const client = { getFinancialStatus: vi.fn().mockResolvedValue({ active: true, version: 1 }),
+      getFinancialTrialBalance: vi.fn().mockRejectedValue(new Error('Trial balance calculation failed')),
+      getFinancialReconciliation: vi.fn().mockResolvedValue({ isReconciled: true, ledgerInventoryCents: 0, ledgerTransitCents: 0 }) };
+    render(<FinancialAccountingPanel client={client as unknown as PythonRESTAdapter} tenantId="store" onPosted={vi.fn()} />);
+    expect((await screen.findByRole('alert')).textContent).toContain('Trial balance calculation failed');
+  });
 });
