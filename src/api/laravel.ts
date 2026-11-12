@@ -1189,7 +1189,7 @@ export class LaravelRESTAdapter implements InventoryClient {
     method?: string,
   ): Promise<ValuationItem[]> {
     try {
-      const valSummary = await this.request(
+      await this.request(
         "GET",
         `/api/reports/valuation?tenantId=${encodeURIComponent(tenantId)}`,
       );
