@@ -210,3 +210,7 @@
 ## 2024-05-30 - Optimize Array Chaining in Render Loops
 **Learning:** Consecutive array methods (`.split().map().filter()`) inside a component render loop trigger unnecessary intermediate array allocations, blocking the main thread and impacting performance in heavily re-rendered components like `PythonWorkforcePanel`.
 **Action:** Always replace chained array methods with a single-pass `.reduce()` and memoize the result with `useMemo` when calculating derived values from primitive inputs during renders.
+
+## 2026-11-10 - Dense Chunking and Zero-Stock Pre-Allocation for REST Valuation Reports
+**Learning:** In REST adapters compiling entity reports across a catalog, queueing dummy `Promise.resolve` closures for zero-quantity items into chunked `Promise.all` arrays dilutes batches with no-ops and incurs repeated microtask queue stalls across hundreds of chunks.
+**Action:** Pre-allocate report arrays and assign zero-stock entities synchronously in a single O(N) pass, then queue only positive-stock entities into dense `Promise.all` chunks to minimize sequential round-trip batches and avoid closure/array allocations.
