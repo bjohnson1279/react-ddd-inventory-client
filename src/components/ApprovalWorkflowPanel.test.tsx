@@ -133,6 +133,30 @@ describe("ApprovalWorkflowPanel", () => {
     });
   });
 
+  it("handles toggle failure through API with default error message when rejection has no message", async () => {
+    const mockApi = {
+      getApprovalWorkflows: vi.fn().mockResolvedValue([
+        {
+          id: "wf_1",
+          triggerEvent: "PO_CREATED",
+          isActive: true,
+          steps: [],
+        },
+      ]),
+      toggleApprovalWorkflow: vi.fn().mockRejectedValue({}),
+    };
+
+    render(<ApprovalWorkflowPanel api={mockApi} />);
+
+    const toggleBtn = await screen.findByRole("button", { name: "Active" });
+    fireEvent.click(toggleBtn);
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText("Failed to toggle workflow")).toBeInTheDocument();
+    });
+  });
+
   it("successfully toggles workflow via API and refreshes workflows", async () => {
     let activeState = true;
     const getWorkflowsMock = vi.fn().mockImplementation(async () => [
@@ -314,6 +338,17 @@ describe("ApprovalWorkflowPanel", () => {
     await waitFor(() => {
       expect(screen.getByRole("alert")).toBeInTheDocument();
       expect(screen.getByText("Server unavailable")).toBeInTheDocument();
+    });
+  });
+
+  it("handles fetch failure with default error message when error has no message", async () => {
+    vi.spyOn(window, "fetch").mockRejectedValue({});
+
+    render(<ApprovalWorkflowPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText("Failed to fetch workflows")).toBeInTheDocument();
     });
   });
 });
