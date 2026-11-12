@@ -71,6 +71,50 @@ describe('Python reporting and alerts', () => {
     expect(screen.getByText('default / g')).toBeInTheDocument();
     expect(screen.queryByText(/turning over healthily/)).not.toBeInTheDocument();
   });
+  it('downloads completed report executions and cleans up DOM elements', async () => {
+    const client = api();
+    const mockBlob = new Blob(['{"status":"ok"}'], { type: 'application/json' });
+    (client as any).downloadReportExecution = vi.fn().mockResolvedValue(mockBlob);
+    client.getReportExecutions.mockResolvedValue([
+      { id: 'job-123', name: 'Stock Report', status: 'COMPLETED', format: 'json', complete: true },
+    ]);
+
+    const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-url');
+    const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    render(<PythonReportingPanel client={client as any} tenantId="store" role="admin" />);
+
+    const downloadButton = await screen.findByRole('button', { name: 'Download job-123' });
+    fireEvent.click(downloadButton);
+
+    await waitFor(() => expect((client as any).downloadReportExecution).toHaveBeenCalledWith('job-123'));
+    expect(createObjectURLSpy).toHaveBeenCalledWith(mockBlob);
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:mock-url');
+
+    createObjectURLSpy.mockRestore();
+    revokeObjectURLSpy.mockRestore();
+  });
+  it('displays error message and resets busy state when command fails with a client error', async () => {
+    const client = api();
+    client.reportCommand.mockRejectedValueOnce(Object.assign(new Error('Invalid report configuration'), { status: 400 }));
+    render(<PythonReportingPanel client={client as any} tenantId="store" role="admin" />);
+    const nameInput = await screen.findByLabelText('Report name');
+    fireEvent.change(nameInput, { target: { value: 'Monthly Sales' } });
+    const createButton = screen.getByRole('button', { name: 'Create report' });
+    fireEvent.submit(createButton.closest('form')!);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Invalid report configuration');
+    expect(createButton).not.toBeDisabled();
+    expect(createButton).toHaveAttribute('aria-busy', 'false');
+
+    client.reportCommand.mockResolvedValueOnce({ executionId: 'job-2' });
+    fireEvent.submit(createButton.closest('form')!);
+    await waitFor(() => expect(client.reportCommand).toHaveBeenCalledTimes(2));
+    const firstCallPayload = client.reportCommand.mock.calls[0][1];
+    const secondCallPayload = client.reportCommand.mock.calls[1][1];
+    expect(secondCallPayload.mutationId).toBeDefined();
+    expect(secondCallPayload.mutationId).not.toEqual(firstCallPayload.mutationId);
+  });
   it('handles and displays error state when report execution download fails', async () => {
     const client = { ...api(),
       getReportExecutions: vi.fn().mockResolvedValue([{ id: 'job-1', name: 'Stock Execution', status: 'COMPLETED', format: 'json' }]),
