@@ -170,10 +170,6 @@ function App() {
   const [traceSerialNum, setTraceSerialNum] = useState("");
   const [tracedItem, setTracedItem] = useState<SerializedItem | null>(null);
 
-  const [newShopifyId, setNewShopifyId] = useState("");
-  const [newShopifyDomain, setNewShopifyDomain] = useState("");
-  const [newShopifyToken, setNewShopifyToken] = useState("");
-
   const [newJournalDesc, setNewJournalDesc] = useState("");
   const [newJournalMethod, setNewJournalMethod] = useState<"cash" | "accrual">(
     "accrual",
@@ -1535,25 +1531,6 @@ function App() {
         );
       }
       setTracedItem(data);
-    } catch (err: unknown) {
-      setMessage({ type: "error", text: (err as Error).message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConnectShopify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await client.connectShopify(tenantId, newShopifyDomain, newShopifyToken);
-      setMessage({
-        type: "success",
-        text: "Shopify Connection added successfully.",
-      });
-      setNewShopifyDomain("");
-      setNewShopifyToken("");
-      loadDashboardData();
     } catch (err: unknown) {
       setMessage({ type: "error", text: (err as Error).message });
     } finally {
