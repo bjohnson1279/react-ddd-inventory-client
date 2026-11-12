@@ -54,8 +54,20 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({
           onClick={fetchData}
           disabled={loading}
           aria-busy={loading}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            justifyContent: "center",
+          }}
         >
-          {loading ? "Analyzing..." : "Analyze Now"}
+          {loading ? (
+            <>
+              <Spinner /> Analyzing...
+            </>
+          ) : (
+            "Analyze Now"
+          )}
         </button>
       </div>
 
@@ -82,6 +94,9 @@ export const AnomalyDetectionPanel: React.FC<AnomalyDetectionPanelProps> = ({
                 cursor: "pointer",
                 fontSize: "1.2rem",
                 padding: "0 4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <X size={18} aria-hidden="true" />

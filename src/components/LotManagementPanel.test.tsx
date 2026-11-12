@@ -317,4 +317,38 @@ describe('LotManagementPanel', () => {
       headers: { 'Content-Type': 'application/json' }
     }));
   });
+
+  it('handles malformed JSON in Inbound Items gracefully without crashing', async () => {
+    const user = userEvent.setup();
+    render(<LotManagementPanel />);
+
+    const inboundTextarea = screen.getByLabelText(/inbound items \(json\)/i);
+    await user.clear(inboundTextarea);
+    await user.type(inboundTextarea, 'invalid_json');
+
+    await user.click(screen.getByRole('button', { name: /evaluate dock-to-dock opportunities/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Cross-Docking error: Invalid JSON in Inbound Items')).toBeInTheDocument();
+    });
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('handles malformed JSON in Matching Backorders gracefully without crashing', async () => {
+    const user = userEvent.setup();
+    render(<LotManagementPanel />);
+
+    const backordersTextarea = screen.getByLabelText(/matching backorders \(json\)/i);
+    await user.clear(backordersTextarea);
+    await user.type(backordersTextarea, 'invalid_json');
+
+    await user.click(screen.getByRole('button', { name: /evaluate dock-to-dock opportunities/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Cross-Docking error: Invalid JSON in Matching Backorders')).toBeInTheDocument();
+    });
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
 });
