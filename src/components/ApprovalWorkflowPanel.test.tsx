@@ -340,4 +340,15 @@ describe("ApprovalWorkflowPanel", () => {
       expect(screen.getByText("Server unavailable")).toBeInTheDocument();
     });
   });
+
+  it("handles fetch failure with default error message when error has no message", async () => {
+    vi.spyOn(window, "fetch").mockRejectedValue({});
+
+    render(<ApprovalWorkflowPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText("Failed to fetch workflows")).toBeInTheDocument();
+    });
+  });
 });
