@@ -11,7 +11,9 @@ function api() {
     getOwnNotifications: vi.fn().mockResolvedValue([]), getOwnUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0 }),
     getNotificationManagers: vi.fn().mockResolvedValue([]), escalateOwnNotification: vi.fn().mockResolvedValue({}),
     reportCommand: vi.fn().mockResolvedValue({ executionId: 'job' }), markNotificationRead: vi.fn().mockResolvedValue(undefined),
-    snoozeOwnNotification: vi.fn().mockResolvedValue(undefined) };
+    snoozeOwnNotification: vi.fn().mockResolvedValue(undefined),
+    processReportExecution: vi.fn().mockResolvedValue({ status: 'COMPLETED' }),
+    downloadReportExecution: vi.fn().mockResolvedValue(new Blob(['test'])) };
 }
 describe('Python reporting and alerts', () => {
   it('queues a report without presenting a completed export and preserves a lost-response command', async () => {
@@ -41,6 +43,18 @@ describe('Python reporting and alerts', () => {
     render(<PythonReportingPanel client={client as any} tenantId="store" role="admin" />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Reports unavailable');
     expect(screen.queryByText(/No report definitions/)).not.toBeInTheDocument();
+  });
+  it('handles and displays error when report execution processing fails', async () => {
+    const client = api();
+    client.getReportExecutions.mockResolvedValue([{ id: 'job-1', name: 'Stock execution', status: 'QUEUED', complete: true }]);
+    client.processReportExecution.mockRejectedValue(new Error('Report generation pipeline failed'));
+    render(<PythonReportingPanel client={client as any} tenantId="store" role="admin" />);
+    const generateBtn = await screen.findByRole('button', { name: 'Generate job-1' });
+    fireEvent.click(generateBtn);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Report generation pipeline failed');
+    expect(generateBtn).not.toBeDisabled();
+    expect(generateBtn).toHaveAttribute('aria-busy', 'false');
   });
   it('loads the authenticated inbox and refreshes state after acknowledgement', async () => {
     const client = api();
