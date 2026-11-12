@@ -1298,9 +1298,164 @@ Lists active and past inventory cycle count audits for a tenant.
 
 ---
 
+## 🛒 Purchase Order Lifecycle & Fulfillment Endpoints
+
+### 38. `GET /api/purchase-orders`
+
+Retrieves purchase order records for a tenant, optionally filtered by specific purchase order IDs.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/purchase-orders`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `ids` (*Query, Optional*): Comma-separated list of purchase order IDs to retrieve in bulk.
+  - `limit` (*Query, Optional*): Maximum number of purchase orders to return (used by Python REST adapter).
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of purchase order objects or envelope containing purchase order records.
+    ```json
+    [
+      {
+        "id": "po_90210",
+        "tenantId": "tenant_default",
+        "supplier": "Acme Supplies Co.",
+        "status": "DRAFT",
+        "createdAt": "2026-11-02T12:30:00Z",
+        "items": [
+          {
+            "sku": "WIDGET-BLK-M",
+            "quantity": 100,
+            "unitCostCents": 1250
+          }
+        ]
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing `tenantId` query parameter.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Powers the purchase order listing in the Procurement Panel (`ProcurementPanel`), allowing operators to view order statuses, items, and supplier details across backends.
+
+---
+
+### 39. `POST /api/purchase-orders/{id}/approve`
+
+Approves a draft purchase order, moving it to `APPROVED` status in the procurement replenishment workflow.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/purchase-orders/{id}/approve`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the purchase order to approve.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "mutationId": "string (Optional, idempotency UUID for Python adapter)"
+  }
+  ```
+- **Responses**:
+  - `200 OK`: Purchase order approved successfully.
+    ```json
+    {
+      "success": true,
+      "id": "po_90210",
+      "status": "APPROVED"
+    }
+    ```
+  - `400 Bad Request`: Missing `tenantId` in request body.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Purchase order with the specified ID does not exist.
+- **Workflow Context**:
+  Invoked from the Procurement Panel when a purchasing supervisor or authorized manager clicks "Approve" on a draft purchase order.
+
+---
+
+### 40. `POST /api/purchase-orders/{id}/send`
+
+Dispatches an approved purchase order to the external supplier, advancing its status to `SENT`.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/purchase-orders/{id}/send`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the purchase order to transmit.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "mutationId": "string (Optional, idempotency UUID for Python adapter)"
+  }
+  ```
+- **Responses**:
+  - `200 OK`: Purchase order dispatched successfully.
+    ```json
+    {
+      "success": true,
+      "id": "po_90210",
+      "status": "SENT"
+    }
+    ```
+  - `400 Bad Request`: Missing `tenantId` in request body.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Purchase order with the specified ID does not exist.
+- **Workflow Context**:
+  Triggered when an operator clicks "Send" in the Procurement Panel to formally issue the order to the supplier via EDI, email, or integration portal.
+
+---
+
+### 41. `POST /api/purchase-orders/{id}/receive`
+
+Records receipt of line item quantities against an active purchase order, incrementing inventory stock levels.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/purchase-orders/{id}/receive`
+- **Parameters**:
+  - `id` (*Path, Required*): Unique identifier of the purchase order being received.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "items": [
+      {
+        "sku": "string (Required)",
+        "quantity": "number (Required)"
+      }
+    ],
+    "receiptId": "string (Optional, idempotency UUID for Python adapter)"
+  }
+  ```
+- **Responses**:
+  - `200 OK`: Goods received confirmation and updated purchase order status.
+    ```json
+    {
+      "success": true,
+      "id": "po_90210",
+      "status": "RECEIVED",
+      "receivedItems": [
+        {
+          "sku": "WIDGET-BLK-M",
+          "quantity": 100
+        }
+      ]
+    }
+    ```
+  - `400 Bad Request`: Missing `tenantId`, empty `items` array, or invalid received quantity.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Purchase order with the specified ID does not exist.
+- **Workflow Context**:
+  Executed in warehouse receiving or the Procurement Panel when physical goods arrive at the dock and are checked in against the purchase order.
+
+---
+
 ## 🚚 Supplier & Advance Shipping Notice (ASN) Endpoints
 
-### 38. `POST /api/supplier/asn`
+### 42. `POST /api/supplier/asn`
 
 Submits an Advance Shipping Notice (ASN) for an inbound purchase order shipment from a supplier.
 
@@ -1350,7 +1505,7 @@ Submits an Advance Shipping Notice (ASN) for an inbound purchase order shipment 
 
 ---
 
-### 39. `GET /api/supplier/asn`
+### 43. `GET /api/supplier/asn`
 
 Lists Advance Shipping Notices (ASNs) associated with a specific supplier and tenant.
 
