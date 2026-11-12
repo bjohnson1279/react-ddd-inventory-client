@@ -148,3 +148,6 @@
 ## 2025-02-12 - Added aria-hidden to decorative dismiss icons
 **Learning:** Adding `aria-hidden="true"` to purely decorative SVGs such as 'X' within a dismiss button that already has an `aria-label` prevents screen readers from redundantly announcing the graphic and confusing users.
 **Action:** Always inspect icon-only interactive elements like 'X' buttons for missing `aria-hidden="true"` when the button uses an `aria-label`.
+## 2025-02-12 - Added visual loading indicators and flex alignment to interactive panels
+**Learning:** During asynchronous actions (like "Analyze Now"), missing visual loading indicators paired with `disabled` states provide poor feedback to users. Relying purely on `disabled` and `aria-busy` is not enough for sighted users. Additionally, when replacing simple text characters with SVG icons in icon-only buttons, applying flex centering prevents alignment issues.
+**Action:** When working on buttons with asynchronous workflows, ensure both `aria-busy` and visual feedback like a `<Spinner />` are present. Apply flex centering styling (`display: flex; align-items: center; justifyContent: center`) for SVG icons within action buttons.

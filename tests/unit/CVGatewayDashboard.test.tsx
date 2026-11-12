@@ -144,4 +144,185 @@ describe("CVGatewayDashboard", () => {
       );
     });
   });
+
+  it("handles GraphQL error response in handleAnalyze and alerts the error message", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue({
+        errors: [{ message: "Invalid image format provided" }],
+      }),
+    });
+    globalThis.fetch = mockFetch;
+
+    render(<CVGatewayDashboard />);
+
+    const fileInput = screen.getByLabelText("Upload Package Image");
+    const dummyFile = new File(["dummy content"], "bad-image.png", {
+      type: "image/png",
+    });
+    fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+    const analyzeBtn = await screen.findByRole("button", {
+      name: "Run CV Analysis",
+    });
+    fireEvent.click(analyzeBtn);
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        "Error: Invalid image format provided",
+      );
+    });
+
+    expect(analyzeBtn).not.toBeDisabled();
+    expect(analyzeBtn).toHaveAttribute("aria-busy", "false");
+    expect(screen.queryByText("Analysis Results")).not.toBeInTheDocument();
+  });
+
+  it("handles network rejection in handleAnalyze and resets loading state", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    const mockFetch = vi.fn().mockRejectedValue(new Error("Network connection failed"));
+    globalThis.fetch = mockFetch;
+
+    render(<CVGatewayDashboard />);
+
+    const fileInput = screen.getByLabelText("Upload Package Image");
+    const dummyFile = new File(["dummy content"], "network-fail.png", {
+      type: "image/png",
+    });
+    fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+    const analyzeBtn = await screen.findByRole("button", {
+      name: "Run CV Analysis",
+    });
+    fireEvent.click(analyzeBtn);
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        "Error: Network connection failed",
+      );
+    });
+
+    expect(analyzeBtn).not.toBeDisabled();
+    expect(analyzeBtn).toHaveAttribute("aria-busy", "false");
+    expect(screen.queryByText("Analysis Results")).not.toBeInTheDocument();
+  });
+
+  it("handles GraphQL error response in handleApprove and alerts the error message", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    let callCount = 0;
+    const mockFetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              data: {
+                analyzeInboundImage: {
+                  id: "SCAN_ERR_1",
+                  status: "PENDING",
+                  dimensions: { length: 12, width: 22, height: 32 },
+                  ocrText: "PKG-ERR",
+                  anomalyScore: 0.1,
+                  hasDamage: false,
+                },
+              },
+            }),
+        });
+      } else {
+        return Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              errors: [{ message: "Scan approval failed: item locked" }],
+            }),
+        });
+      }
+    });
+    globalThis.fetch = mockFetch;
+
+    render(<CVGatewayDashboard />);
+
+    const fileInput = screen.getByLabelText("Upload Package Image");
+    const dummyFile = new File(["dummy content"], "test-approve-err.png", {
+      type: "image/png",
+    });
+    fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+    const analyzeBtn = await screen.findByRole("button", {
+      name: "Run CV Analysis",
+    });
+    fireEvent.click(analyzeBtn);
+
+    const approveBtn = await screen.findByRole("button", {
+      name: "Approve Received Stock",
+    });
+    fireEvent.click(approveBtn);
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        "Error: Scan approval failed: item locked",
+      );
+    });
+
+    expect(approveBtn).not.toBeDisabled();
+    expect(approveBtn).toHaveAttribute("aria-busy", "false");
+  });
+
+  it("handles network rejection in handleApprove and resets approving state", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    let callCount = 0;
+    const mockFetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              data: {
+                analyzeInboundImage: {
+                  id: "SCAN_ERR_2",
+                  status: "PENDING",
+                  dimensions: { length: 12, width: 22, height: 32 },
+                  ocrText: "PKG-NET-ERR",
+                  anomalyScore: 0.1,
+                  hasDamage: false,
+                },
+              },
+            }),
+        });
+      } else {
+        return Promise.reject(new Error("Approve network timeout"));
+      }
+    });
+    globalThis.fetch = mockFetch;
+
+    render(<CVGatewayDashboard />);
+
+    const fileInput = screen.getByLabelText("Upload Package Image");
+    const dummyFile = new File(["dummy content"], "test-approve-timeout.png", {
+      type: "image/png",
+    });
+    fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+    const analyzeBtn = await screen.findByRole("button", {
+      name: "Run CV Analysis",
+    });
+    fireEvent.click(analyzeBtn);
+
+    const approveBtn = await screen.findByRole("button", {
+      name: "Approve Received Stock",
+    });
+    fireEvent.click(approveBtn);
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        "Error: Approve network timeout",
+      );
+    });
+
+    expect(approveBtn).not.toBeDisabled();
+    expect(approveBtn).toHaveAttribute("aria-busy", "false");
+  });
 });
