@@ -1450,3 +1450,86 @@ Records receipt of line item quantities against an active purchase order, increm
   - `404 Not Found`: Purchase order with the specified ID does not exist.
 - **Workflow Context**:
   Executed in warehouse receiving or the Procurement Panel when physical goods arrive at the dock and are checked in against the purchase order.
+
+---
+
+## 🚚 Supplier & Advance Shipping Notice (ASN) Endpoints
+
+### 42. `POST /api/supplier/asn`
+
+Submits an Advance Shipping Notice (ASN) for an inbound purchase order shipment from a supplier.
+
+- **HTTP Method**: `POST`
+- **Route Path**: `/api/supplier/asn`
+- **Parameters**:
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+  - `Content-Type` (*Header, Required*): `application/json`
+- **Request Body**:
+  ```json
+  {
+    "tenantId": "string (Required)",
+    "poId": "string (Required)",
+    "supplierId": "string (Required)",
+    "expectedArrivalDate": "string (Required, ISO-8601 date string e.g. 2026-06-01)",
+    "lines": [
+      {
+        "sku": "string (Required)",
+        "quantity": "number (Required)"
+      }
+    ]
+  }
+  ```
+- **Responses**:
+  - `201 Created` or `200 OK`: Created ASN record.
+    ```json
+    {
+      "id": "asn-101",
+      "tenantId": "tenant_default",
+      "poId": "po_90210",
+      "supplierId": "supp-123",
+      "expectedArrivalDate": "2026-06-01",
+      "status": "SUBMITTED",
+      "lines": [
+        {
+          "sku": "WIDGET-BLK-M",
+          "quantity": 100
+        }
+      ],
+      "createdAt": "2026-11-02T16:45:00Z"
+    }
+    ```
+  - `400 Bad Request`: Missing mandatory fields (`tenantId`, `poId`, `supplierId`, `expectedArrivalDate`, or `lines`).
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Used by supplier integration portals and receiving operators (e.g. in `ReverseLogisticsSupplierPanel` and `SupplierCollaborationPortal`) to notify warehouse receiving docks of impending supplier deliveries before physical arrival.
+
+---
+
+### 43. `GET /api/supplier/asn`
+
+Lists Advance Shipping Notices (ASNs) associated with a specific supplier and tenant.
+
+- **HTTP Method**: `GET`
+- **Route Path**: `/api/supplier/asn`
+- **Parameters**:
+  - `tenantId` (*Query, Required*): Unique identifier of the tenant.
+  - `supplierId` (*Query, Required*): Unique identifier of the supplier.
+  - `Authorization` (*Header, Optional*): Bearer JWT authentication token (`Bearer <token>`).
+- **Request Body**: None.
+- **Responses**:
+  - `200 OK`: Array of Advance Shipping Notice records.
+    ```json
+    [
+      {
+        "id": "asn-101",
+        "poId": "po_90210",
+        "supplierId": "supp-123",
+        "expectedArrivalDate": "2026-06-01",
+        "status": "SUBMITTED"
+      }
+    ]
+    ```
+  - `400 Bad Request`: Missing required query parameter (`tenantId` or `supplierId`).
+  - `401 Unauthorized`: Missing or invalid authentication token.
+- **Workflow Context**:
+  Powers the Advance Shipping Notices listing in the Supplier Portal (`SupplierCollaborationPortal`), allowing suppliers and logistics teams to track inbound consignments and scheduled arrival dates.
