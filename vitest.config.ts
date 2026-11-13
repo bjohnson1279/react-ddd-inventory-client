@@ -17,8 +17,8 @@ export default defineConfig({
       exclude: ['src/**/*.d.ts', 'src/**/*.{test,spec}.{ts,tsx}', 'src/**/__tests__/**'],
       reporter: ['text', 'json-summary', 'lcov', 'cobertura'],
       thresholds: {
-        statements: 66, branches: 54, functions: 60, lines: 66,
-        'src/App.tsx': { statements: 30, branches: 26, functions: 16, lines: 30 },
+        statements: 73, branches: 62, functions: 69, lines: 73,
+        'src/App.tsx': { statements: 31, branches: 26, functions: 17, lines: 32 },
       },
     },
   },
