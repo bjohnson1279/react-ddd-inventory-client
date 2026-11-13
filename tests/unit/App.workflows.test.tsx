@@ -122,6 +122,27 @@ describe('application authentication and navigation', () => {
     await ready();
     expect(api.getInventoryItems).toHaveBeenCalledTimes(2);
     expect(screen.getByText('Real-time Stock Levels')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('retains a failed catalog draft and creates it successfully on retry', async () => {
+    session();
+    api.createProduct = vi.fn().mockRejectedValueOnce(new Error('Catalog unavailable')).mockResolvedValue(undefined);
+    mount(); await ready();
+    fireEvent.click(screen.getByText(/Product Catalog/));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Register Product' })).toBeEnabled());
+    const identifier = screen.getByPlaceholderText('e.g. prod-123');
+    const name = screen.getByPlaceholderText('e.g. Wireless Charger');
+    fireEvent.change(identifier, { target: { value: 'product-42' } });
+    fireEvent.change(name, { target: { value: 'Warehouse scanner' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Register Product' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Catalog unavailable'));
+    expect(identifier).toHaveValue('product-42'); expect(name).toHaveValue('Warehouse scanner');
+    fireEvent.click(screen.getByRole('button', { name: 'Register Product' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Product Warehouse scanner created.'));
+    expect(api.createProduct).toHaveBeenNthCalledWith(1, 'product-42', 'Warehouse scanner');
+    expect(api.createProduct).toHaveBeenNthCalledWith(2, 'product-42', 'Warehouse scanner');
+    expect(identifier).toHaveValue(''); expect(name).toHaveValue('');
   });
 
   it('loads tenant-scoped journals on ledger navigation instead of refreshing all inventory', async () => {
