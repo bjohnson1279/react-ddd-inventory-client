@@ -210,3 +210,11 @@
 ## 2024-05-30 - Optimize Array Chaining in Render Loops
 **Learning:** Consecutive array methods (`.split().map().filter()`) inside a component render loop trigger unnecessary intermediate array allocations, blocking the main thread and impacting performance in heavily re-rendered components like `PythonWorkforcePanel`.
 **Action:** Always replace chained array methods with a single-pass `.reduce()` and memoize the result with `useMemo` when calculating derived values from primitive inputs during renders.
+
+## 2026-11-10 - Dense Chunking and Zero-Stock Pre-Allocation for REST Valuation Reports
+**Learning:** In REST adapters compiling entity reports across a catalog, queueing dummy `Promise.resolve` closures for zero-quantity items into chunked `Promise.all` arrays dilutes batches with no-ops and incurs repeated microtask queue stalls across hundreds of chunks.
+**Action:** Pre-allocate report arrays and assign zero-stock entities synchronously in a single O(N) pass, then queue only positive-stock entities into dense `Promise.all` chunks to minimize sequential round-trip batches and avoid closure/array allocations.
+
+## 2026-10-28 - In-Memory Cache for Serialized WMS Locations
+**Learning:** Re-fetching and deserializing an entire collection of warehouse locations from `localStorage` on every individual `saveWarehouseLocation` and `deleteWarehouseLocation` call incurs repetitive JSON parsing and serialization overhead that degrades performance significantly as the location catalog grows.
+**Action:** Maintain an in-memory cache per tenant for loaded warehouse locations in `GraphQLAdapter`, updating the in-memory array directly before persisting to `localStorage`, and invalidating/clearing the cache during `clearCache()`.

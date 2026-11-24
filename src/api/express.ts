@@ -263,11 +263,15 @@ export class ExpressRESTAdapter implements InventoryClient {
     trackingMode: string,
     attributes: { name: string; value: string }[],
   ): Promise<void> {
-    await this.request("POST", `/inventory/products/${encodeURIComponent(productId)}/variants`, {
-      sku,
-      trackingMode,
-      attributes,
-    });
+    await this.request(
+      "POST",
+      `/inventory/products/${encodeURIComponent(productId)}/variants`,
+      {
+        sku,
+        trackingMode,
+        attributes,
+      },
+    );
   }
 
   async assignBarcode(
@@ -318,7 +322,10 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async traceSerialHistory(serialNumber: string): Promise<SerializedItem> {
-    return this.request("GET", `/serials/trace/${encodeURIComponent(serialNumber)}`);
+    return this.request(
+      "GET",
+      `/serials/trace/${encodeURIComponent(serialNumber)}`,
+    );
   }
 
   async connectShopify(
@@ -401,18 +408,25 @@ export class ExpressRESTAdapter implements InventoryClient {
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
       const batch = items.slice(i, i + BATCH_SIZE);
       const promises = batch.map((item) =>
-        this.request("POST", `/onboarding/${encodeURIComponent(onboardingId)}/items`, {
-          variantId: item.variantId,
-          quantity: item.quantity,
-          unitCostCents: item.unitCostCents,
-        }),
+        this.request(
+          "POST",
+          `/onboarding/${encodeURIComponent(onboardingId)}/items`,
+          {
+            variantId: item.variantId,
+            quantity: item.quantity,
+            unitCostCents: item.unitCostCents,
+          },
+        ),
       );
       await Promise.all(promises);
     }
   }
 
   async submitStockOnboarding(onboardingId: string): Promise<void> {
-    await this.request("POST", `/onboarding/${encodeURIComponent(onboardingId)}/submit`);
+    await this.request(
+      "POST",
+      `/onboarding/${encodeURIComponent(onboardingId)}/submit`,
+    );
   }
 
   async getForecastingReport(
@@ -661,11 +675,19 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async approvePurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/approve`, { tenantId });
+    await this.request(
+      "POST",
+      `/purchase-orders/${encodeURIComponent(id)}/approve`,
+      { tenantId },
+    );
   }
 
   async sendPurchaseOrder(tenantId: string, id: string): Promise<void> {
-    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/send`, { tenantId });
+    await this.request(
+      "POST",
+      `/purchase-orders/${encodeURIComponent(id)}/send`,
+      { tenantId },
+    );
   }
 
   async receivePurchaseOrder(
@@ -673,10 +695,14 @@ export class ExpressRESTAdapter implements InventoryClient {
     id: string,
     items: { sku: string; quantity: number }[],
   ): Promise<void> {
-    await this.request("POST", `/purchase-orders/${encodeURIComponent(id)}/receive`, {
-      tenantId,
-      items,
-    });
+    await this.request(
+      "POST",
+      `/purchase-orders/${encodeURIComponent(id)}/receive`,
+      {
+        tenantId,
+        items,
+      },
+    );
   }
 
   // FEFO & Recall
@@ -720,7 +746,10 @@ export class ExpressRESTAdapter implements InventoryClient {
     userId: string,
     role: string,
   ): Promise<void> {
-    await this.request("PATCH", `/users/${encodeURIComponent(userId)}/role`, { tenantId, role });
+    await this.request("PATCH", `/users/${encodeURIComponent(userId)}/role`, {
+      tenantId,
+      role,
+    });
   }
 
   // RBAC
@@ -753,9 +782,13 @@ export class ExpressRESTAdapter implements InventoryClient {
     roleId: string,
     permissionIds: string[],
   ): Promise<void> {
-    await this.request("PUT", `/roles/${encodeURIComponent(roleId)}/permissions`, {
-      permissionIds,
-    });
+    await this.request(
+      "PUT",
+      `/roles/${encodeURIComponent(roleId)}/permissions`,
+      {
+        permissionIds,
+      },
+    );
   }
 
   async deleteRole(roleId: string): Promise<void> {
@@ -779,10 +812,14 @@ export class ExpressRESTAdapter implements InventoryClient {
     id: string,
     notes: string,
   ): Promise<void> {
-    await this.request("POST", `/audit/discrepancies/${encodeURIComponent(id)}/resolve`, {
-      tenantId,
-      notes,
-    });
+    await this.request(
+      "POST",
+      `/audit/discrepancies/${encodeURIComponent(id)}/resolve`,
+      {
+        tenantId,
+        notes,
+      },
+    );
   }
 
   async getOutboxStats(): Promise<OutboxStats> {
@@ -823,7 +860,10 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async getTenantConfig(tenantId: string): Promise<TenantAccountingConfig> {
-    return this.request("GET", `/accounting/tenant-config/${encodeURIComponent(tenantId)}`);
+    return this.request(
+      "GET",
+      `/accounting/tenant-config/${encodeURIComponent(tenantId)}`,
+    );
   }
 
   async saveTenantConfig(
@@ -897,10 +937,14 @@ export class ExpressRESTAdapter implements InventoryClient {
     id: string,
     resolution: string,
   ): Promise<void> {
-    await this.request("POST", `/returns/quarantine/${encodeURIComponent(id)}/resolve`, {
-      tenantId,
-      resolution,
-    });
+    await this.request(
+      "POST",
+      `/returns/quarantine/${encodeURIComponent(id)}/resolve`,
+      {
+        tenantId,
+        resolution,
+      },
+    );
   }
 
   async getValuationReport(
@@ -909,8 +953,11 @@ export class ExpressRESTAdapter implements InventoryClient {
     method?: string,
   ): Promise<ValuationItem[]> {
     try {
-      const products = await this.getProducts();
-      const invItems = await this.getInventoryItems();
+      // ⚡ Bolt: Execute independent initial network requests concurrently
+      const [products, invItems] = await Promise.all([
+        this.getProducts(),
+        this.getInventoryItems(),
+      ]);
 
       // ⚡ Bolt: Use O(M) pre-calculated Map for inventory quantities
       // Replaces O(N*M) filter/reduce inside nested loops with O(N+M) lookup
@@ -919,64 +966,81 @@ export class ExpressRESTAdapter implements InventoryClient {
         skuQtyMap.set(item.sku, (skuQtyMap.get(item.sku) || 0) + item.quantity);
       }
 
-      // ⚡ Bolt: Resolving N+1 HTTP Requests with chunked Promise.all for concurrent fetching
-      const items: ValuationItem[] = [];
-      const CHUNK_SIZE = 10;
-      let tasks: (() => Promise<ValuationItem>)[] = [];
+      let totalVariants = 0;
+      for (let i = 0; i < products.length; i++) {
+        totalVariants += products[i].variants.length;
+      }
 
+      // ⚡ Bolt: Pre-allocate items array and populate zero-stock variants synchronously.
+      // Dense chunking only executes network tasks for variants with quantity > 0,
+      // avoiding microtask churn and resolving N+1 requests in compact concurrent batches.
+      const items: ValuationItem[] = new Array(totalVariants);
+      const CHUNK_SIZE = 10;
+      const tasks: (() => Promise<void>)[] = [];
+      const defaultMethod = method || "FIFO";
+
+      let idx = 0;
       for (const p of products) {
+        const pName = p.name;
         for (const v of p.variants) {
           const qty = skuQtyMap.get(v.sku) || 0;
+          const currentIdx = idx++;
 
           if (qty > 0) {
+            let variantName = pName;
+            if (v.attributes && v.attributes.length > 0) {
+              let attrStr = "";
+              for (let a = 0; a < v.attributes.length; a++) {
+                attrStr += (a === 0 ? "" : ", ") + v.attributes[a].value;
+              }
+              variantName = `${pName} (${attrStr})`;
+            }
+
             tasks.push(() =>
               this.request(
                 "GET",
                 `/accounting/valuation/${encodeURIComponent(v.id)}?tenantId=${encodeURIComponent(tenantId)}&quantity=${encodeURIComponent(qty)}${method ? `&method=${encodeURIComponent(method)}` : ""}`,
               )
-                .then((val) => ({
-                  variantId: v.id,
-                  sku: v.sku,
-                  name:
-                    p.name +
-                    (v.attributes?.length
-                      ? ` (${v.attributes.map((a: any) => a.value).join(", ")})`
-                      : ""),
-                  costingMethod: val.methodUsed || method || "FIFO",
-                  totalQuantity: qty,
-                  totalValueCents: val.totalCostCents || 0,
-                  unitCostCents: val.unitCostCents || 0,
-                }))
-                .catch(() => ({
-                  variantId: v.id,
-                  sku: v.sku,
-                  name: p.name,
-                  costingMethod: method || "FIFO",
-                  totalQuantity: 0,
-                  totalValueCents: 0,
-                  unitCostCents: 0,
-                })),
+                .then((val) => {
+                  items[currentIdx] = {
+                    variantId: v.id,
+                    sku: v.sku,
+                    name: variantName,
+                    costingMethod: val.methodUsed || defaultMethod,
+                    totalQuantity: qty,
+                    totalValueCents: val.totalCostCents || 0,
+                    unitCostCents: val.unitCostCents || 0,
+                  };
+                })
+                .catch(() => {
+                  items[currentIdx] = {
+                    variantId: v.id,
+                    sku: v.sku,
+                    name: pName,
+                    costingMethod: defaultMethod,
+                    totalQuantity: 0,
+                    totalValueCents: 0,
+                    unitCostCents: 0,
+                  };
+                }),
             );
           } else {
-            tasks.push(() =>
-              Promise.resolve({
-                variantId: v.id,
-                sku: v.sku,
-                name: p.name,
-                costingMethod: method || "FIFO",
-                totalQuantity: 0,
-                totalValueCents: 0,
-                unitCostCents: 0,
-              }),
-            );
+            items[currentIdx] = {
+              variantId: v.id,
+              sku: v.sku,
+              name: pName,
+              costingMethod: defaultMethod,
+              totalQuantity: 0,
+              totalValueCents: 0,
+              unitCostCents: 0,
+            };
           }
         }
       }
 
       for (let i = 0; i < tasks.length; i += CHUNK_SIZE) {
         const chunk = tasks.slice(i, i + CHUNK_SIZE);
-        const results = await Promise.all(chunk.map((fn) => fn()));
-        items.push(...results);
+        await Promise.all(chunk.map((fn) => fn()));
       }
 
       return items;
@@ -1148,7 +1212,10 @@ export class ExpressRESTAdapter implements InventoryClient {
   }
 
   async toggleApprovalWorkflow(id: string): Promise<any> {
-    return await this.request("POST", `/approvals/workflows/${encodeURIComponent(id)}/toggle`);
+    return await this.request(
+      "POST",
+      `/approvals/workflows/${encodeURIComponent(id)}/toggle`,
+    );
   }
 
   async getPendingApprovals(): Promise<any[]> {
@@ -1160,14 +1227,21 @@ export class ExpressRESTAdapter implements InventoryClient {
     decision: string,
     notes: string,
   ): Promise<any> {
-    return await this.request("POST", `/approvals/${encodeURIComponent(id)}/decide`, {
-      decision,
-      notes,
-    });
+    return await this.request(
+      "POST",
+      `/approvals/${encodeURIComponent(id)}/decide`,
+      {
+        decision,
+        notes,
+      },
+    );
   }
 
   async getApprovalHistory(requestId: string): Promise<any[]> {
-    const data = await this.request("GET", `/approvals/${encodeURIComponent(requestId)}`);
+    const data = await this.request(
+      "GET",
+      `/approvals/${encodeURIComponent(requestId)}`,
+    );
     return data.decisions || [];
   }
 
@@ -1189,11 +1263,15 @@ export class ExpressRESTAdapter implements InventoryClient {
     cronExpression: string,
     deliveryMethod: string,
   ): Promise<any> {
-    return await this.request("POST", `/reports/${encodeURIComponent(reportId)}/schedule`, {
-      tenantId,
-      cronExpression,
-      deliveryMethod,
-    });
+    return await this.request(
+      "POST",
+      `/reports/${encodeURIComponent(reportId)}/schedule`,
+      {
+        tenantId,
+        cronExpression,
+        deliveryMethod,
+      },
+    );
   }
 
   async executeReport(
@@ -1201,10 +1279,14 @@ export class ExpressRESTAdapter implements InventoryClient {
     reportId: string,
     format: string,
   ): Promise<any> {
-    return await this.request("POST", `/reports/${encodeURIComponent(reportId)}/execute`, {
-      tenantId,
-      format,
-    });
+    return await this.request(
+      "POST",
+      `/reports/${encodeURIComponent(reportId)}/execute`,
+      {
+        tenantId,
+        format,
+      },
+    );
   }
 
   async getDashboardWidgets(tenantId: string): Promise<any[]> {
@@ -1235,7 +1317,11 @@ export class ExpressRESTAdapter implements InventoryClient {
     });
   }
   async submitCycleCount(id: string, countedLines: any): Promise<void> {
-    await this.request("POST", `/cycle-count/${encodeURIComponent(id)}/submit`, { countedLines });
+    await this.request(
+      "POST",
+      `/cycle-count/${encodeURIComponent(id)}/submit`,
+      { countedLines },
+    );
   }
   async getCycleCounts(tenantId: string): Promise<any[]> {
     return await this.request(

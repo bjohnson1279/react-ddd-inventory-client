@@ -3370,6 +3370,24 @@ export const LotManagementPanel = () => {
 
   const handleCrossDock = async () => {
     try {
+      // SECURITY: Validate JSON parsing to prevent client crashes/denial of service on malformed input
+      let parsedInbound: any;
+      let parsedBackorders: any;
+      try {
+        parsedInbound = JSON.parse(inboundJson || "[]");
+      } catch {
+        setStatusMsg("Cross-Docking error: Invalid JSON in Inbound Items");
+        return;
+      }
+      try {
+        parsedBackorders = JSON.parse(backordersJson || "[]");
+      } catch {
+        setStatusMsg(
+          "Cross-Docking error: Invalid JSON in Matching Backorders",
+        );
+        return;
+      }
+
       const activeToken = localStorage.getItem("auth_token") || "";
       const res = await fetch("/api/cross-dock/evaluate", {
         method: "POST",
@@ -3379,8 +3397,8 @@ export const LotManagementPanel = () => {
         },
         body: JSON.stringify({
           purchaseOrderId: poId,
-          inboundItems: JSON.parse(inboundJson || "[]"),
-          backorders: JSON.parse(backordersJson || "[]"),
+          inboundItems: parsedInbound,
+          backorders: parsedBackorders,
         }),
       });
       const data = await res.json();

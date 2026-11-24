@@ -39,6 +39,7 @@ const GRAPHQL_WS_URL =
 
 export class GraphQLAdapter implements InventoryClient {
   private variantNameMapCache: Map<string, string> | null = null;
+  private warehouseLocationsCache = new Map<string, WarehouseLocation[]>();
 
   private getHeaders(customToken?: string): Record<string, string> {
     const activeToken = customToken || localStorage.getItem("auth_token");
@@ -627,8 +628,12 @@ export class GraphQLAdapter implements InventoryClient {
 
   // WMS Layout
   async getWarehouseLocations(tenantId: string): Promise<WarehouseLocation[]> {
+    const cached = this.warehouseLocationsCache.get(tenantId);
+    if (cached) {
+      return [...cached];
+    }
     const local = localStorage.getItem(`gql_wms_locations_${tenantId}`);
-    return local
+    const locations: WarehouseLocation[] = local
       ? JSON.parse(local)
       : [
           {
@@ -646,6 +651,8 @@ export class GraphQLAdapter implements InventoryClient {
             maxVolumeCubicMeters: 10,
           },
         ];
+    this.warehouseLocationsCache.set(tenantId, locations);
+    return [...locations];
   }
 
   async saveWarehouseLocation(
@@ -659,6 +666,7 @@ export class GraphQLAdapter implements InventoryClient {
     } else {
       locations.push(location);
     }
+    this.warehouseLocationsCache.set(tenantId, locations);
     localStorage.setItem(
       `gql_wms_locations_${tenantId}`,
       JSON.stringify(locations),
@@ -668,6 +676,7 @@ export class GraphQLAdapter implements InventoryClient {
   async deleteWarehouseLocation(tenantId: string, id: string): Promise<void> {
     const locations = await this.getWarehouseLocations(tenantId);
     const filtered = locations.filter((l) => l.id !== id);
+    this.warehouseLocationsCache.set(tenantId, filtered);
     localStorage.setItem(
       `gql_wms_locations_${tenantId}`,
       JSON.stringify(filtered),
@@ -1261,6 +1270,11 @@ export class GraphQLAdapter implements InventoryClient {
     tenantId?: string,
   ): Promise<{ success: boolean; clearedKeysCount: number }> {
     this.variantNameMapCache = null;
+    if (tenantId) {
+      this.warehouseLocationsCache.delete(tenantId);
+    } else {
+      this.warehouseLocationsCache.clear();
+    }
     const data = await this.fetchGraphql(
       `mutation ClearCache($tenant: String) {
       clearCache(tenantId: $tenant)
