@@ -12,7 +12,7 @@
     "test:e2e": "npx playwright test"
   },
   "dependencies": {
-    "graphql-ws": "^6.4.1",
+    "graphql-ws": "^6.4.3",
     "lucide-react": "^1.74.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
