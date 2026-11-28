@@ -177,3 +177,8 @@
 **Vulnerability:** A sensitive integration secret (`secretRef` for Python Integrations) was being exposed in a plain text input field due to a missing `type="password"` attribute.
 **Learning:** This could lead to an accidental visual leak of the sensitive configuration keys/secrets to bystanders or shoulder-surfers.
 **Prevention:** Always initialize and display sensitive inputs using `<input type="password">` to mask the input, preventing visual exposure.
+
+## 2026-11-10 - Unvalidated JSON Parsing in User-Controlled Textareas
+**Vulnerability:** Direct `JSON.parse` invocations on user-editable textarea state variables (`inboundJson`, `backordersJson`) without validation or exception handling in `handleCrossDock`.
+**Learning:** Parsing arbitrary user string inputs with `JSON.parse` will throw unhandled syntax errors when users provide invalid JSON syntax, resulting in client runtime crashes and local denial of service.
+**Prevention:** Wrap user-controlled `JSON.parse` operations in try-catch validation blocks, surface user-friendly error messages to the UI, and prevent premature request dispatch on invalid input.
