@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 
 // Mock localStorage and sessionStorage for jsdom environment
 // jsdom provides these globals but they can be undefined in async useEffect contexts
-const localStorageMock = (() => {
+const createStorageMock = () => {
   let store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] ?? null,
@@ -12,10 +12,16 @@ const localStorageMock = (() => {
     get length() { return Object.keys(store).length; },
     key: (index: number) => Object.keys(store)[index] ?? null,
   };
-})();
+};
 
+const localStorageMock = createStorageMock();
+const sessionStorageMock = createStorageMock();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
-Object.defineProperty(window, 'sessionStorage', { value: localStorageMock, writable: true });
+Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock, writable: true });
+beforeEach(() => {
+  localStorageMock.clear();
+  sessionStorageMock.clear();
+});
 
 // Mock IndexedDB
 const indexedDBMock = {

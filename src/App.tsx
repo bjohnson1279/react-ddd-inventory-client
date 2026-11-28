@@ -707,6 +707,7 @@ function App() {
 
   const loadDashboardData = async () => {
     setLoading(true);
+    setMessage(previous => previous?.type === 'error' ? null : previous);
     try {
       // ⚡ Bolt: Execute independent dashboard data fetching concurrently using Promise.all to reduce overall loading time
       const [invData, prodData, connData, glData] = await Promise.all([
